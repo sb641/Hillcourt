@@ -1,4 +1,4 @@
-# Hillcourt («Двор на холме»)
+# Hillcourt
 
 A turn-based frontier strategic simulation and autonomous economic engine.
 
