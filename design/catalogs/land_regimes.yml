@@ -1,0 +1,52 @@
+# Каталог режимов/наделов земли. Владелец: Legal.
+# Режим отвечает, что двор МОЖЕТ на клетке (allowed_actions) и как земля
+# участвует в хозяйстве:
+#   requires_labor_days — домен: работа требует трудодней (пул домена)
+#   feeds_household     — надел: кормит двор
+# Домен и надел не смешивают стоки. Словарь действий един:
+#   plough | gather_brushwood | take_game | build_hut | leave
+# `foreign` не хранится на клетке: выводится правом (legal/regimes.py).
+# Земля манора: demesne | villein_tenement | cotter_plot | free_holding |
+# waste | reserved_wood. `tenement` оставлен как общий синоним надела.
+version: 1
+land_regimes:
+  - id: demesne
+    name: Домен держателя
+    allowed_actions: [plough, gather_brushwood, take_game, build_hut]
+    requires_labor_days: true
+    feeds_household: false
+  - id: villein_tenement
+    name: Вилланский надел
+    allowed_actions: [plough, gather_brushwood, take_game, build_hut, leave]
+    requires_labor_days: false
+    feeds_household: true
+  - id: cotter_plot
+    name: Коттерский клочок
+    allowed_actions: [plough, gather_brushwood, build_hut, leave]
+    requires_labor_days: false
+    feeds_household: true
+  - id: free_holding
+    name: Свободное держание
+    allowed_actions: [plough, gather_brushwood, take_game, build_hut, leave]
+    requires_labor_days: false
+    feeds_household: true
+  - id: tenement
+    name: Держание (общий надел)
+    allowed_actions: [plough, gather_brushwood, take_game, build_hut, leave]
+    requires_labor_days: false
+    feeds_household: true
+  - id: waste
+    name: Пустошь
+    allowed_actions: [gather_brushwood, take_game, leave]
+    requires_labor_days: false
+    feeds_household: false
+  - id: reserved_wood
+    name: Заповедный лес
+    allowed_actions: [take_game, leave]
+    requires_labor_days: false
+    feeds_household: false
+  - id: foreign
+    name: Чужое держание
+    allowed_actions: [leave]
+    requires_labor_days: false
+    feeds_household: false

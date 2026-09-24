@@ -1,0 +1,56 @@
+# Каталог потребностей двора. Владелец: Economist.
+# Отвечает на вопросы: сколько ест рот, сколько пьёт скотина, сколько дров нужно зимой,
+# как быстро тупится топор. Единицы — см. design/catalogs/README.md («Единицы»).
+#
+# food.*_per_month  — «рот-единицы» еды в месяц на человека данного класса.
+# food.edible_order — порядок поедания: сначала скоропортящееся, зерно последним.
+# fuel.winter_months — месяцы, когда топят; firewood_per_adult_winter_month — unit дров
+#                      на взрослого в такой месяц.
+# livestock.feed_per_month — unit сена в месяц на голову ЗИМОЙ (стойловый
+# норму). Летом стадо на подножном корму: `graze_months` — месяцы выпаса,
+# `graze_hay_fraction` — доля зимней нормы сеном в эти месяцы (рабочий скот
+# и стойловые — с коэффициентом, не ноль; допуск ADR 0053).
+# tool.wear_per_batch — износ топора (unit массы) за партию «топорного» рецепта.
+# tool.break_below — при остатке топора ниже порога он сломан и уходит в отходы.
+# relief — порог и размер подмоги из стока замка.
+version: 1
+food:
+  adult_per_month: 1.0
+  child_per_month: 0.7
+  elder_per_month: 0.8
+  edible_order: [flour, meat, grain]
+fuel:
+  winter_months: [11, 12, 1, 2, 3]
+  firewood_per_adult_winter_month: 0.6
+livestock:
+  feed_good: hay
+  feed_per_month: {pig: 0.5, ox_m: 1.2, ox_f: 1.0, donkey_m: 0.7, donkey_f: 0.7, horse_m: 1.0, horse_f: 1.0, ox_calf: 0.4, donkey_foal: 0.3, horse_foal: 0.4}
+  graze_months: [5, 6, 7, 8, 9]
+  graze_hay_fraction: 0.3
+tool:
+  wear_per_batch: 0.04
+  break_below: 0.25
+  wear_recipes: [harvest_grain, cut_firewood, cut_wood, split_logs, cut_peat, gather_hay, mine_iron, smith_axe, repair_axe]
+relief:
+  min_court_grain: 1.0
+  amount: 3.0
+birth:
+  # Рождение от излишка: двор растит семью, если сыт. Дети = будущие руки
+  # (основа средневекового труда), поэтому сытый двор рожает, а голодный — нет.
+  # Пороги высокие, чтобы не было демографического рая: роды — награда за
+  # устойчивый излишек, а не конвейер.
+  food_months: 5.0
+  streak_months: 8
+  max_household: 8
+  adults_required: 2
+  # Ребёнок становится работником через 30 мес (игровая абстракция: недоросль
+  # входит в тягло). В горизонте 36 мес руки дают в основном ранние роды.
+  maturity_months: 30
+death:
+  # Смертность: рты не копятся бесконечно. Низкая, чтобы не было мора, —
+  # баланс держится рождениями, а не гибелью.
+  child_per_month: 0.001
+  adult_per_month: 0.002
+  elder_per_month: 0.02
+  old_age_months: 600
+  old_age_extra: 0.01

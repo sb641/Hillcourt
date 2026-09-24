@@ -1,0 +1,10 @@
+[project]
+name = "hillcourt"
+version = "0.0.1"
+description = "Headless-симуляция баронии Hillcourt (фаза v0)"
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

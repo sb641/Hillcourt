@@ -1,0 +1,143 @@
+# Каталог правовых пресетов. Владелец: Legal.
+# Источник: ранние англосаксы + Domesday как гибрид v0.
+# Свободность юридическая, а не «никому не должен»: свободный может держать
+# землю за службу/ренту. Раб — не виллан; виллан — не раб. Зарплаты крестьянам нет.
+#
+# Три оси (обязательны, не 8 классов в коде):
+#   personal_status: free | tied | slave
+#   land_relation:   secure_holding | tenement | landless
+#   obligation_bundle: id из obligations.yml
+# Пресет = тройка (status, land, bundle) + права ниже. Больше пресетов нет.
+#
+# Поля прав:
+#   can_leave                      — может уйти сам, без приказа
+#   marriage_needs_permission      — брак требует разрешения лорда
+#   court                          — manor | public
+#   wergeld                        — имеет ли вергельд (раб — нет)
+#   inheritance                    — что наследует: none | secure_holding | tenement | cotter_plot
+#   can_sell_land                  — может ли продать землю
+#   can_be_taken_on_expedition     — можно взять в поход как повинность
+#   ploughs                        — пашет ли сам (thegn/holder в v0 — нет)
+#   land_kind                      — какой надел держит: demesne | villein_tenement |
+#                                    cotter_plot | free_holding | waste | reserved_wood
+version: 1
+legal_statuses:
+  - id: holder
+    name: Держатель
+    personal_status: free
+    land_relation: secure_holding
+    obligation_bundle: holder_none
+    can_leave: true
+    marriage_needs_permission: false
+    court: public
+    wergeld: true
+    inheritance: secure_holding
+    can_sell_land: true
+    can_be_taken_on_expedition: false
+    ploughs: false
+    land_kind: free_holding
+
+  - id: thegn
+    name: Тэн
+    personal_status: free
+    land_relation: secure_holding
+    obligation_bundle: thegn_service
+    can_leave: true
+    marriage_needs_permission: false
+    court: public
+    wergeld: true
+    inheritance: secure_holding
+    can_sell_land: true
+    can_be_taken_on_expedition: true
+    ploughs: false
+    land_kind: free_holding
+
+  - id: sokeman
+    name: Сокмен
+    personal_status: free
+    land_relation: secure_holding
+    obligation_bundle: sokeman_rent
+    can_leave: true
+    marriage_needs_permission: false
+    court: public
+    wergeld: true
+    inheritance: secure_holding
+    can_sell_land: true
+    can_be_taken_on_expedition: false
+    ploughs: true
+    land_kind: free_holding
+
+  - id: geneat
+    name: Генеат
+    personal_status: free
+    land_relation: tenement
+    obligation_bundle: geneat_service
+    can_leave: true
+    marriage_needs_permission: false
+    court: public
+    wergeld: true
+    inheritance: tenement
+    can_sell_land: false
+    can_be_taken_on_expedition: true
+    ploughs: true
+    land_kind: villein_tenement
+
+  - id: villein
+    name: Виллан
+    personal_status: tied
+    land_relation: tenement
+    obligation_bundle: villein_full
+    can_leave: false
+    marriage_needs_permission: true
+    court: manor
+    wergeld: true
+    inheritance: tenement
+    can_sell_land: false
+    can_be_taken_on_expedition: false
+    ploughs: true
+    land_kind: villein_tenement
+
+  - id: cotter
+    name: Коттер
+    personal_status: tied
+    land_relation: tenement
+    obligation_bundle: cotter_monday
+    can_leave: false
+    marriage_needs_permission: true
+    court: manor
+    wergeld: true
+    inheritance: cotter_plot
+    can_sell_land: false
+    can_be_taken_on_expedition: false
+    ploughs: true
+    land_kind: cotter_plot
+
+  - id: free_landless
+    name: Свободный безземельный
+    personal_status: free
+    land_relation: landless
+    obligation_bundle: free_landless_none
+    can_leave: true
+    marriage_needs_permission: false
+    court: public
+    wergeld: true
+    inheritance: none
+    can_sell_land: false
+    can_be_taken_on_expedition: false
+    ploughs: true
+    land_kind: waste
+
+  - id: slave
+    name: Раб
+    personal_status: slave
+    land_relation: landless
+    obligation_bundle: slave_ration
+    can_leave: false
+    marriage_needs_permission: true
+    court: manor
+    wergeld: false
+    inheritance: none
+    can_sell_land: false
+    can_be_taken_on_expedition: false
+    ploughs: true
+    land_kind: demesne

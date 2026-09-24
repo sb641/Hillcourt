@@ -13,7 +13,23 @@ build/
 .env
 .env.*
 !.env.example
+.envrc
 *.local
+.netrc
+.npmrc
+.pypirc
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.crt
+*.cer
+*.der
+credentials*.json
+service-account*.json
+*.tfvars
 
 # IDE & OS
 .DS_Store

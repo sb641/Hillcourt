@@ -1,0 +1,317 @@
+# Каталог рецептов. Владелец: Economist.
+# Баланс каждой партии: sum(inputs) + sum(draws_standing) == sum(outputs) + sum(loss).
+#   inputs          — списывается со стока двора;
+#   draws_standing  — списывается со стоячей материи клетки (Tile.standing);
+#   outputs         — идёт в сток двора;
+#   loss            — уходит в sink:waste.
+# `draws_standing` не создаёт материю: правило появления даёт её в phase_growth.
+# Рецепт без выхода товара, которого не было на входе, обязан иметь transform: true.
+# Труд: labor_days — трудодни на одну партию при масштабе 1.
+# Единицы: см. design/catalogs/README.md («Единицы»).
+version: 1
+recipes:
+  - id: harvest_grain
+    name: Жатва
+    place: tile
+    requires_terrain: [field]
+    inputs: {}
+    draws_standing: {grain: 6.0}
+    outputs: {grain: 5.0, straw: 0.8}
+    loss: {grain: 0.2}
+    labor_days: 20
+    transform: true
+  - id: mill_flour
+    name: Помол муки
+    place: settlement
+    inputs: {grain: 1.2}
+    draws_standing: {}
+    outputs: {flour: 1.0}
+    loss: {grain: 0.2}
+    labor_days: 5
+    transform: true
+  - id: cut_firewood
+    name: Заготовка дров
+    place: tile
+    requires_terrain: [forest]
+    inputs: {}
+    draws_standing: {firewood: 4.2}
+    outputs: {firewood: 4.0}
+    loss: {firewood: 0.2}
+    labor_days: 15
+  - id: cut_wood
+    name: Валка леса
+    place: tile
+    requires_terrain: [forest]
+    inputs: {}
+    draws_standing: {log: 3.15}
+    outputs: {log: 3.0}
+    loss: {log: 0.15}
+    labor_days: 12
+  - id: split_logs
+    name: Колка брёвен
+    place: settlement
+    inputs: {log: 1.05}
+    draws_standing: {}
+    outputs: {firewood: 1.0}
+    loss: {log: 0.05}
+    labor_days: 4
+    transform: true
+  - id: cut_peat
+    name: Резка торфа
+    place: tile
+    requires_terrain: [marsh]
+    inputs: {}
+    draws_standing: {peat: 3.15}
+    outputs: {peat: 3.0}
+    loss: {peat: 0.15}
+    labor_days: 12
+  - id: gather_hay
+    name: Уборка сена
+    place: tile
+    requires_terrain: [pasture]
+    inputs: {}
+    draws_standing: {hay: 3.15}
+    outputs: {hay: 3.0}
+    loss: {hay: 0.15}
+    labor_days: 8
+  - id: mine_iron
+    name: Добыча болотного железа
+    place: tile
+    requires_terrain: [marsh]
+    inputs: {}
+    draws_standing: {iron: 0.63}
+    outputs: {iron: 0.6}
+    loss: {iron: 0.03}
+    labor_days: 10
+  - id: shear_sheep
+    name: Стрижка овец
+    place: tile
+    requires_terrain: [pasture]
+    inputs: {}
+    draws_standing: {wool: 1.05}
+    outputs: {wool: 1.0}
+    loss: {wool: 0.05}
+    labor_days: 6
+  - id: weave_cloth
+    name: Тканьё
+    place: settlement
+    inputs: {wool: 1.05}
+    draws_standing: {}
+    outputs: {cloth: 1.0}
+    loss: {wool: 0.05}
+    labor_days: 8
+    transform: true
+  - id: butcher_pig
+    name: Убой свиньи
+    place: settlement
+    inputs: {pig: 1.0}
+    draws_standing: {}
+    outputs: {meat: 0.6, hide: 0.25}
+    loss: {pig: 0.15}
+    labor_days: 3
+    transform: true
+  - id: smith_axe
+    name: Ковка топора
+    place: settlement
+    inputs: {iron: 0.6, firewood: 0.5}
+    draws_standing: {}
+    outputs: {axe: 1.0}
+    loss: {iron: 0.1}
+    labor_days: 10
+    transform: true
+  - id: smelt_iron_bloom
+    name: Выплавка крицы
+    place: settlement
+    inputs: {iron: 1.2, firewood: 0.6}
+    draws_standing: {}
+    outputs: {iron_bloom: 1.0}
+    loss: {iron: 0.2, firewood: 0.6}
+    labor_days: 10
+    transform: true
+  - id: smith_kit
+    name: Сборка боевого комплекта
+    place: settlement
+    inputs: {iron_bloom: 1.0}
+    draws_standing: {}
+    outputs: {war_kit: 1.0}
+    loss: {}
+    labor_days: 10
+    transform: true
+  - id: smith_iron_share
+    name: Ковка железного лемеха
+    place: settlement
+    inputs: {iron: 1.2, firewood: 0.6}
+    draws_standing: {}
+    outputs: {iron_share: 1.0}
+    loss: {iron: 0.2, firewood: 0.6}
+    labor_days: 8
+    transform: true
+  - id: repair_axe
+    name: Починка топора
+    place: settlement
+    inputs: {iron: 0.1}
+    draws_standing: {}
+    outputs: {axe: 0.1}
+    loss: {}
+    labor_days: 3
+    transform: true
+  - id: craft_cart
+    name: Сборка телеги
+    place: settlement
+    inputs: {log: 4.0, firewood: 1.0}
+    draws_standing: {}
+    outputs: {cart: 1.0}
+    loss: {log: 4.0}
+    labor_days: 20
+    transform: true
+  - id: craft_raft
+    name: Сборка плота
+    place: settlement
+    inputs: {log: 3.0}
+    draws_standing: {}
+    outputs: {raft: 1.0}
+    loss: {log: 2.0}
+    labor_days: 12
+    transform: true
+  - id: craft_boat
+    name: Сборка малой лодки
+    place: settlement
+    inputs: {log: 4.0, firewood: 0.5}
+    draws_standing: {}
+    outputs: {boat: 1.0}
+    loss: {log: 3.0, firewood: 0.5}
+    labor_days: 16
+    transform: true
+  - id: craft_wooden_plough
+    name: Сборка деревянного плуга
+    place: settlement
+    inputs: {log: 2.0}
+    draws_standing: {}
+    outputs: {wooden_plough: 1.0}
+    loss: {log: 1.0}
+    labor_days: 10
+    transform: true
+  - id: farrow_pigs
+    name: Приплод свиней
+    place: settlement
+    inputs: {pig: 1.0, hay: 6.0}
+    draws_standing: {}
+    outputs: {pig: 2.0}
+    loss: {hay: 5.0}
+    labor_days: 8
+    transform: true
+  - id: boil_salt
+    name: Выварка соли
+    place: settlement
+    requires_terrain: [salt_flat]
+    inputs: {peat: 3.0}
+    draws_standing: {brine: 6.0}
+    outputs: {salt: 2.0}
+    loss: {peat: 3.0, brine: 4.0}
+    labor_days: 15
+    transform: true
+  - id: forage_wild
+    name: Сбор по угодьям
+    place: tile
+    requires_terrain: [forest, heath, marsh]
+    inputs: {}
+    draws_standing: {firewood: 1.5, grain: 0.2}
+    outputs: {firewood: 1.4, grain: 0.18}
+    loss: {firewood: 0.1, grain: 0.02}
+    labor_days: 6
+  # Скот и тягло (ADR 0025). Приплод: самец + самка одного вида в одном стоке
+  # (двор или амбар) и сено дают редкий молодняк в тике — не ферма-кликер.
+  # Родители — условие, а не вход: кобыла не исчезает, телёнок рождается из сена
+  # (4 сена = 1 молодняк + 3 потерь). Взросление: молодняк + сено → взрослый
+  # (1 + 2 = 1 + 2 потерь); пол — жребием в тике. labor_days номинален
+  # (каталог требует > 0): фаза скота труд не списывает, процесс пассивный.
+  - id: breed_ox
+    name: Приплод волов
+    place: settlement
+    requires_terrain: []
+    inputs: {hay: 4.0}
+    draws_standing: {}
+    outputs: {ox_calf: 1.0}
+    loss: {hay: 3.0}
+    labor_days: 2
+    transform: true
+  - id: breed_donkey
+    name: Приплод ослов
+    place: settlement
+    requires_terrain: []
+    inputs: {hay: 4.0}
+    draws_standing: {}
+    outputs: {donkey_foal: 1.0}
+    loss: {hay: 3.0}
+    labor_days: 2
+    transform: true
+  - id: breed_horse
+    name: Приплод коней
+    place: settlement
+    requires_terrain: []
+    inputs: {hay: 4.0}
+    draws_standing: {}
+    outputs: {horse_foal: 1.0}
+    loss: {hay: 3.0}
+    labor_days: 2
+    transform: true
+  - id: mature_ox_calf_m
+    name: Вырост вола
+    place: settlement
+    requires_terrain: []
+    inputs: {ox_calf: 1.0, hay: 2.0}
+    draws_standing: {}
+    outputs: {ox_m: 1.0}
+    loss: {hay: 2.0}
+    labor_days: 2
+    transform: true
+  - id: mature_ox_calf_f
+    name: Вырост коровы
+    place: settlement
+    requires_terrain: []
+    inputs: {ox_calf: 1.0, hay: 2.0}
+    draws_standing: {}
+    outputs: {ox_f: 1.0}
+    loss: {hay: 2.0}
+    labor_days: 2
+    transform: true
+  - id: mature_donkey_foal_m
+    name: Вырост осла
+    place: settlement
+    requires_terrain: []
+    inputs: {donkey_foal: 1.0, hay: 2.0}
+    draws_standing: {}
+    outputs: {donkey_m: 1.0}
+    loss: {hay: 2.0}
+    labor_days: 2
+    transform: true
+  - id: mature_donkey_foal_f
+    name: Вырост ослицы
+    place: settlement
+    requires_terrain: []
+    inputs: {donkey_foal: 1.0, hay: 2.0}
+    draws_standing: {}
+    outputs: {donkey_f: 1.0}
+    loss: {hay: 2.0}
+    labor_days: 2
+    transform: true
+  - id: mature_horse_foal_m
+    name: Вырост жеребца
+    place: settlement
+    requires_terrain: []
+    inputs: {horse_foal: 1.0, hay: 2.0}
+    draws_standing: {}
+    outputs: {horse_m: 1.0}
+    loss: {hay: 2.0}
+    labor_days: 2
+    transform: true
+  - id: mature_horse_foal_f
+    name: Вырост кобылы
+    place: settlement
+    requires_terrain: []
+    inputs: {horse_foal: 1.0, hay: 2.0}
+    draws_standing: {}
+    outputs: {horse_f: 1.0}
+    loss: {hay: 2.0}
+    labor_days: 2
+    transform: true

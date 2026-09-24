@@ -1,0 +1,104 @@
+# Сценарий v0: двор на холме и племенная деревня (ADR 0059/0060).
+# Владелец: Implementer (секции stocks/recipes может править Economist).
+# Племя — данные: Settlement.kind=native_village, дворы free_landless,
+# manor_id=None, общие права kind=common из YAML. Окна §1 не трогаются:
+# этот мир отдельный, канон hill/two/shire не загружает его.
+#
+# Сетка 7x5 = 35 клеток. Легенда:
+#   H hill, f field, p pasture, F forest, . heath
+id: v0_native_village
+title: "Двор на холме и племенная деревня"
+seed: 1729
+
+clock:
+  start_year: 1
+  start_month: 1
+  months_per_year: 12
+
+map:
+  legend:
+    H: hill
+    f: field
+    p: pasture
+    F: forest
+    ".": heath
+  rows:
+    - "HHffppp"
+    - "HffpFpp"
+    - "HfFppf."
+    - "pFF.ppp"
+    - ".ppFFpp"
+
+settlements:
+  - {id: hill_court, name: "Двор на холме", kind: hill_court, at: [1, 1], works_tiles: [[2, 1], [3, 0]]}
+  - {id: fs_01, name: "Двор Ольхи", kind: farmstead, at: [0, 3]}
+  - {id: fs_02, name: "Двор Межи", kind: farmstead, at: [1, 2]}
+  # Племенная деревня: вид — данные (ADR 0060), не маркер. Одна жилая клетка
+  # (предел v1), общие пастбища и пустошь — в works_tiles (общинный доступ).
+  - {id: tribal_village, name: "Племенная деревня", kind: native_village, at: [5, 2], works_tiles: [[4, 2], [5, 1], [3, 3]]}
+
+initial_hazards:
+  - {kind: wolves, at: [0, 1], intensity: 0.6}
+  - {kind: bog, at: [2, 2], intensity: 1.0}
+
+player:
+  court_settlement_id: hill_court
+  household_id: hh_court
+  rent_share: 0.1
+  thegn_grant_limit: {tiles: 3, households: 3}
+
+# Права из YAML. `common` — общий доступ общины, НЕ индивидуальное держание
+# (ADR 0060): носитель — поселение, в наделе двора клетка не стоит.
+# `grazing` — обычное индивидуальное право выпаса лорда, для контраста.
+rights:
+  - {id: right_common_pasture, kind: common, holder_settlement_id: tribal_village, at: [5, 3], rent_share: 0.0}
+  - {id: right_grazing_hill, kind: grazing, holder_household_id: hh_court, at: [5, 3], rent_share: 0.0}
+
+# Племя v1 (ADR 0064): ровно одно племя на `native_village` (биекция в
+# загрузчике). Числа оброка/вызова (`tribute_grain`/`muster_kits`) — дефолт 0:
+# их заполняет Economist, здесь не выдумываются. Стойка independent: оброк не
+# платится, вызов не даётся. Состав и общая земля вычисляются, полей-кэшей нет.
+tribes:
+  - {id: tribe_village, name: "Племя", stance: independent, settlement_id: tribal_village}
+
+# Маркеры вида (ADR 0065): только данные, тик не пишет и не читает.
+# `dwelling` — уровень дома единственного двора; `tavern` — место под таверну.
+marks:
+  - {at: [0, 3], mark: dwelling, value: tent_earth}
+  - {at: [3, 1], mark: tavern}
+
+households:
+  - {id: hh_court, name: "Семья держателя", settlement_id: hill_court, adults: 2, children: 2, slaves: 2, legal_status: holder}
+  - {id: hh_01, name: "Ольшане", settlement_id: fs_01, adults: 3, children: 2, legal_status: sokeman}
+  - {id: hh_02, name: "Межинцы", settlement_id: fs_02, adults: 2, children: 1, legal_status: free_landless}
+  - {id: hh_tribe_01, name: "Племя: первый двор", settlement_id: tribal_village, adults: 3, children: 2, legal_status: free_landless}
+  - {id: hh_tribe_02, name: "Племя: второй двор", settlement_id: tribal_village, adults: 2, children: 3, mood: 0.7, legal_status: free_landless}
+  - {id: hh_tribe_03, name: "Племя: третий двор", settlement_id: tribal_village, adults: 4, children: 1, legal_status: free_landless}
+
+# Стартовые склады. Племя живёт со своих запасов и найма (в v1 у них нет
+# надеждённой пашни: communal-доступ к полям — вопрос Economist/Legal).
+starting_stocks:
+  "household:hh_court": {grain: 90.0, firewood: 20.0, axe: 2.0, silver: 10.0, cart: 1.0}
+  "household:hh_01": {grain: 34.0, firewood: 8.0, axe: 1.0}
+  "household:hh_02": {grain: 20.0, firewood: 6.0}
+  "household:hh_tribe_01": {grain: 60.0, firewood: 10.0}
+  "household:hh_tribe_02": {grain: 55.0, firewood: 10.0}
+  "household:hh_tribe_03": {grain: 70.0, firewood: 12.0}
+  "settlement:hill_court": {grain: 60.0, firewood: 10.0}
+  "settlement:tribal_village": {grain: 40.0, firewood: 10.0}
+
+catalogs:
+  goods: design/catalogs/goods.yml
+  recipes: design/catalogs/recipes.yml
+  spawn_rules: design/catalogs/spawn_rules.yml
+  hazards: design/catalogs/hazards.yml
+  obligations: design/catalogs/obligations.yml
+  rights: design/catalogs/rights.yml
+  land_regimes: design/catalogs/land_regimes.yml
+  legal_statuses: design/catalogs/legal_statuses.yml
+  offices: design/catalogs/offices.yml
+  needs: design/catalogs/needs.yml
+  actions_household: design/catalogs/actions_household.yml
+  manor: design/catalogs/manor.yml
+  seasons: design/catalogs/seasons.yml
+  calendar: design/catalogs/calendar_v0.yml

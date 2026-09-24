@@ -1,0 +1,21 @@
+# Каталог опасностей. Владелец: Economist.
+# Опасность — свойство клетки (`Hazard`), реальное для тех, кто там окажется.
+# Параметры:
+#   grain_theft_per_month — доля зерна двора, которую уносит опасность (умножается на intensity);
+#   travel_risk           — шанс потерять человека, если двор в этом месяце ходил по клетке.
+# Мёртвый `travel_delay_months` вычищен (ADR 0047): чтений — 0, рычаг давал бы
+# +1 день на топь при кванте `eta` в месяц, т.е. только +0.05 фуража на зерновозе.
+version: 1
+hazards:
+  - id: wolves
+    name: Волки
+    kind: wolves
+    params: {terrain: forest, grain_theft_per_month: 0.5, travel_risk: 0.3}
+  - id: bog
+    name: Топь
+    kind: bog
+    params: {terrain: marsh, travel_risk: 0.1}
+  - id: band
+    name: Ватага
+    kind: band
+    params: {terrain: marsh, grain_theft_per_month: 2.0, travel_risk: 0.4}

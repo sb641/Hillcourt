@@ -1,0 +1,216 @@
+# Сценарий D1+часть 2 «Шир»: четыре посёлка и ДВА пожалования тэна.
+# Основа — v0_two_settlements (холм, соляная деревня, деревня у ясеня).
+# Нового движка нет: снизу добавлены две строки карты, четыре новых хутора и
+# четыре двора в ash_village. Дворов 34 (26 + 8), поселений 7.
+# Владелец: Implementer (секции stocks/recipes может править Economist).
+#
+# Сетка 9x11 = 99 клеток. Легенда:
+#   H hill, f field, p pasture, F forest, m marsh, s salt_flat, r ruin, . heath, ~ water
+# Река зоны ВОДА (одна, три клетки (3,3)-(4,3)-(4,4), брод t_04_04): суша идёт
+# бродом дорого, плот — профилем water_raft/water_boat. Сухопутные обозы
+# (манхэттен: соль y=5/x=1, зерно x=2) реку не пересекают и живы.
+id: v0_shire
+title: "Шир: холм, соль, ясень и два тэна на своей земле"
+seed: 1729
+
+clock:
+  start_year: 1
+  start_month: 1
+  months_per_year: 12
+
+map:
+  legend:
+    H: hill
+    f: field
+    p: pasture
+    F: forest
+    m: marsh
+    s: salt_flat
+    r: ruin
+    ".": heath
+    "~": water
+  rows:
+    - "FF.ppp.FF"
+    - "FHffpff.F"
+    - "pfffffff."
+    - "pfm~~pffp"
+    - "p.mr~.fFF"
+    - "F.mm.pfFs"
+    - "FF.ppp.ms"
+    - "FF.ffppp."
+    - "F.mm.ffF."
+    # Добавленные строки: пашня для новых хуторов и третьего поля холма.
+    - "ffp.fpfpp"
+    - "pff.fpff."
+
+# Брод через реку (зона ВОДА): суша пересекает воду без судна дорого.
+fords:
+  - [4, 4]
+
+settlements:
+  # Третье поле холма t_01_10: второе пожалование (M18) пашет СВОЙ домен,
+  # первое (M6) забрало t_05_02, а M18 забирает и последнее доменное поле
+  # корня t_06_02: второй тен кормится сам, корень проседает сильнее.
+  - {id: hill_court, name: "Двор на холме", kind: hill_court, at: [1, 1], works_tiles: [[5, 2], [6, 2], [1, 10]]}
+  - {id: fs_01, name: "Двор Ольхи", kind: farmstead, at: [2, 1]}
+  - {id: fs_02, name: "Двор Ключа", kind: farmstead, at: [3, 1]}
+  - {id: fs_03, name: "Двор Пня", kind: farmstead, at: [5, 1]}
+  - {id: fs_04, name: "Двор Гряды", kind: farmstead, at: [6, 1]}
+  - {id: fs_05, name: "Двор Плетня", kind: farmstead, at: [1, 2]}
+  - {id: fs_06, name: "Двор Межи", kind: farmstead, at: [2, 2]}
+  - {id: fs_07, name: "Двор Брода", kind: farmstead, at: [3, 2]}
+  - {id: fs_08, name: "Двор Куста", kind: farmstead, at: [4, 2]}
+  - {id: fs_09, name: "Двор Кремня", kind: farmstead, at: [6, 3]}
+  - {id: fs_10, name: "Двор Смолы", kind: farmstead, at: [7, 3]}
+  - {id: salt_village, name: "Соляная деревня", kind: salt_village, at: [8, 5], works_tiles: [[6, 5], [6, 4], [7, 6]]}
+  # Третий посёлок: (2,7) — пустошь, поля (3,7),(4,7),(5,8),(6,8). Путь холм→деревня 7 клеток.
+  - {id: ash_village, name: "Деревня у ясеня", kind: village, at: [2, 7], works_tiles: [[3, 7], [4, 7], [5, 8], [6, 8]]}
+  # Новые хутора на добавленных строках: у каждого своё полевая усадьба.
+  # fs_12 держит выпасом соседнее пастбище t_02_09 (waste): выпас закреплён за
+  # двором через works_tiles (доступ и так был по соседству — см. hay_pastures),
+  # чтобы сено косилось своим, а не ничьим.
+  - {id: fs_11, name: "Двор Вереска", kind: farmstead, at: [0, 9]}
+  - {id: fs_12, name: "Двор Мха", kind: farmstead, at: [1, 9], works_tiles: [[2, 9]]}
+  - {id: fs_13, name: "Двор Ветлы", kind: farmstead, at: [4, 9]}
+  - {id: fs_14, name: "Двор Чертополоха", kind: farmstead, at: [6, 9]}
+
+# Стартовые опасности. Лес у холма — волки; топь — заготовка под ватагу.
+initial_hazards:
+  - {kind: wolves, at: [0, 1], intensity: 0.6}
+  - {kind: bog, at: [2, 4], intensity: 1.0}
+
+player:
+  court_settlement_id: hill_court
+  household_id: hh_court
+  rent_share: 0.1
+  # Два пожалования: M6 — служилый холма, M18 — корневой коттер hh_03_p1.
+  # Лимит grants: 2; каждый тен depth ≤ 1 со своим амбаром и доменом.
+  thegn_grant_limit: {tiles: 3, households: 3, grants: 2}
+
+# Дворы разной сытости и нрава. curiosity/fear задают характер (0..1);
+# без них берётся детерминированная случайность от seed.
+households:
+  - {id: hh_court, name: "Семья держателя", settlement_id: hill_court, adults: 2, children: 2, slaves: 2, legal_status: holder}
+  - {id: hh_retinue, name: "Служилые холма", settlement_id: hill_court, adults: 3, children: 0, legal_status: thegn}
+  - {id: hh_01, name: "Ольшане", settlement_id: fs_01, adults: 3, children: 2, legal_status: sokeman}
+  - {id: hh_02, name: "Ключники", settlement_id: fs_02, adults: 2, children: 3, legal_status: villein}
+  - {id: hh_03, name: "Пни", settlement_id: fs_03, adults: 4, children: 1, legal_status: cotter}
+  - {id: hh_04, name: "Грядичи", settlement_id: fs_04, adults: 2, children: 2, legal_status: geneat}
+  - {id: hh_05, name: "Плетни", settlement_id: fs_05, adults: 3, children: 3, mood: 0.55, legal_status: villein}
+  - {id: hh_06, name: "Межинцы", settlement_id: fs_06, adults: 2, children: 1, legal_status: free_landless}
+  - {id: hh_07, name: "Бродники", settlement_id: fs_07, adults: 3, children: 2, curiosity: 0.9, fear: 0.1, legal_status: sokeman}
+  - {id: hh_08, name: "Кусты", settlement_id: fs_08, adults: 2, children: 4, mood: 0.5, legal_status: villein}
+  - {id: hh_09, name: "Кремни", settlement_id: fs_09, adults: 4, children: 2, legal_status: geneat}
+  - {id: hh_10, name: "Смоляне", settlement_id: fs_10, adults: 3, children: 1, legal_status: cotter}
+  - {id: hh_salt_01, name: "Солевары", settlement_id: salt_village, adults: 4, children: 2, legal_status: holder}
+  - {id: hh_salt_02, name: "Выварщики", settlement_id: salt_village, adults: 3, children: 2, mood: 0.5, legal_status: holder}
+  # Деревня у ясеня: 16 дворов. Последний двор надельный (feeds_household),
+  # чтобы усадебная клетка t_02_07 кормила, а не стала waste безземельного.
+  - {id: av_01, name: "Ясеневы", settlement_id: ash_village, adults: 3, children: 2, legal_status: villein}
+  - {id: av_02, name: "Поляне", settlement_id: ash_village, adults: 2, children: 3, legal_status: villein}
+  - {id: av_03, name: "Корневы", settlement_id: ash_village, adults: 4, children: 1, legal_status: sokeman}
+  - {id: av_04, name: "Лозовы", settlement_id: ash_village, adults: 2, children: 2, legal_status: sokeman}
+  - {id: av_05, name: "Кошелевы", settlement_id: ash_village, adults: 3, children: 0, legal_status: cotter}
+  - {id: av_06, name: "Щепины", settlement_id: ash_village, adults: 2, children: 1, legal_status: cotter}
+  - {id: av_07, name: "Бобыли", settlement_id: ash_village, adults: 2, children: 1, legal_status: free_landless}
+  - {id: av_08, name: "Дубравины", settlement_id: ash_village, adults: 3, children: 2, legal_status: geneat}
+  - {id: av_09, name: "Вязовы", settlement_id: ash_village, adults: 3, children: 1, legal_status: sokeman}
+  - {id: av_10, name: "Тихие", settlement_id: ash_village, adults: 2, children: 2, legal_status: villein}
+  - {id: av_11, name: "Ольховы", settlement_id: ash_village, adults: 3, children: 1, legal_status: geneat}
+  - {id: av_12, name: "Сухие", settlement_id: ash_village, adults: 2, children: 2, legal_status: cotter}
+  - {id: av_13, name: "Ярусы", settlement_id: ash_village, adults: 3, children: 1, legal_status: sokeman}
+  - {id: av_14, name: "Кленовы", settlement_id: ash_village, adults: 2, children: 2, legal_status: villein}
+  - {id: av_15, name: "Репины", settlement_id: ash_village, adults: 3, children: 2, legal_status: cotter}
+  - {id: av_16, name: "Грибовы", settlement_id: ash_village, adults: 3, children: 1, legal_status: villein}
+  # Новые хутора: по одному двору на поле.
+  - {id: hh_11, name: "Вересковы", settlement_id: fs_11, adults: 3, children: 2, legal_status: villein}
+  - {id: hh_12, name: "Мшане", settlement_id: fs_12, adults: 2, children: 2, legal_status: cotter}
+  - {id: hh_13, name: "Ветлы", settlement_id: fs_13, adults: 3, children: 1, legal_status: sokeman}
+  - {id: hh_14, name: "Чертополохи", settlement_id: fs_14, adults: 3, children: 2, legal_status: geneat}
+
+# Стартовые склады. Ключ — "<owner_kind>:<owner_id>".
+starting_stocks:
+  "household:hh_court": {grain: 120.0, firewood: 20.0, salt: 6.0, axe: 2.0, silver: 10.0}
+  "household:hh_retinue": {grain: 20.0, firewood: 6.0, axe: 1.0, iron_bloom: 2.0}
+  "settlement:hill_court": {grain: 60.0, salt: 4.0, firewood: 10.0, cart: 1.0, iron_bloom: 3.0}
+  "settlement:salt_village": {grain: 30.0, cart: 1.0}
+  "household:hh_01": {grain: 34.0, firewood: 8.0, axe: 1.0}
+  "household:hh_02": {grain: 40.0, firewood: 8.0, axe: 1.0}
+  "household:hh_03": {grain: 26.0, firewood: 6.0, axe: 1.0, iron_bloom: 2.0}
+  "household:hh_04": {grain: 36.0, firewood: 7.0, axe: 1.0, log: 2.0}
+  # Плетни — пожалованный двор второго тэна: запас выше, чтобы честно платить
+  # натуральный гэфоль в амбар тэна на Мартинов день.
+  "household:hh_05": {grain: 60.0, firewood: 9.0, axe: 1.0}
+  "household:hh_06": {grain: 20.0, firewood: 6.0, pig: 2.0, hay: 8.0}
+  "household:hh_07": {grain: 32.0, firewood: 8.0, silver: 5.0}
+  "household:hh_08": {grain: 34.0, firewood: 5.0, axe: 1.0}
+  "household:hh_09": {grain: 40.0, firewood: 10.0, axe: 1.0, horse_m: 1.0, horse_f: 1.0, hay: 40.0}
+  "household:hh_10": {grain: 24.0, firewood: 7.0, pig: 1.0, hay: 5.0, axe: 1.0}
+  "household:hh_salt_01": {grain: 32.0, firewood: 4.0, peat: 12.0, axe: 1.0}
+  "household:hh_salt_02": {grain: 30.0, firewood: 4.0, peat: 10.0, axe: 1.0}
+  "household:av_01": {grain: 34.0, firewood: 8.0, axe: 1.0}
+  "household:av_02": {grain: 40.0, firewood: 8.0, axe: 1.0}
+  "household:av_03": {grain: 38.0, firewood: 9.0, axe: 1.0}
+  "household:av_04": {grain: 36.0, firewood: 7.0, axe: 1.0}
+  "household:av_05": {grain: 26.0, firewood: 6.0, axe: 1.0}
+  "household:av_06": {grain: 24.0, firewood: 5.0, axe: 1.0}
+  "household:av_07": {grain: 40.0, firewood: 6.0, hay: 4.0}
+  "household:av_08": {grain: 32.0, firewood: 8.0, axe: 1.0}
+  "household:av_09": {grain: 36.0, firewood: 8.0, axe: 1.0}
+  "household:av_10": {grain: 32.0, firewood: 7.0, axe: 1.0}
+  "household:av_11": {grain: 36.0, firewood: 8.0, axe: 1.0}
+  "household:av_12": {grain: 26.0, firewood: 6.0, axe: 1.0}
+  "household:av_13": {grain: 34.0, firewood: 7.0, axe: 1.0}
+  "household:av_14": {grain: 32.0, firewood: 7.0, axe: 1.0}
+  "household:av_15": {grain: 26.0, firewood: 6.0, axe: 1.0}
+  "household:av_16": {grain: 32.0, firewood: 7.0, axe: 1.0}
+  # Стартовые пары тягла у трёх хуторов вне караванных поселений (не
+  # salt_village/hill_court/ash_village): вол — пахота (hh_11, villein,
+  # holding_scale 1.0 — труд вяжет раньше капа, вол растит партии), осёл — воз
+  # (hh_12, cotter), конь — только у свободного (hh_13, sokeman). Молодняк не
+  # кладём; железо/крицу/плуги не кладём. Сено — запас на первый год до первой
+  # косьбы (`gather_hay`); норма корма вол 1.2/1.0, осёл 0.7, конь 1.0
+  # (needs.yml). Запас — с маржой под измеренный 15-месячный съём (ADR 0052:
+  # съедено максимум 45.4/28.0/31.4 — вол/осёл/конь; верх упирается в пин
+  # конечности (`test_hay_reserve_is_scarce_not_endless`: запас < 24 мес):
+  # вол 48 (21.8 мес), осёл 30 (21.4 мес), конь 40 (20 мес). Впритык под поток
+  # не клалось; кошенина идёт сверху. Молодняк-приплод кормят из той же
+  # маржи; минимум «не меньше головы» при нехватке прежний.
+  "household:hh_11": {grain: 36.0, firewood: 8.0, axe: 1.0, ox_m: 1.0, ox_f: 1.0, hay: 48.0}
+  # Четвёртая пара вне тройки (вол hh_11, осёл hh_14, конь hh_09) и вне
+  # караванных поселений: свиная пара у коттера hh_12. Свинья не тянет
+  # пассивный RNG стада (нет приплода/падежа жребием — только корм), поэтому
+  # жребий трио не сдвигается; четвёртое ТЯГЛОЕ стадо любым двором реролит
+  # общий поток RNG и валит трио (замерено 20+ прогонами) — тягловый прирост
+  # идёт предложением C (покупка/обмен с капом), а не стартом. Сено 15.0 —
+  # корм паре (~1.0/мес двум свиньям) и выпас t_02_09 закреплён выше.
+  "household:hh_12": {grain: 26.0, firewood: 6.0, axe: 1.0, pig: 2.0, hay: 15.0}
+  "household:hh_13": {grain: 34.0, firewood: 7.0, axe: 1.0}
+  "household:hh_14": {grain: 36.0, firewood: 8.0, axe: 1.0, donkey_m: 1.0, donkey_f: 1.0, hay: 30.0}
+
+# Два пожалования (depth ≤ 1):
+#   M6  — служилый холма hh_retinue_p1: поле t_05_02 (домен) + пустошь t_03_01,
+#         пожалованный двор hh_02; двор держателя hh_retinue входит сам.
+#   M18 — корневой коттер hh_03_p1: поле t_01_10 (домен) + поле t_04_10 +
+#         последнее доменное поле корня t_06_02, пожалованные дворы hh_05 и
+#         hh_08; двор держателя hh_03 входит сам. Корень теряет клетку и двор
+#         (проседает сильнее), но третьего тэна нет: лимит grants 2.
+script:
+  - {at_month: 6, action: grant_thegn, person: hh_retinue_p1, tiles: [t_03_01, t_05_02], households: [hh_02]}
+  - {at_month: 18, action: grant_thegn, person: hh_03_p1, tiles: [t_01_10, t_04_10, t_06_02], households: [hh_05, hh_08]}
+
+catalogs:
+  goods: design/catalogs/goods.yml
+  recipes: design/catalogs/recipes.yml
+  spawn_rules: design/catalogs/spawn_rules.yml
+  hazards: design/catalogs/hazards.yml
+  obligations: design/catalogs/obligations.yml
+  rights: design/catalogs/rights.yml
+  land_regimes: design/catalogs/land_regimes.yml
+  legal_statuses: design/catalogs/legal_statuses.yml
+  offices: design/catalogs/offices.yml
+  needs: design/catalogs/needs.yml
+  actions_household: design/catalogs/actions_household.yml
+  manor: design/catalogs/manor.yml
+  seasons: design/catalogs/seasons.yml
+  calendar: design/catalogs/calendar_v0.yml

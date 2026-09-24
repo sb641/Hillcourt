@@ -1,0 +1,29 @@
+# Сезонная урожайность. Владелец: Economist.
+# Выход зерна с 1 трудодня, ОСТАВШЕГОСЯ на наделе/домене, по месяцам.
+# Календарь барщины (сколько дней двор отдаёт домену) задаёт Legal в
+# calendar_v0.yml; здесь — только то, сколько даёт труд на своей земле.
+#
+# yield = множитель к рецепту жатвы: 1.0 = базовые 5 зерна за 20 трудодней
+# (0.25 зерна/трудодень). Зимой поле почти не даёт — едят амбар; пахота даёт
+# мало сейчас, задел на осень; жатва — пик.
+#
+# Расчёт (виллан, 3 взрослых = 60 трудодней/мес, виргата = 1 клетка):
+#   годовая барщина ≈ 132 дня, на наделе остаётся ≈ 588 дней;
+#   годовой выход ≈ 588 × 0.25 × средний yield ≈ 84 зерна при сумме
+#   yield 6.85 (сентябрьский пик своих рук 1.60 — допуск ADR 0040: тот же хлеб
+#   меньшей кровью, не «жирный» мир); рты 4.4/мес = 52.8/год + гэфоль 4 = 56.8.
+#   Запас ~27 — но рты растут родами, и голод держится (см. ADR 0040).
+version: 1
+seasons:
+  - {month: 1, season: winter, plot_yield: 0.15, demesne_yield: 0.15}
+  - {month: 2, season: winter, plot_yield: 0.15, demesne_yield: 0.15}
+  - {month: 3, season: plough, plot_yield: 0.60, demesne_yield: 0.60}
+  - {month: 4, season: plough, plot_yield: 0.60, demesne_yield: 0.60}
+  - {month: 5, season: plough, plot_yield: 0.60, demesne_yield: 0.60}
+  - {month: 6, season: hay, plot_yield: 0.50, demesne_yield: 0.50}
+  - {month: 7, season: hay, plot_yield: 0.50, demesne_yield: 0.50}
+  - {month: 8, season: harvest, plot_yield: 0.30, demesne_yield: 0.60}
+  - {month: 9, season: harvest, plot_yield: 1.60, demesne_yield: 1.30}
+  - {month: 10, season: sow_winter, plot_yield: 0.90, demesne_yield: 0.90}
+  - {month: 11, season: sow_winter, plot_yield: 0.80, demesne_yield: 0.80}
+  - {month: 12, season: winter, plot_yield: 0.15, demesne_yield: 0.15}

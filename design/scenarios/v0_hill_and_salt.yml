@@ -1,0 +1,112 @@
+# Сценарий v0: двор на холме и дальняя соляная деревня.
+# Владелец: Implementer (секции stocks/recipes может править Economist).
+# Это единственный мир фазы v0 (docs/02_scope_v0.md).
+#
+# Сетка 9x7 = 63 клетки. Легенда:
+#   H hill, f field, p pasture, F forest, m marsh, s salt_flat, r ruin, . heath
+id: v0_hill_and_salt
+title: "Двор на холме и соляная деревня"
+seed: 1729
+
+clock:
+  start_year: 1
+  start_month: 1
+  months_per_year: 12
+
+map:
+  legend:
+    H: hill
+    f: field
+    p: pasture
+    F: forest
+    m: marsh
+    s: salt_flat
+    r: ruin
+    ".": heath
+  rows:
+    - "FF.ppp.FF"
+    - "FHffpff.F"
+    - "pfffffff."
+    - "pfmm.pffp"
+    - "p.mrm.fFF"
+    - "F.mm.pfFs"
+    - "FF.ppp.ms"
+
+settlements:
+  - {id: hill_court, name: "Двор на холме", kind: hill_court, at: [1, 1], works_tiles: [[5, 2], [6, 2]]}
+  - {id: fs_01, name: "Двор Ольхи", kind: farmstead, at: [2, 1]}
+  - {id: fs_02, name: "Двор Ключа", kind: farmstead, at: [3, 1]}
+  - {id: fs_03, name: "Двор Пня", kind: farmstead, at: [5, 1]}
+  - {id: fs_04, name: "Двор Гряды", kind: farmstead, at: [6, 1]}
+  - {id: fs_05, name: "Двор Плетня", kind: farmstead, at: [1, 2]}
+  - {id: fs_06, name: "Двор Межи", kind: farmstead, at: [2, 2]}
+  - {id: fs_07, name: "Двор Брода", kind: farmstead, at: [3, 2]}
+  - {id: fs_08, name: "Двор Куста", kind: farmstead, at: [4, 2]}
+  - {id: fs_09, name: "Двор Кремня", kind: farmstead, at: [6, 3]}
+  - {id: fs_10, name: "Двор Смолы", kind: farmstead, at: [7, 3]}
+  - {id: salt_village, name: "Соляная деревня", kind: salt_village, at: [8, 5], works_tiles: [[6, 5], [6, 4], [7, 6]]}
+
+# Стартовые опасности. Лес у холма — волки; топь — заготовка под ватагу.
+initial_hazards:
+  - {kind: wolves, at: [0, 1], intensity: 0.6}
+  - {kind: bog, at: [2, 4], intensity: 1.0}
+
+player:
+  court_settlement_id: hill_court
+  household_id: hh_court
+  rent_share: 0.1
+  # Пожалование тэна: один раз, depth ≤ 1, не больше лимита.
+  thegn_grant_limit: {tiles: 3, households: 3}
+
+# Дворы разной сытости и нрава. curiosity/fear задают характер (0..1);
+# без них берётся детерминированная случайность от seed.
+households:
+  - {id: hh_court, name: "Семья держателя", settlement_id: hill_court, adults: 2, children: 2, slaves: 2, legal_status: holder}
+  - {id: hh_retinue, name: "Служилые холма", settlement_id: hill_court, adults: 3, children: 0, legal_status: thegn}
+  - {id: hh_01, name: "Ольшане", settlement_id: fs_01, adults: 3, children: 2, legal_status: sokeman}
+  - {id: hh_02, name: "Ключники", settlement_id: fs_02, adults: 2, children: 3, legal_status: villein}
+  - {id: hh_03, name: "Пни", settlement_id: fs_03, adults: 4, children: 1, legal_status: cotter}
+  - {id: hh_04, name: "Грядичи", settlement_id: fs_04, adults: 2, children: 2, legal_status: geneat}
+  - {id: hh_05, name: "Плетни", settlement_id: fs_05, adults: 3, children: 3, mood: 0.55, legal_status: villein}
+  - {id: hh_06, name: "Межинцы", settlement_id: fs_06, adults: 2, children: 1, legal_status: free_landless}
+  - {id: hh_07, name: "Бродники", settlement_id: fs_07, adults: 3, children: 2, curiosity: 0.9, fear: 0.1, legal_status: sokeman}
+  - {id: hh_08, name: "Кусты", settlement_id: fs_08, adults: 2, children: 4, mood: 0.5, legal_status: villein}
+  - {id: hh_09, name: "Кремни", settlement_id: fs_09, adults: 4, children: 2, legal_status: geneat}
+  - {id: hh_10, name: "Смоляне", settlement_id: fs_10, adults: 3, children: 1, legal_status: cotter}
+  - {id: hh_salt_01, name: "Солевары", settlement_id: salt_village, adults: 4, children: 2, legal_status: holder}
+  - {id: hh_salt_02, name: "Выварщики", settlement_id: salt_village, adults: 3, children: 2, mood: 0.5, legal_status: holder}
+
+# Стартовые склады. Ключ — "<owner_kind>:<owner_id>".
+starting_stocks:
+  "household:hh_court": {grain: 120.0, firewood: 20.0, salt: 6.0, axe: 2.0, silver: 10.0}
+  "household:hh_retinue": {grain: 20.0, firewood: 6.0, axe: 1.0}
+  "settlement:hill_court": {grain: 60.0, salt: 4.0, firewood: 10.0, cart: 1.0}
+  "settlement:salt_village": {grain: 30.0, cart: 1.0}
+  "household:hh_01": {grain: 34.0, firewood: 8.0, axe: 1.0}
+  "household:hh_02": {grain: 40.0, firewood: 8.0, axe: 1.0}
+  "household:hh_03": {grain: 26.0, firewood: 6.0, axe: 1.0}
+  "household:hh_04": {grain: 36.0, firewood: 7.0, axe: 1.0}
+  "household:hh_05": {grain: 36.0, firewood: 9.0, axe: 1.0}
+  "household:hh_06": {grain: 20.0, firewood: 6.0, pig: 2.0, hay: 8.0}
+  "household:hh_07": {grain: 32.0, firewood: 8.0, silver: 5.0}
+  "household:hh_08": {grain: 34.0, firewood: 5.0, axe: 1.0}
+  "household:hh_09": {grain: 40.0, firewood: 10.0, axe: 1.0}
+  "household:hh_10": {grain: 24.0, firewood: 7.0, pig: 1.0, hay: 5.0, axe: 1.0}
+  "household:hh_salt_01": {grain: 32.0, firewood: 4.0, peat: 12.0, axe: 1.0}
+  "household:hh_salt_02": {grain: 30.0, firewood: 4.0, peat: 10.0, axe: 1.0}
+
+catalogs:
+  goods: design/catalogs/goods.yml
+  recipes: design/catalogs/recipes.yml
+  spawn_rules: design/catalogs/spawn_rules.yml
+  hazards: design/catalogs/hazards.yml
+  obligations: design/catalogs/obligations.yml
+  rights: design/catalogs/rights.yml
+  land_regimes: design/catalogs/land_regimes.yml
+  legal_statuses: design/catalogs/legal_statuses.yml
+  offices: design/catalogs/offices.yml
+  needs: design/catalogs/needs.yml
+  actions_household: design/catalogs/actions_household.yml
+  manor: design/catalogs/manor.yml
+  seasons: design/catalogs/seasons.yml
+  calendar: design/catalogs/calendar_v0.yml

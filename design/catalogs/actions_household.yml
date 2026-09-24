@@ -1,0 +1,96 @@
+# Каталог действий двора. Владелец: Economist.
+# Двор выбирает ОДНО главное (`kind: main`) и ОДНО мелкое (`kind: minor`) действие на месяц.
+# Действие не создаёт материю — оно лишь разрешает набор рецептов и меняет труд.
+# Поля:
+#   kind             — main | minor | both (годится и туда, и туда);
+#   labor_share      — доля труда, отдаваемая действию (0..1);
+#   purpose          — зачем: food | fuel | rent | repair | explore | relief | animals | travel | safety;
+#   recipes          — какие рецепты разрешает действие (production только через них);
+#   requires_terrain — где действие имеет смысл;
+#   requires_tool    — нужно ли иметь топор;
+#   risk             — грубая оценка риска для решения (0..1), не создаёт материю.
+version: 1
+actions:
+  - id: work_plot
+    name: Работа на своей земле
+    kind: both
+    labor_share: 1.0
+    purpose: food
+    recipes: [harvest_grain, mill_flour, butcher_pig, gather_hay, mine_iron, shear_sheep, boil_salt, split_logs, weave_cloth]
+  - id: cut_wood_if_allowed
+    name: Заготовка топлива
+    kind: main
+    labor_share: 0.8
+    purpose: fuel
+    requires_terrain: [forest]
+    recipes: [cut_firewood, cut_wood, split_logs]
+  - id: forage_adjacent
+    name: Сбор по соседним угодьям
+    kind: both
+    labor_share: 0.6
+    purpose: food
+    requires_terrain: [forest, heath, marsh]
+    recipes: [forage_wild]
+  - id: tend_animals
+    name: Уход за скотом
+    kind: minor
+    labor_share: 0.4
+    purpose: animals
+    recipes: [farrow_pigs, shear_sheep, gather_hay]
+  - id: pay_rent
+    name: Свести ренту
+    kind: minor
+    labor_share: 0.2
+    purpose: rent
+    recipes: []
+  - id: idle_repair
+    name: Починка и латание
+    kind: minor
+    labor_share: 0.4
+    purpose: repair
+    requires_tool: true
+    recipes: [repair_axe, smith_axe, craft_cart, craft_raft, craft_boat, craft_wooden_plough, smelt_iron_bloom, smith_iron_share, smith_kit]
+  - id: travel_adjacent
+    name: Уход на соседнюю клетку
+    kind: main
+    labor_share: 1.0
+    purpose: travel
+    recipes: []
+    risk: 0.2
+  - id: hide_stores
+    name: Прятать запасы
+    kind: minor
+    labor_share: 0.2
+    purpose: safety
+    recipes: []
+  - id: request_relief
+    name: Просить подмоги у замка
+    kind: both
+    labor_share: 0.2
+    purpose: relief
+    recipes: []
+  - id: expedition_ruin
+    name: Поход к руине (заглушка)
+    kind: main
+    labor_share: 1.0
+    purpose: explore
+    recipes: []
+    risk: 0.5
+  - id: demesne_labor
+    name: Работа на домене лорда
+    kind: main
+    labor_share: 1.0
+    purpose: demesne
+    recipes: []
+  - id: hire_out
+    name: Наняться на домен за еду/пенс
+    kind: main
+    labor_share: 1.0
+    purpose: hire
+    recipes: []
+  - id: oversee
+    name: Досмотр хозяйства
+    kind: main
+    labor_share: 0.0
+    purpose: lord
+    recipes: []

@@ -1,0 +1,216 @@
+# Каталог товаров. Владелец: Economist.
+# Единица: 1 условная единица массы (unit). Соизмеримость и перевод единиц —
+# см. design/catalogs/README.md, раздел «Единицы».
+# Поля: id, name (рус), category, storage, spoil_per_month, edible, nutrition.
+#   category ∈ {food, fuel, material, lux, livestock}
+#   storage  ∈ {granary, cellar, barn, pack, open}
+#   nutrition — сколько «ртов-единиц» кормит 1 unit товара (только для edible).
+version: 1
+goods:
+  - id: grain
+    name: Зерно
+    category: food
+    storage: granary
+    spoil_per_month: 0.01
+    edible: true
+    nutrition: 1.0
+  - id: flour
+    name: Мука
+    category: food
+    storage: granary
+    spoil_per_month: 0.02
+    edible: true
+    nutrition: 1.2
+  - id: meat
+    name: Мясо
+    category: food
+    storage: cellar
+    spoil_per_month: 0.08
+    edible: true
+    nutrition: 1.5
+  - id: straw
+    name: Солома
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: firewood
+    name: Дрова
+    category: fuel
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: log
+    name: Брёвна
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: peat
+    name: Торф
+    category: fuel
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: hay
+    name: Сено
+    category: material
+    storage: barn
+    spoil_per_month: 0.01
+    edible: false
+  - id: salt
+    name: Соль
+    category: material
+    storage: cellar
+    spoil_per_month: 0.0
+    edible: false
+  - id: brine
+    name: Рапа
+    category: material
+    storage: open
+    spoil_per_month: 0.0
+    edible: false
+  - id: iron
+    name: Кричное железо
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: iron_bloom
+    name: Железная крица
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: wool
+    name: Шерсть
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: cloth
+    name: Ткань
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: hide
+    name: Шкура
+    category: material
+    storage: barn
+    spoil_per_month: 0.01
+    edible: false
+  - id: axe
+    name: Топор
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: cart
+    name: Телега
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: raft
+    name: Плот
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: boat
+    name: Малая лодка
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: wooden_plough
+    name: Деревянный плуг
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: iron_share
+    name: Железный лемех
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: war_kit
+    name: Боевой комплект
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: silver
+    name: Серебро
+    category: lux
+    storage: cellar
+    spoil_per_month: 0.0
+    edible: false
+  - id: pig
+    name: Свинья
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  # Скот и тягло (ADR 0025): три вида, у каждого пол; молодняк — только
+  # приплодом по рецепту breed_*, взросление — по рецепту mature_*.
+  # Старого общего `horse` больше нет: пол различается в самом стоке
+  # (horse_m/horse_f), вторую «лошадь_2» не заводить. Роль: вол — пахота,
+  # осёл — воз, конь — воз быстрее и верх (work|ride; боевое применение —
+  # флажок для владельца военных правил, здесь не считается).
+  - id: ox_m
+    name: Вол
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: ox_f
+    name: Корова
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: donkey_m
+    name: Осёл
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: donkey_f
+    name: Ослица
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: horse_m
+    name: Жеребец
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: horse_f
+    name: Кобыла
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: ox_calf
+    name: Телёнок
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: donkey_foal
+    name: Ослёнок
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: horse_foal
+    name: Жеребёнок
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false

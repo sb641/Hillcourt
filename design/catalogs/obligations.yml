@@ -1,0 +1,77 @@
+# Каталог повинностей. Владелец: Legal.
+# Модель — БАНДЛЫ, а не «налог 40 % со всего». Три валюты повинности:
+#   labor-day — трудодни на домене
+#   in-kind   — натура (зерно/эль/…)
+#   penny     — пенс/гэфоль
+# Барщина сезонная: бандл ССЫЛАЕТСЯ на календарь (`calendar: calendar_v0`), а не
+# дублирует 12 копий чисел. Месячные коэффициенты — в design/catalogs/calendar_v0.yml.
+# У каждого числового условия обязательна `unit`; несведённое к тику помечено `note`.
+# Числа — СТАРТ из Rectitudines, не баланс. Экономику зерна/yield не крутим.
+version: 1
+bundles:
+  - id: villein_full
+    name: Полная вилланская повинность
+    calendar: calendar_v0
+    currency_mix: [labor-day, in-kind, penny]
+    terms:
+      harvest_extra: {value: true, unit: null}
+      boon_days_cap: {value: 3, unit: labor-day, note: "потолок помоги (bene) за год"}
+      geld_michaelmas: {value: 6, unit: penny, note: "к году, на Михайлов день; не сведено"}
+      in_kind_martinmas: {value: 4, unit: in-kind, note: "натура на Мартинов день; не сведено"}
+      sow_demesne_acres: {value: 1, unit: acre, note: "гэфоль-пахота своим зерном; месяцы в календаре"}
+
+  - id: cotter_monday
+    name: Коттерский понедельник
+    calendar: calendar_v0
+    currency_mix: [labor-day, in-kind]
+    terms:
+      harvest_extra: {value: true, unit: null}
+      almost_no_cash: {value: true, unit: null}
+
+  - id: geneat_service
+    name: Служба генеата
+    calendar: calendar_v0
+    currency_mix: [labor-day, in-kind]
+    terms:
+      cartage: {value: true, unit: null}
+      messenger: {value: true, unit: null}
+      harvest_help: {value: true, unit: null}
+      food_for_lord: {value: true, unit: in-kind, note: "корм лорду во время службы"}
+
+  - id: sokeman_rent
+    name: Рента сокмена
+    calendar: calendar_v0
+    currency_mix: [in-kind, penny]
+    terms:
+      fixed_rent_grain_or_pence: {value: 0.6, unit: in-kind, note: "seed: мешок зерна или эквивалент в пенсах"}
+      rare_labor: {value: true, unit: null}
+      may_leave: {value: true, unit: null}
+
+  - id: slave_ration
+    name: Паёк раба
+    calendar: calendar_v0
+    currency_mix: [in-kind]
+    terms:
+      no_holding: {value: true, unit: null}
+      eats_lord_board: {value: true, unit: null}
+      full_control: {value: true, unit: null}
+
+  - id: thegn_service
+    name: Служба тэна
+    currency_mix: [labor-day]
+    terms:
+      no_farm_labor: {value: true, unit: null}
+      musters_men: {value: true, unit: null}
+      self_armed: {value: true, unit: null}
+      bridge_burh_fyrd: {value: true, unit: null}
+
+  - id: holder_none
+    name: Без повинности (держатель)
+    currency_mix: []
+    terms: {}
+
+  - id: free_landless_none
+    name: Без повинности (безземельный)
+    currency_mix: []
+    terms: {}
+obligations: []

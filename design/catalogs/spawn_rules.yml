@@ -1,0 +1,116 @@
+# Правила появления. Владелец: Economist.
+# Любая новая материя/угроза/обоз обязаны иметь правило здесь (И-1, И-7).
+# `external: nature` означает поток извне системы; он пишется в Ledger как external_in.
+# `cap_per_tile` — потолок стоячей материи на клетке: природа не бездонный кран,
+# запас не растёт линейно вечно (иначе узкое место — только труд, и двор кормится вечно).
+# В v0 исполняются только `kind: calendric`, `target: good` (phase_growth). Остальные
+# правила — заготовка (см. docs/02_scope_v0.md, «Отложено»): они объявлены, но не создают
+# материю, пока не будет реализована соответствующая фаза.
+version: 1
+spawn_rules:
+  # --- Материя: растёт на клетках каждый месяц, умножается на сезонный множитель. ---
+  - id: grow_grain
+    name: Всходы на поле
+    target: good
+    kind: calendric
+    external: nature
+    params: {good: grain, terrain: field, amount: 10.0, cap_per_tile: 40.0, season_peak_month: 7}
+  - id: grow_firewood
+    name: Валежник в лесу
+    target: good
+    kind: calendric
+    external: nature
+    params: {good: firewood, terrain: forest, amount: 1.5, cap_per_tile: 12.0, season_peak_month: 9}
+  - id: grow_log
+    name: Прирост леса
+    target: good
+    kind: calendric
+    external: nature
+    params: {good: log, terrain: forest, amount: 1.2, cap_per_tile: 10.0, season_peak_month: 8}
+  - id: grow_peat
+    name: Нарост торфа
+    target: good
+    kind: calendric
+    external: nature
+    params: {good: peat, terrain: marsh, amount: 0.5, cap_per_tile: 6.0, season_peak_month: 6}
+  - id: grow_brine
+    name: Напор рапы
+    target: good
+    kind: calendric
+    external: nature
+    params: {good: brine, terrain: salt_flat, amount: 8.0, cap_per_tile: 30.0, season_peak_month: 6}
+  - id: grow_hay
+    name: Травостой на выпасе
+    target: good
+    kind: calendric
+    external: nature
+    params: {good: hay, terrain: pasture, amount: 2.0, cap_per_tile: 20.0, season_peak_month: 7}
+  - id: grow_wool
+    name: Нагул шерсти
+    target: good
+    kind: calendric
+    external: nature
+    params: {good: wool, terrain: pasture, amount: 0.4, cap_per_tile: 6.0, season_peak_month: 5}
+  - id: grow_iron
+    name: Руда в топи
+    target: good
+    kind: calendric
+    external: nature
+    params: {good: iron, terrain: marsh, amount: 0.15, cap_per_tile: 3.0, season_peak_month: 5}
+
+  # --- Заготовка (не исполняется в v0). ---
+  # `wolves_den` — топ-ап СУЩЕСТВУЮЩИХ волков (допуск ADR 0042): новых сущностей
+  # `Hazard` правило не рождает (режима spawn нет — только topup), рост идёт
+  # вероятностно через `rng.hazard` с потолками (аналог `cap_per_tile`, иначе
+  # бесконечные волки). Исполнителя `target==hazard` в тике нет: без фазы
+  # правило молчит (зафиксировано тестом). Рост существующей угрозы требует
+  # `Report` (`report_required: true`) — рождение вести за Info при вшивке фазы.
+  - id: wolves_den
+    name: Волчье логово
+    target: hazard
+    kind: probabilistic
+    params: {kind: wolves, terrain: forest, mode: topup, base_prob: 0.05, intensity_gain: 0.2, population_gain: 1.0, intensity_cap: 1.0, population_cap: 6.0, rng_stream: hazard, report_required: true}
+  # `band_camp` — условное появление СТОЯЧЕЙ ватаги на топи (шаг 1 pipeline,
+  # ADR 0045, образец — ADR 0042): гейт `terrain: marsh` + `min_households: 3`
+  # сейчас не стреляет нигде (дворов на топях 0 — замерено, запинено тестом).
+  # Новая сущность рождается только с потолками (`intensity_cap`/
+  # `population_cap` — бесконечных ватаг нет) и только с вестью
+  # (`report_required: true` — рождение вести за Info при вшивке фазы, иначе
+  # врёт И-3). Бросок — через `rng.hazard`. Исполнителя `target==hazard` для
+  # ватаги в тике нет: без фазы правило молчит (зафиксировано тестом).
+  # Кража ватаги — `hazards.yml:band` (2.0), правилом не меняется.
+  - id: band_camp
+    name: Ватага в топи
+    target: hazard
+    kind: conditional
+    params: {kind: band, terrain: marsh, mode: spawn, min_households: 3, base_prob: 0.02, intensity_init: 1.0, population_init: 3.0, intensity_cap: 1.0, population_cap: 6.0, rng_stream: hazard, report_required: true}
+  - id: caravan_visit
+    name: Приход обоза
+    target: pack
+    kind: calendric
+    params: {kind: caravan, every_months: 3, origin: salt_village, destination: hill_court, cargo: salt, cargo_amount: 4.0, cart_bonus: true, cart_break_below: 0.5, cart_wear_per_trip: 0.05, fodder_per_day: 4.5, min_ratio: 0.5, report_window_months: 6, skip_surplus: 120.0, catastrophe_chance: 0.25}
+  # Обоз с зерном на дальний посёлок у ясеня (7 клеток пути через топь (2,4)).
+  # Фураж — порция на СУТКИ пути (ADR 0075/0078): 4.5 еды/сутки обозом + 2.75
+  # за тягло; сутки считаются от часов маршрута (`hours/24`), не от старых
+  # месячных констант. У съедобного груза порция списывается из самого груза в
+  # sink:eaten, у несъедобного — везётся сеном со стоков origin.
+  # Риск опасной клетки маршрута — 0.15 за клетку, потеря при провале — доля
+  # 0.25 каждого товара груза в стоячий сток клетки назначения (материя цела).
+  # `cart_bonus: true` — ёмкость и срок зависят от телеги у origin (см. caravan.py).
+  # Зерно — еда: `need_buffer_months` (2.0) не даёт вывезти посев/зиму. При
+  # провале риска `catastrophe_chance` (0.25) губит воз целиком (resolve_pack_loss).
+  - id: caravan_grain_to_ash
+    name: Обоз с зерном к ясеню
+    target: pack
+    kind: calendric
+    params: {kind: caravan, every_months: 4, origin: hill_court, destination: ash_village, cargo: grain, cargo_amount: 6.0, fodder_per_day: 4.5, risk_per_hazard_tile: 0.15, loss_share: 0.25, cart_bonus: true, cart_break_below: 0.5, cart_wear_per_trip: 0.05, need_buffer_months: 2.0, min_ratio: 0.5, report_window_months: 6, skip_surplus: 120.0, catastrophe_chance: 0.25}
+  - id: sheriffs_ride
+    name: Объезд шерифа
+    target: pack
+    kind: calendric
+    params: {kind: messenger, every_months: 1, destination: hill_court}
+  - id: ruin_site
+    name: Пятно руины
+    target: ruin
+    kind: conditional
+    params: {mode: unknown, loot: none, relic: none}

@@ -1,0 +1,431 @@
+id: v0_barony_100
+title: "Баронство 100×100"
+seed: 1729
+
+clock:
+  start_year: 1
+  start_month: 1
+  months_per_year: 12
+
+map:
+  width: 100
+  height: 100
+  default: heath
+  regions:
+    - {terrain: forest, rect: [2, 25, 21, 44]}
+    - {terrain: forest, rect: [27, 58, 46, 75]}
+    - {terrain: forest, rect: [55, 2, 78, 21]}
+    - {terrain: field, rect: [41, 52, 46, 56]}
+    - {terrain: field, rect: [11, 17, 15, 19]}
+    - {terrain: field, rect: [31, 17, 35, 19]}
+    - {terrain: field, rect: [71, 17, 75, 19]}
+    - {terrain: field, rect: [81, 47, 85, 49]}
+    - {terrain: field, rect: [71, 87, 75, 89]}
+    - {terrain: field, rect: [36, 87, 40, 89]}
+    - {terrain: field, rect: [11, 57, 15, 59]}
+    - {terrain: field, rect: [21, 32, 25, 34]}
+    - {terrain: field, rect: [81, 67, 85, 69]}
+    - {terrain: salt_flat, rect: [81, 82, 85, 84]}
+  tiles:
+    - {at: [15, 35], terrain: ruin}
+    - {at: [90, 60], terrain: ruin}
+    - {at: [5, 95], terrain: water}
+    - {at: [13, 13], terrain: pasture}
+    - {at: [14, 13], terrain: pasture}
+    - {at: [15, 13], terrain: pasture}
+    - {at: [33, 13], terrain: pasture}
+    - {at: [34, 13], terrain: pasture}
+    - {at: [35, 13], terrain: pasture}
+    - {at: [73, 13], terrain: pasture}
+    - {at: [74, 13], terrain: pasture}
+    - {at: [75, 13], terrain: pasture}
+    - {at: [83, 43], terrain: pasture}
+    - {at: [84, 43], terrain: pasture}
+    - {at: [85, 43], terrain: pasture}
+    - {at: [73, 83], terrain: pasture}
+    - {at: [74, 83], terrain: pasture}
+    - {at: [75, 83], terrain: pasture}
+    - {at: [38, 83], terrain: pasture}
+    - {at: [39, 83], terrain: pasture}
+    - {at: [40, 83], terrain: pasture}
+    - {at: [13, 53], terrain: pasture}
+    - {at: [14, 53], terrain: pasture}
+    - {at: [15, 53], terrain: pasture}
+    - {at: [23, 28], terrain: pasture}
+    - {at: [24, 28], terrain: pasture}
+    - {at: [25, 28], terrain: pasture}
+    - {at: [42, 52], terrain: pasture}
+    - {at: [43, 52], terrain: pasture}
+    - {at: [44, 52], terrain: pasture}
+    - {at: [83, 63], terrain: pasture}
+    - {at: [84, 63], terrain: pasture}
+    - {at: [85, 63], terrain: pasture}
+    - {at: [83, 78], terrain: pasture}
+    - {at: [84, 78], terrain: pasture}
+    - {at: [85, 78], terrain: pasture}
+    - {at: [53, 93], terrain: pasture}
+    - {at: [54, 93], terrain: pasture}
+
+rivers:
+  - id: main_river
+    source: [90, 5]
+    mouth: [55, 95]
+    tributaries: [north_tributary, south_tributary]
+    flow_order:
+      - [90, 5]
+      - [91, 6]
+      - [91, 7]
+      - [92, 8]
+      - [92, 9]
+      - [93, 10]
+      - [93, 11]
+      - [94, 12]
+      - [94, 13]
+      - [95, 14]
+      - [95, 15]
+      - [95, 16]
+      - [94, 17]
+      - [94, 18]
+      - [93, 19]
+      - [93, 20]
+      - [92, 21]
+      - [92, 22]
+      - [91, 23]
+      - [91, 24]
+      - [90, 25]
+      - [91, 26]
+      - [91, 27]
+      - [92, 28]
+      - [92, 29]
+      - [93, 30]
+      - [92, 31]
+      - [92, 32]
+      - [91, 33]
+      - [91, 34]
+      - [90, 35]
+      - [89, 35]
+      - [88, 35]
+      - [87, 35]
+      - [86, 35]
+      - [85, 35]
+      - [84, 35]
+      - [83, 35]
+      - [82, 35]
+      - [81, 35]
+      - [80, 35]
+      - [81, 36]
+      - [81, 37]
+      - [82, 38]
+      - [82, 39]
+      - [83, 40]
+      - [82, 41]
+      - [82, 42]
+      - [81, 43]
+      - [81, 44]
+      - [80, 45]
+      - [81, 46]
+      - [81, 47]
+      - [82, 48]
+      - [82, 49]
+      - [83, 50]
+      - [82, 51]
+      - [82, 52]
+      - [81, 53]
+      - [81, 54]
+      - [80, 55]
+      - [79, 55]
+      - [78, 55]
+      - [77, 55]
+      - [76, 55]
+      - [75, 55]
+      - [74, 55]
+      - [73, 55]
+      - [72, 55]
+      - [71, 55]
+      - [70, 55]
+      - [71, 56]
+      - [71, 57]
+      - [72, 58]
+      - [72, 59]
+      - [73, 60]
+      - [72, 61]
+      - [72, 62]
+      - [71, 63]
+      - [71, 64]
+      - [70, 65]
+      - [71, 66]
+      - [71, 67]
+      - [72, 68]
+      - [72, 69]
+      - [73, 70]
+      - [72, 71]
+      - [72, 72]
+      - [71, 73]
+      - [71, 74]
+      - [70, 75]
+      - [69, 75]
+      - [68, 75]
+      - [67, 75]
+      - [66, 75]
+      - [65, 75]
+      - [64, 75]
+      - [63, 75]
+      - [62, 75]
+      - [61, 75]
+      - [60, 75]
+      - [59, 75]
+      - [58, 75]
+      - [57, 75]
+      - [56, 75]
+      - [55, 75]
+      - [56, 76]
+      - [56, 77]
+      - [57, 78]
+      - [57, 79]
+      - [58, 80]
+      - [57, 81]
+      - [57, 82]
+      - [56, 83]
+      - [56, 84]
+      - [55, 85]
+      - [56, 86]
+      - [56, 87]
+      - [57, 88]
+      - [57, 89]
+      - [58, 90]
+      - [57, 91]
+      - [57, 92]
+      - [56, 93]
+      - [56, 94]
+      - [55, 95]
+    exit:
+      from: [55, 95]
+      destination: neighboring_barony
+  - id: north_tributary
+    source: [95, 10]
+    mouth: [80, 35]
+    tributaries: []
+    flow_order:
+      - [95, 10]
+      - [95, 11]
+      - [96, 12]
+      - [96, 13]
+      - [97, 14]
+      - [97, 15]
+      - [97, 16]
+      - [96, 17]
+      - [96, 18]
+      - [95, 19]
+      - [95, 20]
+      - [94, 20]
+      - [93, 20]
+      - [92, 20]
+      - [91, 20]
+      - [90, 20]
+      - [89, 20]
+      - [88, 20]
+      - [87, 20]
+      - [86, 20]
+      - [85, 20]
+      - [85, 21]
+      - [86, 22]
+      - [86, 23]
+      - [87, 24]
+      - [87, 25]
+      - [88, 26]
+      - [88, 27]
+      - [89, 28]
+      - [88, 29]
+      - [88, 30]
+      - [87, 31]
+      - [87, 32]
+      - [86, 33]
+      - [86, 34]
+      - [85, 35]
+      - [84, 35]
+      - [83, 35]
+      - [82, 35]
+      - [81, 35]
+      - [80, 35]
+  - id: south_tributary
+    source: [90, 75]
+    mouth: [70, 55]
+    tributaries: []
+    flow_order:
+      - [90, 75]
+      - [89, 75]
+      - [88, 75]
+      - [87, 75]
+      - [86, 75]
+      - [85, 75]
+      - [84, 75]
+      - [83, 75]
+      - [82, 75]
+      - [81, 75]
+      - [80, 75]
+      - [79, 75]
+      - [78, 75]
+      - [77, 75]
+      - [76, 75]
+      - [75, 75]
+      - [74, 75]
+      - [73, 75]
+      - [72, 75]
+      - [71, 75]
+      - [70, 75]
+      - [70, 74]
+      - [69, 73]
+      - [69, 72]
+      - [68, 71]
+      - [68, 70]
+      - [67, 69]
+      - [67, 68]
+      - [66, 67]
+      - [66, 66]
+      - [65, 65]
+      - [66, 64]
+      - [66, 63]
+      - [67, 62]
+      - [67, 61]
+      - [68, 60]
+      - [68, 59]
+      - [69, 58]
+      - [69, 57]
+      - [70, 56]
+      - [70, 55]
+
+settlements:
+  - id: hill_court
+    name: "Город на холме"
+    kind: hill_court
+    at: [45, 50]
+    home_terrain: hill
+    household_tiles:
+      - [45, 50]
+      - [46, 50]
+      - [47, 50]
+      - [44, 51]
+      - [45, 51]
+    quarter_tiles:
+      - [45, 50]
+      - [46, 50]
+      - [47, 50]
+      - [44, 51]
+      - [45, 51]
+      - [46, 51]
+      - [47, 51]
+      - [48, 51]
+    works_tiles:
+      - [41, 52]
+      - [42, 52]
+      - [43, 52]
+      - [44, 52]
+      - [45, 52]
+      - [46, 52]
+      - [41, 53]
+      - [42, 53]
+      - [43, 53]
+      - [44, 53]
+      - [45, 53]
+      - [46, 53]
+      - [41, 54]
+      - [42, 54]
+      - [43, 54]
+      - [44, 54]
+      - [45, 54]
+      - [46, 54]
+      - [41, 55]
+      - [42, 55]
+      - [43, 55]
+      - [44, 55]
+      - [45, 55]
+      - [46, 55]
+      - [41, 56]
+      - [42, 56]
+      - [43, 56]
+      - [44, 56]
+      - [45, 56]
+      - [46, 56]
+  - {id: village_ash, name: "Деревня у ясеня", kind: village, at: [15, 15], home_terrain: pasture, household_tiles: [[13, 15], [14, 15], [15, 15], [16, 15], [17, 15], [13, 16], [14, 16], [15, 16], [16, 16], [17, 16]], works_tiles: [[11, 17], [12, 17], [13, 17], [14, 17], [15, 17], [11, 18], [12, 18], [13, 18], [14, 18], [15, 18], [11, 19], [12, 19], [13, 19], [14, 19], [15, 19]]}
+  - {id: village_oak, name: "Деревня у дуба", kind: village, at: [35, 15], home_terrain: pasture, household_tiles: [[33, 15], [34, 15], [35, 15], [36, 15], [37, 15], [33, 16], [34, 16], [35, 16], [36, 16], [37, 16]], works_tiles: [[31, 17], [32, 17], [33, 17], [34, 17], [35, 17], [31, 18], [32, 18], [33, 18], [34, 18], [35, 18], [31, 19], [32, 19], [33, 19], [34, 19], [35, 19]]}
+  - {id: village_river, name: "Речная деревня", kind: village, at: [75, 15], home_terrain: pasture, household_tiles: [[73, 15], [74, 15], [75, 15], [76, 15], [77, 15], [73, 16], [74, 16], [75, 16], [76, 16], [77, 16]], works_tiles: [[71, 17], [72, 17], [73, 17], [74, 17], [75, 17], [71, 18], [72, 18], [73, 18], [74, 18], [75, 18], [71, 19], [72, 19], [73, 19], [74, 19], [75, 19]]}
+  - {id: village_mill, name: "Мельничная деревня", kind: village, at: [85, 45], home_terrain: pasture, household_tiles: [[83, 45], [84, 45], [85, 45], [86, 45], [87, 45], [83, 46], [84, 46], [85, 46], [86, 46], [87, 46]], works_tiles: [[81, 47], [82, 47], [83, 47], [84, 47], [85, 47], [81, 48], [82, 48], [83, 48], [84, 48], [85, 48], [81, 49], [82, 49], [83, 49], [84, 49], [85, 49]]}
+  - {id: village_south, name: "Южная деревня", kind: village, at: [75, 85], home_terrain: pasture, household_tiles: [[73, 85], [74, 85], [75, 85], [76, 85], [77, 85], [73, 86], [74, 86], [75, 86], [76, 86], [77, 86]], works_tiles: [[71, 87], [72, 87], [73, 87], [74, 87], [75, 87], [71, 88], [72, 88], [73, 88], [74, 88], [75, 88], [71, 89], [72, 89], [73, 89], [74, 89], [75, 89]]}
+  - {id: village_west, name: "Западная деревня", kind: village, at: [40, 85], home_terrain: pasture, household_tiles: [[38, 85], [39, 85], [40, 85], [41, 85], [42, 85], [38, 86], [39, 86], [40, 86], [41, 86], [42, 86]], works_tiles: [[36, 87], [37, 87], [38, 87], [39, 87], [40, 87], [36, 88], [37, 88], [38, 88], [39, 88], [40, 88], [36, 89], [37, 89], [38, 89], [39, 89], [40, 89]]}
+  - {id: village_heath, name: "Пустошная деревня", kind: village, at: [15, 55], home_terrain: pasture, household_tiles: [[13, 55], [14, 55], [15, 55], [16, 55], [17, 55], [13, 56], [14, 56], [15, 56], [16, 56], [17, 56]], works_tiles: [[11, 57], [12, 57], [13, 57], [14, 57], [15, 57], [11, 58], [12, 58], [13, 58], [14, 58], [15, 58], [11, 59], [12, 59], [13, 59], [14, 59], [15, 59]]}
+  - {id: village_forest, name: "Лесная деревня", kind: village, at: [25, 30], home_terrain: pasture, household_tiles: [[23, 30], [24, 30], [25, 30], [26, 30], [27, 30], [23, 31], [24, 31], [25, 31], [26, 31], [27, 31]], works_tiles: [[21, 32], [22, 32], [23, 32], [24, 32], [25, 32], [21, 33], [22, 33], [23, 33], [24, 33], [25, 33], [21, 34], [22, 34], [23, 34], [24, 34], [25, 34]]}
+  - {id: native_village, name: "Племенная деревня", kind: native_village, at: [85, 65], home_terrain: heath, household_tiles: [[83, 65], [84, 65], [85, 65], [86, 65], [87, 65], [83, 66], [84, 66], [85, 66], [86, 66], [87, 66]], works_tiles: [[81, 67], [82, 67], [83, 67], [84, 67], [85, 67], [81, 68], [82, 68], [83, 68], [84, 68], [85, 68], [81, 69], [82, 69], [83, 69], [84, 69], [85, 69]]}
+  - {id: salt_village, name: "Соляная деревня", kind: salt_village, at: [85, 80], home_terrain: salt_flat, household_tiles: [[83, 80], [84, 80], [85, 80], [86, 80], [87, 80], [83, 81], [84, 81], [85, 81], [86, 81], [87, 81]], works_tiles: [[81, 82], [82, 82], [83, 82], [84, 82], [85, 82], [81, 83], [82, 83], [83, 83], [84, 83], [85, 83], [81, 84], [82, 84], [83, 84], [84, 84], [85, 84]]}
+  - {id: river_port, name: "Устье", kind: village, at: [55, 95], home_terrain: water}
+
+household_groups:
+  - {id_prefix: hh_city_court, settlement_id: hill_court, name: "Городской двор", count: 1, adults: 2, children: 1, legal_status: holder, starting_food_months: 3.0}
+  - {id_prefix: hh_city, settlement_id: hill_court, name: "Квартальный двор", count: 99, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
+  - {id_prefix: hh_village_ash, settlement_id: village_ash, name: "Ясеневый двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
+  - {id_prefix: hh_village_oak, settlement_id: village_oak, name: "Дубовый двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
+  - {id_prefix: hh_village_river, settlement_id: village_river, name: "Речной двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
+  - {id_prefix: hh_village_mill, settlement_id: village_mill, name: "Мельничный двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
+  - {id_prefix: hh_village_south, settlement_id: village_south, name: "Южный двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
+  - {id_prefix: hh_village_west, settlement_id: village_west, name: "Западный двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
+  - {id_prefix: hh_village_heath, settlement_id: village_heath, name: "Пустошный двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
+  - {id_prefix: hh_village_forest, settlement_id: village_forest, name: "Лесной двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
+  - {id_prefix: hh_native, settlement_id: native_village, name: "Племенной двор", count: 50, adults: 2, children: 1, legal_status: free_landless, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
+  - {id_prefix: hh_salt, settlement_id: salt_village, name: "Солеварный двор", count: 50, adults: 2, children: 1, legal_status: holder, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
+
+player:
+  court_settlement_id: hill_court
+  household_id: hh_city_court_001
+  rent_share: 0.1
+  thegn_grant_limit: {tiles: 3, households: 3}
+
+initial_hazards: []
+
+fords:
+  - [90, 25]
+  - [80, 45]
+  - [70, 65]
+bridges:
+  - [70, 75]
+  - [55, 85]
+
+marks:
+  - {at: [45, 49], mark: castle}
+  - {at: [45, 50], mark: urban}
+  - {at: [46, 50], mark: urban}
+  - {at: [47, 50], mark: urban}
+  - {at: [44, 51], mark: urban}
+  - {at: [45, 51], mark: urban}
+  - {at: [46, 51], mark: urban}
+  - {at: [47, 51], mark: urban}
+  - {at: [48, 51], mark: urban}
+  - {at: [55, 95], mark: mooring}
+  - {at: [25, 75], mark: mine}
+  - {at: [15, 65], mark: hermitage}
+  - {at: [80, 15], mark: waystation}
+  - {at: [35, 60], mark: smoke}
+  - {at: [60, 20], mark: smoke}
+  - {at: [60, 85], mark: lost_caravan}
+
+tribes:
+  - {id: tribe_east, name: "Восточное племя", stance: independent, settlement_id: native_village}
+
+starting_stocks:
+  settlement:hill_court: {grain: 40.0, firewood: 10.0, cart: 1.0}
+  settlement:salt_village: {grain: 30.0, cart: 1.0}
+  settlement:river_port: {grain: 20.0, cart: 1.0}
+
+catalogs:
+  goods: design/catalogs/goods.yml
+  recipes: design/catalogs/recipes.yml
+  spawn_rules: design/catalogs/spawn_rules.yml
+  hazards: design/catalogs/hazards.yml
+  obligations: design/catalogs/obligations.yml
+  rights: design/catalogs/rights.yml
+  land_regimes: design/catalogs/land_regimes.yml
+  legal_statuses: design/catalogs/legal_statuses.yml
+  offices: design/catalogs/offices.yml
+  needs: design/catalogs/needs.yml
+  actions_household: design/catalogs/actions_household.yml
+  manor: design/catalogs/manor.yml
+  seasons: design/catalogs/seasons.yml
+  calendar: design/catalogs/calendar_v0.yml

@@ -1,0 +1,165 @@
+# Календарь работ v0. Владелец: Legal.
+# Год = 12 месячных тиков. Rectitudines свёрнуты в месячные коэффициенты, а не в
+# дневной календарь святых. Барщина сезонная: не «2 дня всегда».
+#
+# Поля месяца:
+#   season: winter | plough | hay | harvest | sow_winter
+#   demesne_work: plough | weed | hay | harvest | thresh | wood_flock | idle_court
+#   labor_mod — месячные коэффициенты по пресету:
+#     villein / cotter: base_week_days + extra_week_days (extra берётся только в
+#                       месяц с boon_allowed=true, до cap из бандла)
+#     geneat: callout 0|1 (недельных дней нет — только вызов)
+#     sokeman: callout 0|1 (редкий вызов)
+#     slave: always true (сезонного нуля нет)
+#     free_landless: hire_demand low|high (наём, не долг)
+#   boon_allowed: bool        — лорд может крикнуть помочь (bene)
+#   sow_demesne_acres: bool   — гэфоль-пахота своим зерном в домен
+#
+# Перевод недель в месяц тика: month_days = week_days * 4 (WEEKS_PER_MONTH).
+version: 1
+calendar: calendar_v0
+months:
+  - month: 1
+    season: winter
+    demesne_work: wood_flock
+    labor_mod:
+      villein: {base_week_days: 2, extra_week_days: 0}
+      cotter: {base_week_days: 1, extra_week_days: 0}
+      geneat: {callout: 0}
+      sokeman: {callout: 0}
+      slave: {always: true}
+      free_landless: {hire_demand: low}
+    boon_allowed: false
+    sow_demesne_acres: false
+  - month: 2
+    season: winter
+    demesne_work: wood_flock
+    labor_mod:
+      villein: {base_week_days: 2, extra_week_days: 0}
+      cotter: {base_week_days: 1, extra_week_days: 0}
+      geneat: {callout: 0}
+      sokeman: {callout: 0}
+      slave: {always: true}
+      free_landless: {hire_demand: low}
+    boon_allowed: false
+    sow_demesne_acres: false
+  - month: 3
+    season: plough
+    demesne_work: plough
+    labor_mod:
+      villein: {base_week_days: 3, extra_week_days: 0}
+      cotter: {base_week_days: 1, extra_week_days: 0}
+      geneat: {callout: 0}
+      sokeman: {callout: 0}
+      slave: {always: true}
+      free_landless: {hire_demand: low}
+    boon_allowed: false
+    sow_demesne_acres: false
+  - month: 4
+    season: plough
+    demesne_work: plough
+    labor_mod:
+      villein: {base_week_days: 3, extra_week_days: 0}
+      cotter: {base_week_days: 1, extra_week_days: 0}
+      geneat: {callout: 0}
+      sokeman: {callout: 0}
+      slave: {always: true}
+      free_landless: {hire_demand: low}
+    boon_allowed: false
+    sow_demesne_acres: false
+  - month: 5
+    season: plough
+    demesne_work: weed
+    labor_mod:
+      villein: {base_week_days: 3, extra_week_days: 0}
+      cotter: {base_week_days: 1, extra_week_days: 0}
+      geneat: {callout: 0}
+      sokeman: {callout: 0}
+      slave: {always: true}
+      free_landless: {hire_demand: low}
+    boon_allowed: false
+    sow_demesne_acres: false
+  - month: 6
+    season: hay
+    demesne_work: hay
+    labor_mod:
+      villein: {base_week_days: 2, extra_week_days: 1}
+      cotter: {base_week_days: 1, extra_week_days: 0}
+      geneat: {callout: 1}
+      sokeman: {callout: 1}
+      slave: {always: true}
+      free_landless: {hire_demand: high}
+    boon_allowed: true
+    sow_demesne_acres: false
+  - month: 7
+    season: hay
+    demesne_work: hay
+    labor_mod:
+      villein: {base_week_days: 2, extra_week_days: 1}
+      cotter: {base_week_days: 1, extra_week_days: 0}
+      geneat: {callout: 1}
+      sokeman: {callout: 1}
+      slave: {always: true}
+      free_landless: {hire_demand: high}
+    boon_allowed: true
+    sow_demesne_acres: false
+  - month: 8
+    season: harvest
+    demesne_work: harvest
+    labor_mod:
+      villein: {base_week_days: 3, extra_week_days: 1}
+      cotter: {base_week_days: 3, extra_week_days: 1}
+      geneat: {callout: 1}
+      sokeman: {callout: 0}
+      slave: {always: true}
+      free_landless: {hire_demand: high}
+    boon_allowed: true
+    sow_demesne_acres: false
+  - month: 9
+    season: harvest
+    demesne_work: harvest
+    labor_mod:
+      villein: {base_week_days: 3, extra_week_days: 1}
+      cotter: {base_week_days: 3, extra_week_days: 1}
+      geneat: {callout: 1}
+      sokeman: {callout: 0}
+      slave: {always: true}
+      free_landless: {hire_demand: high}
+    boon_allowed: true
+    sow_demesne_acres: false
+  - month: 10
+    season: sow_winter
+    demesne_work: thresh
+    labor_mod:
+      villein: {base_week_days: 2, extra_week_days: 0}
+      cotter: {base_week_days: 1, extra_week_days: 0}
+      geneat: {callout: 0}
+      sokeman: {callout: 0}
+      slave: {always: true}
+      free_landless: {hire_demand: low}
+    boon_allowed: false
+    sow_demesne_acres: true
+  - month: 11
+    season: sow_winter
+    demesne_work: thresh
+    labor_mod:
+      villein: {base_week_days: 2, extra_week_days: 0}
+      cotter: {base_week_days: 1, extra_week_days: 0}
+      geneat: {callout: 0}
+      sokeman: {callout: 0}
+      slave: {always: true}
+      free_landless: {hire_demand: low}
+    boon_allowed: false
+    sow_demesne_acres: true
+  - month: 12
+    season: winter
+    demesne_work: idle_court
+    labor_mod:
+      villein: {base_week_days: 2, extra_week_days: 0}
+      cotter: {base_week_days: 1, extra_week_days: 0}
+      geneat: {callout: 0}
+      sokeman: {callout: 0}
+      slave: {always: true}
+      free_landless: {hire_demand: low}
+    boon_allowed: false
+    sow_demesne_acres: false

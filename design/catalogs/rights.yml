@@ -1,0 +1,12 @@
+# Каталог прав. Владелец: Legal.
+# Шаблоны Right/Tenure. Право — то, что игрок нарезает (docs/01).
+version: 1
+rights:
+  - id: tenant_tenure
+    name: Держание двора
+    kind: tenure
+    default_rent_share: 0.1
+  - id: common_grazing
+    name: Общий выпас
+    kind: grazing
+    default_rent_share: 0.0
