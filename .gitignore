@@ -31,6 +31,10 @@ credentials*.json
 service-account*.json
 *.tfvars
 
+# Generated test fixtures
+/tmp*.yml
+/design/scenarios/test_land_basis_*.yml
+
 # IDE & OS
 .DS_Store
 .idea/

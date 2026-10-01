@@ -6,6 +6,7 @@ from typing import Optional
 
 from ..ontology import Obligation, Pack, SimDate, Stock
 from ..world import World
+from .obligations import register_obligation
 
 MUSTER_PERIODS = (2, 3)
 
@@ -73,9 +74,7 @@ def create_muster_obligation(
         basis="fixed",
         call_status="pending",
     )
-    world.obligations[obligation.id] = obligation
-    household.obligation_ids.append(obligation.id)
-    return obligation
+    return register_obligation(world, household, obligation)
 
 
 def service_deadline(world: World, obligation: Obligation) -> SimDate:
@@ -241,13 +240,55 @@ def refuse_muster(world: World, obligation: Obligation) -> None:
     obligation.call_status = "refused"
 
 
+def mark_muster_unable(obligation: Obligation) -> None:
+    """Зафиксировать ответ племени «не мог» без отказа."""
+    if obligation.kind != "muster":
+        raise ValueError(f"Повинность '{obligation.id}' не является muster")
+    if obligation.call_status not in {"pending", "in_service"}:
+        raise ValueError(
+            f"Нельзя отметить unable из статуса '{obligation.call_status}'"
+        )
+    obligation.call_status = "unable"
+
+
+def muster_answer_facts(
+    tribe_id: str,
+    obligation_ids: list[str],
+    outcome: str,
+    observer_id: str,
+    delay_days: int,
+) -> dict:
+    """Собрать факты ответа племени для Info; внутренний call_status не выдаётся."""
+    if outcome not in {"accepted", "unable", "refused"}:
+        raise ValueError(f"Неизвестный ответ племени '{outcome}'")
+    return {
+        "subject": "tribe_muster",
+        "tribe_id": tribe_id,
+        "obligation_ids": sorted(obligation_ids),
+        "answer": outcome,
+        "observer_id": observer_id,
+        "delay_days": int(delay_days),
+    }
+
+
+def _distribute_required_people(count: int, household_ids: list[str]) -> dict[str, int]:
+    """Раздать квоту вызова по дворам без проверки способности племени."""
+    if count < 0 or not household_ids:
+        return {household_id: 0 for household_id in household_ids}
+    base, remainder = divmod(int(count), len(household_ids))
+    return {
+        household_id: base + (1 if index < remainder else 0)
+        for index, household_id in enumerate(sorted(household_ids))
+    }
+
+
 def call_tribe_muster(
     world: World,
     tribe_id: str,
-    destination_tile_id: str,
+    required_persons_count: int,
     period_months: int = 2,
-) -> list[tuple[Obligation, Optional[Pack]]]:
-    """Создать повинности и outbound Pack для дворов союзного племени."""
+) -> list[Obligation]:
+    """Создать повинности вызова; ответ племени и outbound Pack приходят отдельно."""
     tribe = world.tribes.get(tribe_id)
     if tribe is None:
         raise ValueError(f"Нет племени '{tribe_id}'")
@@ -256,17 +297,27 @@ def call_tribe_muster(
     settlement = world.settlements.get(tribe.settlement_id)
     if settlement is None:
         raise ValueError(f"Нет поселения '{tribe.settlement_id}'")
-    result: list[tuple[Obligation, Optional[Pack]]] = []
-    for household_id in sorted(settlement.household_ids):
-        household = world.households[household_id]
-        obligation = create_muster_obligation(
-            world, household_id, len(_adult_ids(world, household)), period_months
+    active_statuses = {"pending", "in_service", "overdue", "met"}
+    for household_id in settlement.household_ids:
+        for obligation_id in world.households[household_id].obligation_ids:
+            obligation = world.obligations.get(obligation_id)
+            if (
+                obligation is not None
+                and obligation.kind == "muster"
+                and obligation.call_status in active_statuses
+            ):
+                raise ValueError(
+                    f"У племени '{tribe_id}' уже есть активная повинность '{obligation.id}'"
+                )
+    quotas = _distribute_required_people(
+        required_persons_count, settlement.household_ids
+    )
+    return [
+        create_muster_obligation(
+            world, household_id, quotas[household_id], period_months
         )
-        pack = start_muster_service(
-            world, obligation, destination_tile_id, _adult_ids(world, household)
-        )
-        result.append((obligation, pack))
-    return result
+        for household_id in sorted(settlement.household_ids)
+    ]
 
 
 def call_manor_muster(

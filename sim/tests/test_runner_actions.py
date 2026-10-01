@@ -66,7 +66,15 @@ class TestRunnerActionsCli(unittest.TestCase):
     """`--actions` печатает действие с датой в stdout."""
 
     def test_cli_prints_fixture_action_with_date(self) -> None:
-        fd, name = tempfile.mkstemp(prefix="test_actions_", suffix=".yml")
+        # `load_actions_fixture` — простой разбор YAML, репозиторий ему не нужен
+        # (в отличие от `load_scenario`), поэтому фикстура пишется в системный
+        # временный каталог, а не в CWD: `run_tests.sh` делает `cd sim/`, а запуск
+        # `python3 -m unittest` из корня оставлял бы файл в корне репозитория.
+        # Префикс `test_actions_` не начинается с `tmp`, поэтому не скрыт
+        # правилом `/tmp*.yml` в .gitignore. Удаление — в `finally` ниже.
+        fd, name = tempfile.mkstemp(
+            prefix="test_actions_", suffix=".yml", dir=tempfile.gettempdir()
+        )
         os.close(fd)
         path = Path(name)
         try:

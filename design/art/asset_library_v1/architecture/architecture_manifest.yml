@@ -1,0 +1,95 @@
+version: 0
+id: hillcourt_architecture_v1
+name: Architecture library v1
+
+atlas:
+  file: asset_library_v1/architecture/architecture_atlas_v1.png
+  guide: asset_library_v1/architecture/guides/architecture_guide_v1.png
+  plate_dir: asset_library_v1/architecture/plates
+  columns: 5
+  cell_canvas_px: [128, 128]
+  anchor_px: [64, 80]
+  background: transparent
+  status: mixed_crop_reference_and_drawn
+  final_claims: false
+  excluded_contexts: [architecture_manor_compound, architecture_granary_context]
+
+cells:
+  - id: architecture_cottage_gable_a
+    name: Cottage gable A
+    source_file: references/detail_style_anchor.png
+    source_crop_px: [0, 520, 150, 130]
+    game_forms: [timber_house, village]
+    status: drawn_flat_2d
+  - id: architecture_cottage_gable_b
+    name: Cottage gable B
+    source_file: references/detail_style_anchor.png
+    source_crop_px: [150, 535, 100, 110]
+    game_forms: [timber_house, village]
+    status: drawn_flat_2d
+  - id: architecture_house_timber
+    name: Timber house
+    source_file: references/detail_style_anchor.png
+    source_crop_px: [250, 520, 110, 135]
+    game_forms: [timber_house, village]
+    status: drawn_flat_2d
+  - id: architecture_shed_small
+    name: Small shed
+    source_file: references/detail_style_anchor.png
+    source_crop_px: [375, 550, 65, 85]
+    game_forms: [timber_house]
+    status: drawn_flat_2d
+  - id: architecture_yard_shelter
+    name: Yard shelter
+    source_file: references/detail_style_anchor.png
+    source_crop_px: [455, 535, 80, 115]
+    game_forms: [village]
+    status: drawn_flat_2d
+  - id: architecture_supply_shed
+    name: Supply shed
+    source_file: references/detail_style_anchor.png
+    source_crop_px: [545, 520, 75, 140]
+    game_forms: [village]
+    status: drawn_flat_2d
+  - id: architecture_palisade
+    name: Palisade section
+    source_file: references/detail_style_anchor.png
+    source_crop_px: [700, 80, 260, 220]
+    game_forms: [hall_on_hill, thegn_estate]
+    status: drawn_flat_2d
+    flat_2d_form: stake_run
+    flat_2d_plate: flat2d_proof/plates/architecture_palisade.png
+  - id: architecture_watchtower
+    name: Watchtower candidate
+    source_file: references/detail_style_anchor.png
+    source_crop_px: [1020, 30, 190, 280]
+    game_forms: []
+    status: needs_ontology_check
+    note: Current runtime has no tower entity or renderer form.
+  - id: architecture_bridge
+    name: Timber bridge
+    source_file: references/detail_style_anchor.png
+    source_crop_px: [700, 340, 430, 300]
+    game_forms: [crossing]
+    status: drawn_flat_2d
+  - id: architecture_gate
+    name: Gate and fence
+    source_file: references/detail_style_anchor.png
+    source_crop_px: [180, 750, 65, 95]
+    game_forms: [hall_on_hill, thegn_estate]
+    status: drawn_flat_2d
+
+# Drawn flat 2D plates live in the proof tree, not here: the proof is the only
+# place where geometry is machine-checked, and a plate that is not verified
+# there is a picture, not an asset.
+flat_2d_proof:
+  manifest: flat2d_proof/flat2d_proof_manifest.yml
+  verifier: flat2d_proof/verify_proof.py
+  mutation_test: flat2d_proof/mutation_test.py
+  anchor_px: [64, 64]
+  note: >-
+    The proof anchor is 64,64. The isometric reference anchor 64,80 above is a
+    different point and is not used by any flat 2D plate.
+  not_drawn:
+    - id: architecture_watchtower
+      reason: needs_ontology_check

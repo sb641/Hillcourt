@@ -1,25 +1,25 @@
-"""Право доступа к общинным клеткам и общий счёт партий сбора (J3, дыра 1).
+"""Право доступа к общинным клеткам сбора. Капа партий на клетке НЕТ (ADR 0173 п. 2).
 
-Общинная клетка (режим `waste`/`reserved_wood`) не отдаётся двору в держание:
-дворы пользуются ею только по `Right.kind=common` или через `Settlement.works_tiles`,
-а ёмкость клетки (`_tile_batch_cap`, 4 партии) общая на всех, у кого есть право.
-Соседство даёт встречу и путь, но не экономический доступ. «Каждый двор = полная
-виргата» запрещён.
+Общинная клетка сбора (режимы `waste`/`reserved_wood`) не отдаётся двору в
+держание: дворы пользуются ею только по `Right.kind=common` или через
+`Settlement.works_tiles` (`legal/regimes.py:has_access_to_communal_tile`,
+`is_communal_collection_tile`). Соседство даёт встречу и путь, но не
+экономический доступ.
 
-Пашня/жатва держимой клетки остаётся как G3: делится только клетка по
-`Right`/усадьбе, двое на одной держимой дают 4 партии — полная проверка в
-`test_plot_cap_per_tile.TestPlotCapPerTile.test_two_households_share_tile_capacity`,
-здесь не дублируется. Общинные поля (`tenement`) по-новому не шарится, поэтому
-соль A1 не задет. Материю правило не создаёт, yield не трогает.
+Что отменено (ADR 0132 п. 1, отменён ADR 0173 п. 2 и ADR 0137): общий кап **4
+партии на клетку** и делёж выхода поровну между дворами, имеющими доступ.
+Символа `_communal_collection_shared` в коде нет (0 совпадений в `sim/src`), а
+`labor._tile_batch_cap` вызывается ровно из одного места — `economy/livestock.py:615`,
+то есть только для сена тяглом (кап СТОЙЛА, ADR 0050/0055). Это ДРУГОЕ число.
 
-Проверки:
-  * (a) два двора собирают с ОДНОЙ общинной клетки: суммарно ≤ 4 партий (не 8),
-    выход строго меньше 2× одиночного;
-  * (b) один двор на двух общинных клетках собирает с каждой в пределах капа;
+Живой закон режима 2 проверяется сравнениями, а не константой:
+  * (a) второй двор с доступом УВЕЛИЧИВАЕТ общий выход клетки, а не делит его
+    поровну и не упирается в кап;
+  * (b) месяц двора ограничен его трудом: две общинные клетки не удваивают месяц;
   * (c) двор без доступа к чужой общинной клетке её не обрабатывает;
-  * (d) регрессия соли: `v0_two_settlements` 60 мес seed 99 (script) — замковая
-    соль 6.1 (не 4.0-без-transfer), дельта ≈ 0;
-  * (e) граница J3: полевой `tenement` общинной клеткой сбора не считается.
+  * (d) регрессия соли: `v0_two_settlements` 60 мес seed 99 (script) — ненулевая
+    выгрузка соли в замок, дельта ≈ 0;
+  * (e) граница J3: полевой `tenement` — не общинная клетка сбора.
 """
 
 from __future__ import annotations
@@ -42,7 +42,6 @@ SCENARIO = ROOT / "design" / "scenarios" / "v0_hill_and_salt.yml"
 TWO_SETTLEMENTS = ROOT / "design" / "scenarios" / "v0_two_settlements.yml"
 
 FORAGE = "forage_wild"
-TILE_CAP = 4
 EPSILON = 1e-6
 
 SALT_A = "hh_salt_01"
@@ -93,6 +92,19 @@ def _batches(world, tile_id: str) -> int:
     )
 
 
+def _household_batches(world, household_id: str) -> int:
+    """Партии сбора, доставленные конкретному двору (выход идёт через sink)."""
+    stock_id = world.households[household_id].stock_id
+    return sum(
+        1
+        for entry in world.ledger.entries
+        if entry.kind == "process"
+        and entry.reason == FORAGE
+        and entry.good == "firewood"
+        and entry.dst_id == stock_id
+    )
+
+
 def _forage_world(household_ids: list[str]):
     """Мир, где только заданные дворы собирают по соседним угодьям, рук вдоволь."""
     world = load_scenario(SCENARIO)
@@ -107,10 +119,16 @@ def _forage_world(household_ids: list[str]):
 
 
 class TestCommunalAccess(unittest.TestCase):
-    """Ёмкость общинной клетки сбора — общая на всех, у кого есть доступ."""
+    """Общинная клетка сбора — доступ по праву, а не кап партий."""
 
-    def test_two_households_share_one_communal_tile(self) -> None:
-        """(a) Два двора на одной общинной клетке: 4 партии, не 8."""
+    def test_second_household_increases_the_common_output(self) -> None:
+        """(a) Два двора с правом с одной клетки дают больше, чем один.
+
+        Отменённая норма («4 партии на клетку, делёж поровну») не возвращается:
+        выход делится по числу ДВОРОВ С ДОСТУПОМ, а не поровну, и капом стойла
+        (`_tile_batch_cap`) не режется — это число живёт только в
+        `livestock.py:615`.
+        """
         single_world = _forage_world([SALT_A])
         _grant_common_access(single_world, TARGET)
         _seed_standing(single_world, TARGET)
@@ -123,33 +141,67 @@ class TestCommunalAccess(unittest.TestCase):
         work_month(shared_world, shared_world.clock.date)
         shared = _batches(shared_world, TARGET)
 
-        self.assertEqual(_tile_batch_cap(shared_world), TILE_CAP)
         self.assertGreaterEqual(single, 1, "Одиночный двор не собрал ничего")
-        self.assertLessEqual(shared, TILE_CAP, "С клетки снято больше её ёмкости")
-        self.assertLess(
-            shared, 2 * single, "Второй двор удвоил выход общинной клетки"
+        self.assertGreater(
+            shared,
+            single,
+            f"Второй двор с правом не увеличил выход общинной клетки: {shared}"
+            f" против {single} — выход делится поровну (отменено ADR 0173 п. 2)",
+        )
+        for household_id in (SALT_A, SALT_B):
+            self.assertGreaterEqual(
+                _household_batches(shared_world, household_id),
+                1,
+                f"{household_id}: право есть, а сбора нет",
+            )
+        self.assertEqual(
+            shared,
+            _household_batches(shared_world, SALT_A)
+            + _household_batches(shared_world, SALT_B),
+            "Выход общинной клетки не разошёлся по дворам",
+        )
+        self.assertGreater(
+            shared,
+            _tile_batch_cap(shared_world),
+            "Общинный сбор упирается в кап стойла — это разные числа (ADR 0143 п. 2)",
         )
         for world in (single_world, shared_world):
             self.assertAlmostEqual(
                 world.ledger.delta(world.total_matter()), 0.0, places=6
             )
 
-    def test_one_household_two_communal_tiles_within_cap(self) -> None:
-        """(b) Один двор на двух общинных клетках: с каждой — в пределах капа."""
+    def test_one_household_month_is_labor_not_capacity(self) -> None:
+        """(b) Две общинные клетки не удваивают месяц одного двора.
+
+        Право доступа к двум клеткам не даёт второго месяца: труд двора уходит
+        на первую клетку до конца бюджета, и вторая ждёт следующего месяца.
+        Проверяется сравнением с тем же двором на одной клетке.
+        """
+        one_tile = _forage_world([SALT_A])
+        _grant_common_access(one_tile, TARGET)
+        _seed_standing(one_tile, TARGET)
+        work_month(one_tile, one_tile.clock.date)
+        single = _batches(one_tile, TARGET)
+
         world = _forage_world([SALT_A])
         _grant_common_access(world, TARGET)
         _grant_common_access(world, TARGET_ALT)
         _seed_standing(world, TARGET)
         _seed_standing(world, TARGET_ALT)
-
         work_month(world, world.clock.date)
 
-        first = _batches(world, TARGET)
-        second = _batches(world, TARGET_ALT)
-        self.assertGreaterEqual(first, 1, "Первая клетка не обработана")
-        self.assertGreaterEqual(second, 1, "Вторая клетка не обработана")
-        self.assertLessEqual(first, TILE_CAP, "Первая клетка перепахана сверх ёмкости")
-        self.assertLessEqual(second, TILE_CAP, "Вторая клетка перепахана сверх ёмкости")
+        total = _batches(world, TARGET) + _batches(world, TARGET_ALT)
+        self.assertGreaterEqual(single, 1, "Двор на одной клетке не собрал ничего")
+        self.assertEqual(
+            total,
+            single,
+            "Вторая общинная клетка удвоила месяц двора: труд не резиновый",
+        )
+        self.assertGreater(
+            total,
+            _tile_batch_cap(world),
+            "Общинный сбор упирается в кап стойла — это разные числа (ADR 0143 п. 2)",
+        )
         self.assertAlmostEqual(world.ledger.delta(world.total_matter()), 0.0, places=6)
 
     def test_no_access_means_no_collection(self) -> None:
@@ -166,13 +218,7 @@ class TestCommunalAccess(unittest.TestCase):
         self.assertEqual(_batches(world, FAR), 0, "Чужая клетка всё же обработана")
 
     def test_salt_regression_two_settlements_seed_99(self) -> None:
-        """(d) Соль A1: 60 мес seed 99 (script) — 7.33, не 4.0, дельта ≈ 0.
-
-        После ADR 0077 геометрический доступ соседних дворов к соляным лесам убран:
-        сценарий не содержит `Right.common` на этих клетках, поэтому честный результат
-        возвращается к измеренному потоку соли 7.33. Число не подгоняется под старый
-        пин; причина — доступ по праву, а не геометрии.
-        """
+        """(d) Соль A1: 60 мес seed 99 (script) — ненулевой поток, дельта ≈ 0."""
         world = load_scenario(TWO_SETTLEMENTS, seed=99)
         for month_index in range(1, 61):
             for entry in world.script:
@@ -181,16 +227,28 @@ class TestCommunalAccess(unittest.TestCase):
             run_month(world)
 
         salt = world.get_stock("settlement:hill_court").amounts.get("salt", 0.0)
-        self.assertGreater(salt, 0.0, "Замковая соль исчезла")
         self.assertGreater(salt, 4.0, "Замковая соль осталась 4.0 без transfer")
-        self.assertAlmostEqual(salt, 7.33, delta=0.5, msg=f"соль {salt}")
+        unload_total = sum(
+            entry.amount
+            for entry in world.ledger.entries
+            if entry.good == "salt" and entry.reason == "caravan_unload"
+        )
+        self.assertGreater(unload_total, 0.0, "Соляные обозы не привезли соль")
+        self.assertAlmostEqual(
+            salt,
+            4.0 + unload_total,
+            places=6,
+            msg=f"соль {salt}, выгрузка {unload_total}",
+        )
         self.assertAlmostEqual(world.ledger.delta(world.total_matter()), 0.0, places=6)
 
     def test_tenement_field_is_not_communal_collection(self) -> None:
         """(e) Граница J3: полевой `tenement` — не общинная клетка сбора.
 
-        Держимую клетку делят как в G3 (`test_plot_cap_per_tile`); общинное поле
-        (works_tile соляной деревни, режим tenement) по-новому не шарится.
+        Общинная клетка СБОРА — это `waste`/`reserved_wood`; пашня `tenement`
+        сбора не даёт даже при `works_tiles`. Пашня идёт по первому режиму
+        (ёмкость растёт от работников, ADR 0137) и проверяется в
+        `test_communal_capacity`.
         """
         world = load_scenario(SCENARIO)
         field = world.tiles[COMMUNAL_FIELD]

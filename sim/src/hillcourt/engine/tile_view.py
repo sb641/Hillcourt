@@ -1,8 +1,8 @@
 """Наполнение тайла и контракт вида (снимок для иконки, не рендерер).
 
 Клетка — не бесконечная коммуна: жилых дворов на клетке не больше
-`TILE_MAX_HOUSEHOLDS` (ориентир 5). Вид клетки СЛЕДУЕТ из состояния, а не из
-ручной краски: пустая — поле/лес/топь-железница/пустошь по terrain, один двор —
+`TILE_MAX_HOUSEHOLDS` (5, ADR 0132 п. 3). Вид клетки СЛЕДУЕТ из состояния, а не
+из ручной краски: пустая — поле/лес/топь-железница/пустошь по terrain, один двор —
 дом с огородом, несколько — деревня, seat тэна — усадьба держателя, seat корня —
 зал на холме, поле господина — чистый деменский клин, переправа — брод/мост,
 походные лагеря — возы в пути (`Pack` в `in_transit` к клетке). Городского тайла
@@ -39,6 +39,7 @@ from .terrain import trail_level_for
 # онтологию ради константы; per-tile переопределение — через атрибут
 # `Tile.max_households`, если он когда-нибудь появится (см. tile_max_households).
 TILE_MAX_HOUSEHOLDS = 5
+URBAN_MAX_HOUSEHOLDS = 20
 
 # Каталог форм (вид, не экономика; городов нет).
 # id (english snake_case) -> русское имя + правило.
@@ -146,7 +147,8 @@ FORMS: dict[str, dict[str, str]] = {
     # место под таверну — двор у пути (маркер tavern, вид, не постройка);
     # железная шахта — точка добычи (маркер mine; добыча остаётся рецептом
     # mine_iron и приростом grow_iron, вид не добавляет);
-    # большая деревня — стадия роста видом (10+ дворов, без seat);
+    # стадии роста видом нет: `large_village` и её порог сняты (ADR 0158),
+    # 2+ двора на гексе — всегда `village`;
     # деревня племени — форма из `Settlement.kind=native_village`; старый
     # маркер tribal остаётся подсказкой сценария, но не источником вида;
     # замок барона — стол видения (маркер castle, поверх любого места).
@@ -202,10 +204,6 @@ FORMS: dict[str, dict[str, str]] = {
         "name": "Городской квартал",
         "rule": "маркер urban + живые дворы (один Settlement, данные квартала)",
     },
-    "large_village": {
-        "name": "Большая деревня",
-        "rule": "10+ дворов, без seat, Settlement.kind не native_village",
-    },
     "tribal_village": {
         "name": "Деревня племени",
         "rule": "Settlement.kind native_village + 1+ дворов (чужое жильё)",
@@ -214,6 +212,14 @@ FORMS: dict[str, dict[str, str]] = {
         "name": "Замок барона",
         "rule": "маркер castle (стол видения, поверх любого места)",
     },
+    "own_farm": {
+        "name": "Своё хозяйство",
+        "rule": "двор с индивидуальным наделом и скотом",
+    },
+    "corvee_labor": {
+        "name": "Работа на барщине",
+        "rule": "двор с трудовой повинностью на хозяйских полях",
+    },
 }
 
 # Порог «большой рати» для частокола (правило вида, см. pavilion/campfire ниже).
@@ -221,10 +227,14 @@ FORTIFIED_MIN_MEMBERS = 4
 # Пресеты, чей отряд идёт с шатрами (командный шатёр, не палатка).
 PAVILION_PRESETS = ("holder", "thegn")
 
-# Порог стадии роста видом: 10+ жилых дворов — большая деревня (без seat,
-# без маркера tribal). Далеко от legacy-6 (6 остаётся village) и от тестовых
-# 1/4/5. Города нет: city в каталог не входит (закон v0).
-LARGE_VILLAGE_MIN_HOUSEHOLDS = 10
+# Стадии роста видом больше нет: форма `large_village` и её порог сняты
+# (ADR 0158). Порог 10 жилых дворов был недостижим — кап плотности гекса 5
+# (ADR 0083) не даёт гексу столько дворов, а гекс `hill_court` всегда
+# `hall_on_hill`, — значит форма не могла появиться ни на одной клетке.
+# Кап 5 не поднимаем: это закон расселения, и поднимать его ради картинки
+# значит подменить закон видом. Поселение большой деревни остаётся: 35 дворов
+# на 9 гексах грузятся и живут (`v0_large_village`), меняется только имя
+# формы на гексе. Города нет: city в каталог не входит (закон v0).
 
     # Маркеры земли баронства (видение): именованная разметка будущей карты.
     # На `Tile` полей под них нет (онтология не меняется ради вида): читаются
@@ -294,6 +304,7 @@ class TileView:
     household_count: int
     has_seat: bool
     has_thegn_hall: bool
+    household_forms: tuple[tuple[str, str], ...]
 
     def as_dict(self) -> dict[str, Any]:
         """Словарь для лога/дампа (игрок видит form без RimWorld-слоя)."""
@@ -304,6 +315,10 @@ class TileView:
             "household_count": self.household_count,
             "has_seat": self.has_seat,
             "has_thegn_hall": self.has_thegn_hall,
+            "household_forms": [
+                {"household": household_id, "form": form}
+                for household_id, form in self.household_forms
+            ],
         }
 
 
@@ -337,23 +352,101 @@ def household_count(world: Any, tile_id: str) -> int:
     return len(households_on_tile(world, tile_id))
 
 
+def _has_own_plot(world: Any, household: Any) -> bool:
+    """Есть ли у двора индивидуальный надел по существующим данным."""
+    for right in world.rights.values():
+        if (
+            right.holder_household_id == household.id
+            and right.kind == "tenure"
+            and right.tile_id in world.tiles
+        ):
+            return True
+    tile = world.tiles.get(household.current_tile_id)
+    if tile is None or household.land_relation == "landless":
+        return False
+    regime = world.catalogs.land_regimes.get(tile.regime_id)
+    return bool(regime is not None and regime.feeds_household)
+
+
+def _has_livestock(world: Any, household: Any) -> bool:
+    """Есть ли у двора скот в его собственном стоке."""
+    stock = world.stocks.get(household.stock_id)
+    if stock is None:
+        return False
+    for good, amount in stock.amounts.items():
+        rule = world.catalogs.goods.get(good)
+        if amount > 0 and rule is not None and rule.category == "livestock":
+            return True
+    return False
+
+
+def _has_corvee_labor(world: Any, household: Any) -> bool:
+    """Есть ли у двора запись трудовой повинности."""
+    return any(
+        obligation.household_id == household.id
+        and obligation.kind == "labor_duty"
+        for obligation in world.obligations.values()
+    )
+
+
+def household_form(world: Any, household: Any) -> str | None:
+    """Форма занятости двора по наделу, скоту и трудовой повинности."""
+    if _has_own_plot(world, household) and _has_livestock(world, household):
+        return "own_farm"
+    if _has_corvee_labor(world, household):
+        return "corvee_labor"
+    return None
+
+
+def household_forms(world: Any, tile_id: str) -> tuple[tuple[str, str], ...]:
+    """Формы занятости живых дворов клетки в детерминированном порядке."""
+    forms: list[tuple[str, str]] = []
+    for household in households_on_tile(world, tile_id):
+        form = household_form(world, household)
+        if form is not None:
+            forms.append((household.id, form))
+    return tuple(forms)
+
+
 def tile_max_households(world: Any, tile_id: str) -> int:
     """Эквивалент `tile.max_households`: кап жилых дворов на клетку.
 
-    По умолчанию `TILE_MAX_HOUSEHOLDS` (5). Если у `Tile` появится поле
-    `max_households` — берётся оно (хук без смены онтологии сейчас).
+    Сельский гекс вмещает 5 дворов, гекс с маркером `urban` — 20. Явный
+    `Tile.max_households` оставлен совместимым тестовым хуком для гонки посадок.
     """
     tile = world.tiles.get(tile_id)
     if tile is None:
         raise ValueError(f"Нет клетки '{tile_id}'")
     override = getattr(tile, "max_households", None)
-    if override is None:
-        return int(TILE_MAX_HOUSEHOLDS)
-    return int(override)
+    if override is not None:
+        return int(override)
+    if has_mark(world, tile_id, "urban"):
+        return URBAN_MAX_HOUSEHOLDS
+    return TILE_MAX_HOUSEHOLDS
+
+
+def _has_dwelling_place(world: Any, tile_id: str, tile: Any) -> bool:
+    """Есть ли на клетке место для поселения по данным сцены и разметки."""
+    if tile.settlement_id is not None:
+        return True
+    if getattr(tile, "dwelling", None) is not None or getattr(tile, "urban", False):
+        return True
+    return tile.regime_id not in {"waste", "reserved_wood", "foreign"}
 
 
 def can_settle(world: Any, tile_id: str) -> bool:
-    """Влезет ли ещё один жилой двор на клетку (строгий кап)."""
+    """Влезет ли ещё один жилой двор на пригодную клетку (строгий кап)."""
+    tile = world.tiles.get(tile_id)
+    if tile is None:
+        raise ValueError(f"Нет клетки '{tile_id}'")
+    if tile.terrain == "water":
+        return False
+    if (tile.terrain == "ruin" or bool(getattr(tile, "ruin_id", None))) and getattr(
+        tile, "dwelling", None
+    ) is None:
+        return False
+    if not _has_dwelling_place(world, tile_id, tile):
+        return False
     return household_count(world, tile_id) < tile_max_households(world, tile_id)
 
 
@@ -641,8 +734,8 @@ def tile_form(world: Any, tile_id: str) -> str:
     квартал; это форма данных одного Settlement, не новая сущность.
     Для одного двора маркер dwelling уточняет жильё до формы дома; для 2+ дворов
     уровень не выбирается, остаётся деревня. Пусто — по terrain.
-    Переполненные legacy-клетки (6–9 дворов) — тоже `village`: вид не штрафует
-    и не премирует, только называет. `quarry` (резерв) здесь не возвращается:
+    Стадии роста видом больше нет (ADR 0158): форма `large_village` и порог 10
+    дворов сняты как недостижимые, кап плотности гекса 5 (ADR 0083) не поднят. `quarry` (резерв) здесь не возвращается:
     камня в экономике нет. Живое важнее размеченного: лагерь воза бьёт
     маркер стоянки, жильё бьёт дорогу/тропу.
     """
@@ -695,8 +788,6 @@ def tile_form(world: Any, tile_id: str) -> str:
         return "city_quarter"
     if count == 1:
         return dwelling_form(world, tile_id) or "single_homestead"
-    if count >= LARGE_VILLAGE_MIN_HOUSEHOLDS:
-        return "large_village"
     return "village"
 
 
@@ -717,6 +808,7 @@ def tile_view(world: Any, tile_id: str) -> TileView:
         household_count=household_count(world, tile_id),
         has_seat=has_seat,
         has_thegn_hall=has_hall,
+        household_forms=household_forms(world, tile_id),
     )
 
 
@@ -766,10 +858,19 @@ def format_tile_view(view: TileView | dict[str, Any]) -> str:
         count = view.get("household_count", "?")
         seat = int(bool(view.get("has_seat")))
         hall = int(bool(view.get("has_thegn_hall")))
+        activities = view.get("household_forms", [])
     else:
         tile, terrain, form, count = view.tile_id, view.terrain, view.form, view.household_count
         seat, hall = int(view.has_seat), int(view.has_thegn_hall)
-    return f"{tile} {terrain} {form} дворов={count} seat={seat} hall={hall}"
+        activities = [
+            {"household": household_id, "form": household_form}
+            for household_id, household_form in view.household_forms
+        ]
+    activity_text = ",".join(
+        f"{item['household']}:{item['form']}" for item in activities
+    )
+    suffix = f" хоз={activity_text}" if activity_text else ""
+    return f"{tile} {terrain} {form} дворов={count} seat={seat} hall={hall}{suffix}"
 
 
 def _log(world: Any, action: str, **fields: Any) -> dict:
@@ -786,8 +887,8 @@ def settle_household(world: Any, household_id: str, tile_id: str) -> TileView:
     Успех двигает только место жительства (`Household.current_tile_id` + точки
     людей): стоки, труд, режимы, права, книги маноров не меняются, поэтому
     материя и урожай те же (form бонуса не даёт). Отказ — `PermissionError`
-    с записью `settle_rejected reason=tile_full` в лог: шестой двор на клетку
-    при капе 5 не садится.
+    с записью `settle_rejected reason=tile_full` в лог: восьмой двор на клетку
+    при капе 7 не садится.
     """
     household = world.households.get(household_id)
     if household is None:

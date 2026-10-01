@@ -1,12 +1,21 @@
 # Каталог прав. Владелец: Legal.
 # Шаблоны Right/Tenure. Право — то, что игрок нарезает (docs/01).
+#
+# ДОЛИ ОБРОКА ЗДЕСЬ НЕТ. По решению хозяина у доли один дом: `obligations.yml`,
+# запись `rent_share` с `default_share`. Второй дом в `rights.yml` был причиной
+# того, что `default_share` и `default_rent_share` запутались друг с другом, и
+# любая правка оброка упиралась в вопрос «а которая из них настоящая».
 version: 1
 rights:
   - id: tenant_tenure
     name: Держание двора
     kind: tenure
-    default_rent_share: 0.1
   - id: common_grazing
     name: Общий выпас
     kind: grazing
-    default_rent_share: 0.0
+
+  # Право промысла на клетку (ADR 0189). Ренты нет: промысел не покупается,
+  # сеньор кладёт работников, а платить за право промысла нечем.
+  - id: works_right
+    name: Право промысла
+    kind: works

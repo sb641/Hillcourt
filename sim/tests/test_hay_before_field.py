@@ -77,11 +77,27 @@ class TestHayMowedBeforeGreedyField(unittest.TestCase):
         labor_before = household.labor_days
         world.ledger.capture_initial(world.total_matter())
         run_month(world)
-        self.assertGreater(
-            stock.amounts.get("hay", 0.0), 0.0, "Косьба до поля не сработала"
-        )
+        # Сено в стоке на КОНЕЦ месяца доказательством ко��ьбы не является: за
+        # месяц оно уходит законно. Замер этой фикстуры: накосено 3.3768, из них
+        # 0.4723 съедено волом, 0.0322 испорчено, 2.7115 продано натурой за зерно
+        # (ADR 0139 п. 3 — двор без зерна покупает еду из кармана), итого 0.0.
+        # Проверять надо ПРОВОДКУ, а не остаток: остаток доказывает, что сено
+        # залежалось, а закон говорит об обратном.
         mowed = [e for e in world.ledger.entries if e.reason == "gather_hay"]
         self.assertTrue(mowed, "Нет проводки заготовки сена")
+        mowed_in = sum(
+            entry.amount
+            for entry in mowed
+            if entry.good == "hay" and entry.dst_id == household.stock_id
+        )
+        self.assertGreater(mowed_in, 0.0, "Сено накосено мимо стока двора")
+        eaten = sum(
+            entry.amount
+            for entry in world.ledger.entries
+            if entry.reason == "feed" and entry.good == "hay"
+            and entry.src_id == household.stock_id
+        )
+        self.assertGreater(eaten, 0.0, "Вол не получил сена ни от кого")
         self.assertLess(
             household.labor_days,
             labor_before,

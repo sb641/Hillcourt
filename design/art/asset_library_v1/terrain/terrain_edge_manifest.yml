@@ -1,0 +1,108 @@
+version: 0
+id: hillcourt_terrain_edges_v1
+name: Terrain edge and transition prototypes v1
+
+topology:
+  type: axial_hex
+  layout: odd_r
+  source: sim/src/hillcourt/engine/hexgrid.py
+  direction_order: [dir_0, dir_1, dir_2, dir_3, dir_4, dir_5]
+  directions:
+    - id: dir_0
+      delta_q: 1
+      delta_r: 0
+    - id: dir_1
+      delta_q: 1
+      delta_r: -1
+    - id: dir_2
+      delta_q: 0
+      delta_r: -1
+    - id: dir_3
+      delta_q: -1
+      delta_r: 0
+    - id: dir_4
+      delta_q: -1
+      delta_r: 1
+    - id: dir_5
+      delta_q: 0
+      delta_r: 1
+  client_independent: true
+  final_placement_masks: false
+
+edge_slots:
+  - id: edge_dir_0
+    direction: dir_0
+    terrain_variants_required: 9
+    status: prototype_slot
+  - id: edge_dir_1
+    direction: dir_1
+    terrain_variants_required: 9
+    status: prototype_slot
+  - id: edge_dir_2
+    direction: dir_2
+    terrain_variants_required: 9
+    status: prototype_slot
+  - id: edge_dir_3
+    direction: dir_3
+    terrain_variants_required: 9
+    status: prototype_slot
+  - id: edge_dir_4
+    direction: dir_4
+    terrain_variants_required: 9
+    status: prototype_slot
+  - id: edge_dir_5
+    direction: dir_5
+    terrain_variants_required: 9
+    status: prototype_slot
+
+transition_families:
+  - id: transition_water_pasture
+    left_terrain: water
+    right_terrain: pasture
+    edge_cue: bank
+    status: visual_prototype
+  - id: transition_water_marsh
+    left_terrain: water
+    right_terrain: marsh
+    edge_cue: wet_bank
+    status: visual_prototype
+  - id: transition_water_field
+    left_terrain: water
+    right_terrain: field
+    edge_cue: irrigation_edge
+    status: visual_prototype
+  - id: transition_field_pasture
+    left_terrain: field
+    right_terrain: pasture
+    edge_cue: low_fence_or_grass_edge
+    status: visual_prototype
+  - id: transition_forest_field
+    left_terrain: forest
+    right_terrain: field
+    edge_cue: tree_line
+    status: visual_prototype
+  - id: transition_forest_marsh
+    left_terrain: forest
+    right_terrain: marsh
+    edge_cue: wet_tree_line
+    status: visual_prototype
+  - id: transition_hill_pasture
+    left_terrain: hill
+    right_terrain: pasture
+    edge_cue: slope_or_earthwork
+    status: visual_prototype
+  - id: transition_salt_flat_water
+    left_terrain: salt_flat
+    right_terrain: water
+    edge_cue: salt_bank
+    status: visual_prototype
+  - id: transition_heath_forest
+    left_terrain: heath
+    right_terrain: forest
+    edge_cue: scrub_to_tree_line
+    status: visual_prototype
+  - id: transition_ruin_pasture
+    left_terrain: ruin
+    right_terrain: pasture
+    edge_cue: broken_wall_or_stone
+    status: visual_prototype

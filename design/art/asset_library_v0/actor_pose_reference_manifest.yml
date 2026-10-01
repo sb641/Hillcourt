@@ -1,0 +1,31 @@
+version: 0
+id: hillcourt_actor_pose_reference_v0
+name: Actor pose reference v0
+
+atlas:
+  file: asset_library_v0/actor_pose_reference_atlas_v0.png
+  guide: asset_library_v0/guides/actor_pose_reference_guide_v0.png
+  plate_dir: asset_library_v0/plates
+  columns: 4
+  cell_canvas_px: [128, 128]
+  background: transparent
+  status: pose_reference
+  animation_claim: false
+
+cells:
+  - id: pose_reference_01
+    name: Actor pose reference 01
+    plate: actor_villager_a.png
+    game_entities: [Person, Household]
+  - id: pose_reference_02
+    name: Actor pose reference 02
+    plate: actor_villager_b.png
+    game_entities: [Person, Household]
+  - id: pose_reference_03
+    name: Actor pose reference 03
+    plate: actor_villager_c.png
+    game_entities: [Person, Household]
+  - id: pose_reference_04
+    name: Actor pose reference 04
+    plate: actor_villager_d.png
+    game_entities: [Person, Household]

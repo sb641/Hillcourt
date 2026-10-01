@@ -8,50 +8,65 @@
    3b roadworks — стройка пути из остатка рук после барщины, до поля;
   4 labor    — двор работает на своём наделе (economy/labor.py);
   5 spoil    — порча;
-  6 consume  — еда, зимнее топливо, корм скота;
-  6a demography — сытый двор растит семью: старение, недоросли в тягло, роды;
-  7 obligations — натуральная рента и запись барщины;
-  8 exchange — подмога, тайники, локальный обмен на клетке;
-  9 hazard   — волчья кража и риск пути;
- 10 migrate  — уход двора на соседнюю клетку (если can_leave);
- 11 caravan  — отправка и разгрузка обозов соли (economy/caravan.py);
-  12 travel   — разрешение дошедших посылок Pack;
-  12a day     — дневной контур Pack: сутки `eta_date` (ADR 0071, И-4);
-  13 decide   — выбор действий на следующий месяц;
- 14 inform   — факты месяца в Report с задержкой и искажением;
- 15 record   — снимок и сдвиг календаря.
+  6 exchange  — подмога и локальный обмен до расхода;
+  7 consume  — еда, зимнее топливо, корм скота;
+  8 demography — сытый двор растит семью: старение, недоросли в тягло, роды;
+  9 obligations — натуральная рента и запись барщины;
+ 10 hazard   — волчья кража и риск пути;
+ 11 migrate  — уход двора на соседнюю клетку (если can_leave);
+  11a ruin    — пересчёт двух проигрышей и защёлка (engine/ruin.py, ADR 0209);
+  12 caravan  — отправка и разгрузка обозов соли (economy/caravan.py);
+ 13 travel   — разрешение дошедших посылок Pack;
+ 13a day     — дневной контур Pack: сутки `eta_date` (ADR 0071, И-4);
+ 14 decide   — выбор действий на следующий месяц;
+ 15 inform   — факты месяца в Report с задержкой и искажением;
+  16 record   — снимок и сдвиг календаря.
 """
+
 
 from __future__ import annotations
 
-from ..economy import caravan, decisions, exchange
+from ..economy import caravan, decisions, exchange, labor
+from ..economy.cooking import meal_credit, phase_cook_meal
 from ..economy.demography import demography_month
 from ..economy.labor import work_month
 from ..economy.livestock import livestock_month
 from ..economy.manor import manor_month
 from ..economy.thegn import thegn_month
 from .events import month_events
-from .growth import run_detailed_growth
+from .growth import index_growth_tiles, run_detailed_growth
 from .hexgrid import neighbor_ids
+from .hunting import run_hunt_actions
+from .scouting import observe_scout_packs, settle_reported_discoveries
 from .terrain import DAYS_PER_MONTH
 from .manor import update_musters
+from .ruin import phase_ruin
 from .tile_view import can_settle
 from . import trails
 from ..economy.needs import member_counts, monthly_food_need
 from ..hazards.travel import resolve_migrations, resolve_packs
 from ..info.briefing import make_month_reports, report_travel_loss
+from ..info.sources import CARAVAN, CHANNELS
 from ..news import threats as threats_module
+from ..news.hunting import make_hunt_report
+from ..news.propagation import make_report
+from ..news.ruin import report_ruin
+from ..news.scouting import report_scout_observations
 from ..news.threats import report_pending_topups
 from ..news.trails import report_new_trails
 from ..legal.calendar import seasonal_labor_days
 from ..legal.obligations import accrue_corvee
-from ..legal.regimes import can_leave
-from ..ontology import Hazard, Household, Pack, SimDate, Stock
+from ..legal.regimes import can_leave, hunt_destination_stock_id
+from ..ontology import Hazard, Household, Pack, Report, SimDate, Stock
 from ..world import World
 
 EPSILON = 1e-9
 WASTE_STOCK_ID = "sink:waste"
+HUNTER_PROFILE = "hunters"
+CARAVAN_CHANNEL = CHANNELS[CARAVAN]
 EATEN_STOCK_ID = "sink:eaten"
+FUEL_ACTION_IDS = frozenset(("cut_wood_if_allowed", "cut_peat"))
+FUEL_TERRAINS = frozenset(("forest", "marsh"))
 
 SEASON_FACTORS: dict[int, float] = {
     1: 0.2,
@@ -84,13 +99,107 @@ def phase_season(world: World) -> None:
 
 
 def phase_growth(world: World) -> None:
-    """Внести материю извне только на индексированных гексах поселений."""
+    """Внести материю извне только на индексированных (обрабатываемых) гексах.
+
+    Индекс **пересчитывается каждый месяц** из данных мира
+    (`engine/growth.py::index_growth_tiles`): обрабатываемая земля — это места и
+    угодья поселений, наделы по праву, домен и дикая земля под рукой у них, а
+    право игрок жмёт между тиками. Состояния индекса в мире нет, есть вывод, и
+    он берётся здесь — поэтому выдача надела, отзыв пожалования и смена режима
+    попадают в рост без чьего-либо invalidation (забыть нельзя: нечего).
+
+    Старый индекс строилось один раз при загрузке из координат поселений, и на
+    `start_stand` в него попадала одна пашня из семи: надел `t_02_00` съедал
+    8.0 стартового зерна за зиму и с четвёртого месяца был пуст навеки, а домен
+    копил 788.9 зерна, которое никто не убирал. Обход при этом остаётся по
+    индексу, а не по всей coarse-карте: 253 клетки из 10 000 на `v0_barony_100`.
+    """
+    world.growth_tile_ids = index_growth_tiles(world)
     run_detailed_growth(world, season_factor(world.clock.month))
 
 
+def fuel_source_available(world: World, household: Household) -> bool:
+    """Проверить forest/marsh и стоячее топливо среди доступных клеток."""
+    for recipe_id in ("cut_firewood", "cut_wood", "cut_peat"):
+        recipe = world.catalogs.recipes.get(recipe_id)
+        if recipe is None:
+            continue
+        for tile in labor._tiles_for_recipe(world, household, recipe):
+            if tile.terrain not in FUEL_TERRAINS:
+                continue
+            stock = world.get_stock(tile.standing_stock_id)
+            if any(
+                stock.amounts.get(good, 0.0) > EPSILON
+                for good in recipe.draws_standing
+            ):
+                return True
+    return False
+
+
+def _fuel_fallback(
+    world: World, household: Household, *, main: bool
+) -> str:
+    """Выбрать разрешённое дело вместо топлива без источника."""
+    allowed = decisions.allowed_action_ids(world, household)
+    candidates = (
+        ("work_plot", "hire_out", "oversee", "demesne_labor", "idle_repair")
+        if main
+        else ("idle_repair", "tend_animals", "work_plot")
+    )
+    for action in candidates:
+        if action in allowed:
+            return action
+    return "idle_repair"
+
+
+def _guard_fuel_actions(world: World) -> None:
+    """Снять топливный выбор, если у двора нет доступного источника."""
+    for hid in sorted(world.households):
+        household = world.households[hid]
+        if household.left_at is not None:
+            continue
+        has_source = None
+        if (
+            household.main_action in FUEL_ACTION_IDS
+            or household.minor_action in FUEL_ACTION_IDS
+        ):
+            has_source = fuel_source_available(world, household)
+        if has_source:
+            continue
+        if household.main_action in FUEL_ACTION_IDS:
+            household.main_action = _fuel_fallback(world, household, main=True)
+        if household.minor_action in FUEL_ACTION_IDS:
+            household.minor_action = _fuel_fallback(world, household, main=False)
+
+
+def _hunt_action_slots(world: World) -> list[tuple[Household, str, str]]:
+    slots: list[tuple[Household, str, str]] = []
+    for household_id in sorted(world.households):
+        household = world.households[household_id]
+        if household.left_at is not None:
+            continue
+        if "take_game" not in (household.main_action, household.minor_action):
+            continue
+        slots.append((household, household.main_action, household.minor_action))
+    return slots
+
+
 def phase_labor(world: World) -> None:
-    """Отработать решения дворов (см. economy/labor.py)."""
-    work_month(world, world.clock.date)
+    """Отработать решения дворов после проверки топливных кандидатов."""
+    _guard_fuel_actions(world)
+    run_hunt_actions(world, world.clock.date)
+    slots = _hunt_action_slots(world)
+    for household, main_action, minor_action in slots:
+        if main_action == "take_game":
+            household.main_action = "cook_meal"
+        if minor_action == "take_game":
+            household.minor_action = "cook_meal"
+    try:
+        work_month(world, world.clock.date)
+    finally:
+        for household, main_action, minor_action in slots:
+            household.main_action = main_action
+            household.minor_action = minor_action
 
 
 def phase_manor(world: World) -> None:
@@ -222,6 +331,12 @@ def phase_consume(world: World) -> None:
             continue
         stock = world.get_stock(household.stock_id)
         need = monthly_food_need(world, household)
+        # Приём пищи, который двор уже получил готовкой (ADR 0098, 0100, 0159),
+        # вычитается ДО поедания: еда, сваренная фазой 5, не должна считаться
+        # дважды — ни по материи, ни по нужде. Зачёт месячный и протухает сам.
+        credit = meal_credit(world, household)
+        if credit > EPSILON:
+            need = max(0.0, need - credit)
         order = needs.edible_order if needs is not None else ["grain"]
         for good in order:
             need = _eat_from(stock, good, need, world, date)
@@ -272,7 +387,15 @@ def phase_obligations(world: World) -> None:
             obligation = world.obligations.get(oid)
             if obligation is None:
                 continue
-            if obligation.basis == "duty" or obligation.kind == "labor_duty":
+            duty = obligation.basis == "duty" or obligation.kind == "labor_duty"
+            if not duty and obligation.kind == "rent" and obligation.basis == "share":
+                # Оброк — доля от урожая двора, поэтому сумма живёт: пересчитываем
+                # её от зерна этого месяца (ADR 0185), иначе она застыла бы в
+                # момент выдачи наделения. Локальный импорт — правка блока фазы.
+                from ..legal.obligations import refresh_rent_due
+
+                refresh_rent_due(world, household, obligation)
+            if duty:
                 # Сезонный долг из календаря (legal.calendar): не «2 дня всегда».
                 # Сами руки с надела снимает фаза манора (economy/manor.py), иначе
                 # был бы двойной счёт; здесь — только запись долга по периоду.
@@ -280,11 +403,12 @@ def phase_obligations(world: World) -> None:
                     world, household, world.clock.month
                 )
                 period = max(1, obligation.period_months)
-                if world.clock.month % period == 0:
-                    accrue_corvee(obligation, obligation.duty_days)
-                continue
+                if world.clock.month % period != 0:
+                    continue
             due = obligation.due_amount
             if due <= 0:
+                if duty:
+                    accrue_corvee(obligation, obligation.duty_days)
                 continue
             available = (
                 stock.amounts.get(obligation.due_good, 0.0)
@@ -296,22 +420,38 @@ def phase_obligations(world: World) -> None:
                     "settlement:" + world.player.court_settlement_id
                 )
                 world.ledger.transfer(
-                    stock, court_stock, obligation.due_good, due, "rent", date
+                    stock,
+                    court_stock,
+                    obligation.due_good,
+                    due,
+                    "corvee_commuted" if duty else "rent",
+                    date,
                 )
                 obligation.paid_total += due
                 obligation.arrears = max(0.0, obligation.arrears - due * 0.5)
-                world.bump("rent_collected", due)
+                world.bump("corvee_commuted" if duty else "rent_collected", due)
+                if duty:
+                    accrue_corvee(obligation, obligation.duty_days, paid_in_lieu=True)
             else:
                 obligation.arrears += due
                 household.arrears_days += 1
+                if duty:
+                    accrue_corvee(obligation, obligation.duty_days)
 
 
 def phase_exchange(world: World) -> None:
-    """Подмога, тайники и локальный обмен на клетке."""
+    """Подмога, тайники, локальный обмен на клетке и прилавок барона.
+
+    Порядок: сначала подача голодному (ADR 0114) — она нужнее рынка и от денег
+    не зависит, потом обмен между дворами, и только потом покупка зерна, которое
+    барон выставил в деревне (ADR 0139): продажа не отменяет подачу, но и не
+    заменяет её.
+    """
     date = world.clock.date
     exchange.apply_relief(world, date)
     exchange.apply_hide_stores(world, date)
     exchange.local_exchange(world, date)
+    exchange.sell_listed_grain(world, date)
 
 
 def _travel_risk(world: World, household: Household) -> float:
@@ -713,20 +853,147 @@ def phase_caravan(world: World) -> None:
 
 
 def phase_decide(world: World) -> None:
-    """Выбрать действия дворов на следующий месяц (см. economy/decisions.py)."""
+    """Выбрать действия дворов на следующий месяц и отсеять топливо без источника."""
     decisions.plan_next_month(world)
+    _guard_fuel_actions(world)
     trails.tread_travelers(world)
 
 
-def phase_travel(world: World) -> None:
-    """Разрешить уходы дворов и посылки, дошедшие до срока (hazards/travel.py).
+def resolve_hunt_packs(world: World, date: SimDate) -> list[Report]:
+    """Передать добычу охотничьего Pack в кладовую барона.
 
-    Разобранные посылки топчут свой маршрут (`engine/trails.py`); речные
-    возы землю не топчут (маршрут без origin).
+    Материя движется в тике и сама по себе не является вестью (И-3): перенос
+    идёт молча, а знание о нём оформляет `news.hunting.make_hunt_report` —
+    каналом с задержкой, шумом и искажением. Отряд опознаётся профилем
+    `hunters`, а не его именем: имя сценарное и в расчёте не участвует.
+    """
+    produced: list[Report] = []
+    for pack_id in sorted(world.packs):
+        pack = world.packs[pack_id]
+        if pack.profile_id != HUNTER_PROFILE or pack.status != "arrived":
+            continue
+        owner = world.households.get(pack.owner_household_id or "")
+        if owner is None or owner.left_at is not None:
+            continue
+        tile = world.tiles.get(pack.destination_tile_id)
+        if tile is None:
+            continue
+        source = world.get_stock(tile.standing_stock_id)
+        amount = source.amounts.get("meat", 0.0)
+        destination_id = hunt_destination_stock_id(world, owner, tile, "meat")
+        if destination_id is None or amount <= EPSILON:
+            continue
+        target = world.get_stock(destination_id)
+        if any(
+            entry.reason == "hunt"
+            and entry.src_id == source.id
+            and entry.dst_id == target.id
+            for entry in world.ledger.entries
+        ):
+            continue
+        world.ledger.transfer(source, target, "meat", amount, "hunt", date)
+        produced.append(
+            make_hunt_report(
+                world,
+                owner.id,
+                tile.id,
+                "meat",
+                amount,
+                destination_id,
+                date,
+                observer_id=pack.id,
+            )
+        )
+    return produced
+
+
+def report_caravan_arrivals(world: World) -> list[Report]:
+    """Описать доставку обоза только после его полной разгрузки."""
+    produced: list[Report] = []
+    for pack_id in sorted(world.packs):
+        pack = world.packs[pack_id]
+        if pack.kind != "caravan" or pack.status != "arrived":
+            continue
+        if pack.cargo.total() > EPSILON:
+            continue
+        if any(
+            report.facts.get("event") == "caravan_arrival"
+            and report.facts.get("pack") == pack.id
+            for report in world.reports
+        ):
+            continue
+        entries = world.ledger.entries
+        carried = sum(
+            entry.amount
+            for entry in entries
+            if entry.kind == "transfer"
+            and entry.dst_id == pack.cargo.id
+            and entry.reason in {"caravan_load", "caravan_fodder"}
+        )
+        delivered = sum(
+            entry.amount
+            for entry in entries
+            if entry.kind == "transfer"
+            and entry.src_id == pack.cargo.id
+            and entry.reason == "caravan_unload"
+        )
+        lost = sum(
+            entry.amount
+            for entry in entries
+            if entry.kind == "transfer"
+            and entry.src_id == pack.cargo.id
+            and entry.reason == "scattered"
+        )
+        consumed = sum(
+            entry.amount
+            for entry in entries
+            if entry.kind == "transfer"
+            and entry.src_id == pack.cargo.id
+            and entry.reason == "fodder"
+        )
+        reported = delivered * (
+            1.0 + world.rng.news.uniform(-CARAVAN_CHANNEL.noise, CARAVAN_CHANNEL.noise)
+        )
+        produced.append(
+            make_report(
+                world,
+                CARAVAN,
+                "pack",
+                pack.id,
+                f"Обоз прибыл: вёз {carried:.2f}, сказывают, доставил {reported:.2f}.",
+                {
+                    "event": "caravan_arrival",
+                    "pack": pack.id,
+                    "carried_approx": round(carried, 2),
+                    "delivered_approx": round(reported, 2),
+                    "lost": lost,
+                    "consumed": consumed,
+                    "route": list(pack.route),
+                    "origin": pack.origin_tile_id,
+                    "destination": pack.destination_tile_id,
+                },
+                world.clock.date,
+                CARAVAN_CHANNEL.delay_months,
+                CARAVAN_CHANNEL.confidence,
+                distorted=abs(reported - delivered) > EPSILON,
+                noise=CARAVAN_CHANNEL.noise,
+                observer_id=pack.id,
+            )
+        )
+    return produced
+
+
+def phase_travel(world: World) -> None:
+    """Разрешить уходы дворов, посылки и месячные наблюдения разведки.
+
+    Разведка наблюдает в потоке `rng_world`; разобранные посылки топчут свой
+    маршрут (`engine/trails.py`), а речные возы землю не топчут.
     """
     in_transit = _in_transit_pack_ids(world)
+    world.month_events = observe_scout_packs(world, world.clock.date)
     resolve_migrations(world, world.clock.date)
     resolve_packs(world, world.clock.date)
+    resolve_hunt_packs(world, world.clock.date)
     trails.tread_arrivals(world, in_transit)
 
 
@@ -742,11 +1009,22 @@ def phase_day(world: World) -> None:
     не поспела, уходят следующему месяцу — месяц по-прежнему главный тик.
     """
     date = world.clock.date
+    # Топот идёт ЗА завершением ходьбы (ADR 0061), а дневной контур завершает
+    # посылки точнее месяца (ADR 0069). Поэтому снимок пути берётся ДО суток, а
+    # топот — ПОСЛЕ: к этому моменту пакет, дошедший сегодня, уже `arrived` и
+    # проходит фильтр `trails.tread_arrivals`. Без этого вызова доход дневного
+    # контура терялся: два месячных вызова снимают список ДО `phase_day`.
+    in_transit = _in_transit_pack_ids(world)
     for day in range(1, int(DAYS_PER_MONTH) + 1):
         current = SimDate(date.year, date.month, day)
         resolve_migrations(world, current)
         resolve_packs(world, current)
+        resolve_hunt_packs(world, current)
         caravan.resolve_caravans(world, current)
+    # Топчутся только дошедшие за эти сутки: и `phase_caravan`, и `phase_travel`
+    # уже оттоптали своих, и их пакеты в снимок не попали (статус `arrived`),
+    # поэтому задвоения быть не может, а неподвижные посылки отсекает фильтр.
+    trails.tread_arrivals(world, in_transit)
 
 
 def phase_inform(world: World) -> None:
@@ -758,7 +1036,10 @@ def phase_inform(world: World) -> None:
     `phase_hazard` превращаются в `Report` (гейт `report_required`, ADR 0042),
     и весть о новой тропе (news/trails.py): метки `trail_born_`/`dirt_born_`
     `phase_hazard`/`phase_caravan` (топтание) превращаются в `Report` глаза
-    (этап троп, ADR 0061 — как ADR 0044 для угроз).
+    (этап троп, ADR 0061 — как ADR 0044 для угроз). Плюс вести о проигрыше
+    (`news/ruin.py`, ADR 0209): «поселение оставлено» и «стол сеньора пуст».
+    Они не строчка в логе, а `Report` — иначе проигрыш был бы известен только
+    отладчику (И-3).
 
     Отчётам месяца сначала отдаются СОБЫТИЯ месяца (`engine/events.py`,
     ADR 0079): что пришло/ушло/созрело — плоский список записей, а не снимок
@@ -766,6 +1047,9 @@ def phase_inform(world: World) -> None:
     """
     world.month_events = month_events(world)
     make_month_reports(world)
+    report_caravan_arrivals(world)
+    report_scout_observations(world)
+    settle_reported_discoveries(world)
     try:
         from .seat import make_seat_eye_reports
 
@@ -774,6 +1058,7 @@ def phase_inform(world: World) -> None:
         pass
     report_pending_topups(world)
     report_new_trails(world)
+    report_ruin(world)
 
 
 def phase_record(world: World) -> None:
@@ -795,14 +1080,16 @@ PHASES = (
     phase_manor,
     phase_hay,
     phase_roadworks,
+    phase_cook_meal,
     phase_labor,
     phase_spoil,
+    phase_exchange,
     phase_consume,
     phase_demography,
     phase_obligations,
-    phase_exchange,
     phase_hazard,
     phase_migrate,
+    phase_ruin,
     phase_caravan,
     phase_travel,
     phase_day,

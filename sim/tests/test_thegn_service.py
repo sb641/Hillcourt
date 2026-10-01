@@ -154,7 +154,24 @@ class TestKitSpending(unittest.TestCase):
                                msg="Излишек крицы не потрачен на комплекты")
 
     def test_hungry_thegn_does_not_buy_kits_before_food(self) -> None:
-        world = load_scenario(HILL_SALT, seed=SEED)
+        """Голодный тэн не собирает комплект: сначала еда (ADR 0092, ADR 0155).
+
+        **Дефект проверки, найден 2026-09 (Implementer).** Строка
+        `[e for e in world.ledger.entries if e.reason == "smith_kit"] == []`
+        сканировала ВЕСЬ МИР, а закон говорит о ФЬЕФЕ. `smith_kit` стоит и в
+        общей очереди рецептов двора (`economy/labor.py:1356`), и на стенде
+        `v0_hill_and_salt` комплект собирает посторонний двор `hh_06`
+        (`household:hh_06 → sink:processing`, Y1-M03) — он к тэну отношения не
+        имеет. Проверка краснела на чужой проводке, а собственный закон фьефа
+        при этом ИСПОЛНЯЛСЯ: `fief_kits(...) == 0.0` (строка выше) проходит и
+        проходил.
+
+        Теперь сборка ищется в стоке **амбара фьефа** и в стоке **двора
+        держателя** — там, где комплект может появиться только сборкой тэна
+        (`thegn.py::_assemble_one` кладёт `war_kit` в `manor:<id>`). Сборка
+        постороннего двора законна и этой проверке не противоречит.
+        """
+        world = load_scenario(HILL_SALT, seed=1729)
         manor = _grant_hill_salt(world)
         holder = world.households[HOLDER_HOUSEHOLD]
         _seed(world, manor.stock_id, "iron_bloom", 2.0)
@@ -171,9 +188,16 @@ class TestKitSpending(unittest.TestCase):
         self.assertGreater(holder.hunger_days, 0, "Двор должен голодать")
         self.assertAlmostEqual(fief_kits(world, manor), 0.0, places=6,
                                msg="Голодный фьеф закупил комплекты раньше еды")
-        self.assertFalse(
-            [e for e in world.ledger.entries if e.reason == "smith_kit"],
-            "Сборка шла при открытом голоде",
+        fief_stocks = {manor.stock_id, holder.stock_id}
+        self.assertEqual(
+            [
+                e
+                for e in world.ledger.entries
+                if e.reason == "smith_kit"
+                and (e.src_id in fief_stocks or e.dst_id in fief_stocks)
+            ],
+            [],
+            "Сборка комплектов шла в книге фьефа при открытом голоде",
         )
 
 

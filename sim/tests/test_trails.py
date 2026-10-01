@@ -327,17 +327,98 @@ class TestTrailReportWiring(unittest.TestCase):
         )
 
     def test_live_month_without_trail_is_silent(self) -> None:
+        """Тишина без тропы законна только если **нечего было топтать**.
+
+        Прежняя проверка умела сказать «тропы нет» и потому проходила на сломанной
+        проводке: обрыв топта давал ту же картину, что и месяц без ходьбы. Теперь
+        месяц проверяется в двух утверждениях, и первое ломается вместе с
+        проводкой: топот обязан быть **вызван** в живом тике, а проходов — ноль
+        именно потому, что за месяц ни одна посылка не сошла с пути.
+        """
+        from hillcourt.engine import trails as trails_module
         from hillcourt.engine.tick import run_month
         from hillcourt.news.views import build_player_view
 
         world = load_scenario(SCENARIO, seed=1729)
-        run_month(world)
+        seen: dict[str, int] = {"calls": 0, "passes": 0}
+        real = trails_module.tread_arrivals
+
+        def counting(target, pack_ids):
+            seen["calls"] += 1
+            passes = real(target, pack_ids)
+            seen["passes"] += passes
+            return passes
+
+        import hillcourt.engine.tick as tick_module
+
+        tick_module.trails.tread_arrivals = counting
+        try:
+            run_month(world)
+        finally:
+            tick_module.trails.tread_arrivals = real
+
+        self.assertGreater(
+            seen["calls"], 0,
+            "Топот в живом месяце не вызван ни разу — проводка разорвана, "
+            "и «нет тропы» ничего не значит",
+        )
+        arrived = [
+            pack for pack in world.packs.values()
+            if pack.status == "arrived" and pack_tread_weight(pack) > 0.0
+        ]
+        self.assertEqual(
+            seen["passes"], len(arrived),
+            "Число проходов разошлось с числом сошедших возов",
+        )
+        self.assertEqual(seen["passes"], 0, "Стенд ждёт месяц без сошедших возов")
         self.assertFalse(
             [key for key in world.stats if key.startswith("trail_born_")],
             "Тропа родилась без ходьбы",
         )
         view = build_player_view(world, world.clock.date)
         self.assertEqual(self._trail_entries(world, view), [], "Весть без тропы")
+
+    def test_daily_contour_arrival_treads_the_route(self) -> None:
+        """Обратная пара к «месяц без тропы»: прибытие в дневном контуре топает.
+
+        Обоз с eta внутри месяца (день 5) не разбирается месячными фазами — их
+        дата это первый день, — и завершается только в `phase_day`. Проверка
+        отличает «топот не вызван» от «топтать нечего»: если новый вызов из
+        `phase_day` убрать, износ на клетке маршрута останется нулевым.
+        """
+        from hillcourt.engine.tick import run_month
+        from hillcourt.ontology import Pack, SimDate, Stock
+
+        world = load_scenario(SCENARIO, seed=1729)
+        origin = "t_01_00"
+        destination = FIELD_TILE
+        route = [origin, destination]
+        target = world.tiles[route[0]]
+        before = target.trail_wear
+        cargo = Stock(id="pack:daily_caravan", owner_kind="pack", owner_id="pack:daily_caravan",
+                      amounts={"grain": 1.0})
+        world.stocks[cargo.id] = cargo
+        world.packs["daily_caravan"] = Pack(
+            id="daily_caravan",
+            kind="caravan",
+            origin_tile_id=origin,
+            destination_tile_id=destination,
+            route=route,
+            member_ids=[],
+            cargo=cargo,
+            departed_date=world.clock.date,
+            eta_date=SimDate(world.clock.year, world.clock.month, 5),
+            status="in_transit",
+            owner_household_id=None,
+        )
+        run_month(world)
+        pack = world.packs["daily_caravan"]
+        self.assertNotEqual(pack.status, "in_transit", "Обоз не сошёл в дневном контуре")
+        self.assertGreater(
+            target.trail_wear, before,
+            "Обоз сошёл, а его маршрут не истоптан: топот не следует за ходьбой "
+            "(ADR 0061)",
+        )
 
     def test_reentered_inform_does_not_duplicate(self) -> None:
         from hillcourt.engine.tick import phase_inform

@@ -1,0 +1,82 @@
+version: 0
+id: hillcourt_terrain_atlas_v0
+name: Terrain atlas HILLCOURT v0
+
+atlas:
+  file: asset_library_v0/terrain_atlas_v0.png
+  guide: asset_library_v0/terrain_guides/terrain_guide_v0.png
+  plate_dir: asset_library_v0/terrain_plates
+  columns: 3
+  cell_canvas_px: [128, 128]
+  guide_cell_canvas_px: [192, 192]
+  background: crop_reference
+  final_hex_mask: false
+  status: source_crop_library
+
+cells:
+  - id: terrain_hill
+    name: Hill
+    source_file: illustrations_detailed/03_hill_manor.png
+    source_crop_px: [0, 250, 520, 450]
+    game_terrain: hill
+    game_forms: [hall_on_hill, open_field]
+    status: crop_reference
+    note: Context crop contains a hill road and fields; final hex mask is pending.
+  - id: terrain_field
+    name: Field
+    source_file: illustrations_detailed/01_barony_overview.png
+    source_crop_px: [280, 0, 520, 300]
+    game_terrain: field
+    game_forms: [open_field, lord_field]
+    status: crop_reference
+  - id: terrain_pasture
+    name: Pasture
+    source_file: illustrations_detailed/01_barony_overview.png
+    source_crop_px: [650, 300, 450, 300]
+    game_terrain: pasture
+    game_forms: [open_field]
+    status: crop_reference
+  - id: terrain_forest
+    name: Forest
+    source_file: illustrations_detailed/01_barony_overview.png
+    source_crop_px: [900, 20, 450, 300]
+    game_terrain: forest
+    game_forms: [forest]
+    status: crop_reference
+  - id: terrain_marsh
+    name: Marsh
+    source_file: illustrations_detailed/01_barony_overview.png
+    source_crop_px: [650, 420, 450, 300]
+    game_terrain: marsh
+    game_forms: [waste, bog_iron]
+    status: crop_reference
+  - id: terrain_heath
+    name: Heath
+    source_file: asset_library_v0/source_terrain_heath.png
+    source_crop_px: [0, 0, 1456, 720]
+    game_terrain: heath
+    game_forms: [waste]
+    status: source_generated
+    note: Dedicated source generated for correct dry-heath semantics.
+  - id: terrain_salt_flat
+    name: Salt flat
+    source_file: illustrations_detailed/00_master_moodboard.png
+    source_crop_px: [900, 0, 350, 300]
+    game_terrain: salt_flat
+    game_forms: [waste, salt_settlement]
+    status: crop_reference
+  - id: terrain_ruin
+    name: Ruin
+    source_file: asset_library_v0/source_terrain_ruin.png
+    source_crop_px: [0, 0, 1456, 720]
+    game_terrain: ruin
+    game_forms: [ruin_site]
+    status: source_generated
+    note: Dedicated ruin source; no loot or relic is shown.
+  - id: terrain_water
+    name: Water
+    source_file: illustrations_detailed/05_river_ford_port.png
+    source_crop_px: [450, 0, 650, 600]
+    game_terrain: water
+    game_forms: [waste, crossing, pier]
+    status: crop_reference

@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from ..ontology import Tile
+from ..ontology import Household, Tile
 from ..world import World
 
 DEMESNE_LABOR_KEY = "demesne_labor_days"
@@ -41,3 +41,20 @@ def render_labor(world: World, household, days: float) -> float:
 def demesne_labor_pool(world: World) -> float:
     """Накопленные трудодни домена."""
     return float(world.stats.get(DEMESNE_LABOR_KEY, 0.0))
+
+
+def is_in_manor_book(world: World, household: Household) -> bool:
+    """Числится ли двор в книге существующего манора."""
+    if household.manor_id is not None:
+        return household.manor_id in world.manors
+    return any(household.id in manor.household_ids for manor in world.manors.values())
+
+
+def hire_out_allowed(world: World, household: Household) -> bool:
+    """Разрешён ли двору подённый наём только из своей книги манора."""
+    if not is_in_manor_book(world, household):
+        return False
+    status = world.catalogs.legal_statuses.get(household.legal_status_id)
+    if status is None:
+        return False
+    return status.land_relation == "landless" or status.land_kind == "cotter_plot"

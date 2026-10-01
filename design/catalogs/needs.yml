@@ -3,7 +3,11 @@
 # как быстро тупится топор. Единицы — см. design/catalogs/README.md («Единицы»).
 #
 # food.*_per_month  — «рот-единицы» еды в месяц на человека данного класса.
-# food.edible_order — порядок поедания: сначала скоропортящееся, зерно последним.
+# food.edible_order — бережливый порядок расхода: скоропортящееся (порча
+#                      goods.spoil_per_month) раньше стойкого, зерно и мука — следом.
+# food.eat_last     — хвост порядка: мясо последним (ADR 0098 п. 2 и 4, праздник).
+#                      Правила порядка (порча не возрастает, хвост = eat_last, весь
+#                      съедобный состав каталога в списке) проверяет test_needs.
 # fuel.winter_months — месяцы, когда топят; firewood_per_adult_winter_month — unit дров
 #                      на взрослого в такой месяц.
 # livestock.feed_per_month — unit сена в месяц на голову ЗИМОЙ (стойловый
@@ -12,19 +16,23 @@
 # и стойловые — с коэффициентом, не ноль; допуск ADR 0053).
 # tool.wear_per_batch — износ топора (unit массы) за партию «топорного» рецепта.
 # tool.break_below — при остатке топора ниже порога он сломан и уходит в отходы.
-# relief — порог и размер подмоги из стока замка.
+# relief.min_court_grain — ниже этого зерна в кладовой подачи нет (источник пуст).
+# relief.cap_grain_per_month — ПОТОЛОК выплаты двору за месяц, не доля: сама сумма
+#                      равна фактическому недобору до нормы месяца (ADR 0158 п. 3),
+#                      а не фиксированной порции.
 version: 1
 food:
   adult_per_month: 1.0
   child_per_month: 0.7
   elder_per_month: 0.8
-  edible_order: [flour, meat, grain]
+  edible_order: [squirrel, rabbit, mushrooms, boar, deer, greens, berries, milk, eggs, butter, cheese, roots, flour, grain, meat]
+  eat_last: [meat]
 fuel:
   winter_months: [11, 12, 1, 2, 3]
   firewood_per_adult_winter_month: 0.6
 livestock:
   feed_good: hay
-  feed_per_month: {pig: 0.5, ox_m: 1.2, ox_f: 1.0, donkey_m: 0.7, donkey_f: 0.7, horse_m: 1.0, horse_f: 1.0, ox_calf: 0.4, donkey_foal: 0.3, horse_foal: 0.4}
+  feed_per_month: {pig: 0.5, goat: 0.35, sheep: 0.45, hen: 0.15, duck: 0.2, goose: 0.25, ox_m: 1.2, ox_f: 1.0, donkey_m: 0.7, donkey_f: 0.7, horse_m: 1.0, horse_f: 1.0, ox_calf: 0.4, donkey_foal: 0.3, horse_foal: 0.4}
   graze_months: [5, 6, 7, 8, 9]
   graze_hay_fraction: 0.3
 tool:
@@ -33,7 +41,7 @@ tool:
   wear_recipes: [harvest_grain, cut_firewood, cut_wood, split_logs, cut_peat, gather_hay, mine_iron, smith_axe, repair_axe]
 relief:
   min_court_grain: 1.0
-  amount: 3.0
+  cap_grain_per_month: 6.0
 birth:
   # Рождение от излишка: двор растит семью, если сыт. Дети = будущие руки
   # (основа средневекового труда), поэтому сытый двор рожает, а голодный — нет.

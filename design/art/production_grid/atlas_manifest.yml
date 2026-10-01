@@ -1,0 +1,347 @@
+version: 0
+id: hillcourt_art_grid_v0
+name: Рабочая сетка визуальных ассетов HILLCOURT
+
+grid:
+  topology: axial_hex
+  layout: odd_r
+  neighbor_count: 6
+  reference_projection: isometric_2to1
+  target_render_mode: flat_2d_plate
+  projection_frozen: false
+  logical_cell_canvas_px: [128, 128]
+  reference_ground_mask_px: [128, 64]
+  reference_ground_anchor_px: [64, 80]
+  final_hex_anchor_px: pending_flat_2d_proof
+  proof_tile_center_px: [64, 64]
+  proof_hex_center_px: [64, 64]
+  proof_hex_circumradius_px: 48
+  proof_hex_half_width_px: 42
+  anchor_note: >-
+    Three distinct reference points, not one disagreement.
+    reference_ground_anchor_px is the isometric reference ground centre.
+    proof_tile_center_px is where a flat 2D object stands inside its own tile,
+    and it is the same pixel as proof_hex_center_px because the object stands
+    in the middle of the tile. None of them is final while camera_frozen is
+    false. See docs/decisions/0173_flat2d_proof_mask_and_anchor.md.
+  guide_cell_canvas_px: [256, 192]
+  layers:
+    - terrain_base
+    - water_and_wetland
+    - roads_and_contact_shadows
+    - fields_and_gardens
+    - rear_structures_and_background
+    - front_structures
+    - infrastructure
+    - props_and_resources
+    - actors_and_animals
+    - smoke_fire_water_effects
+    - knowledge_render_state
+  visual_render_states:
+    - observed
+    - unknown
+  knowledge_cues:
+    - observed
+    - unknown
+    - silence
+
+game_contract:
+  terrain_ids: [hill, field, pasture, forest, marsh, heath, salt_flat, ruin, water]
+  settlement_kinds: [hill_court, farmstead, salt_village, village, native_village]
+  rural_household_cap: 5
+  urban_household_cap: 20
+  barony_cell_count: 10000
+  barony_water_cell_count: 200
+  initial_ford_count: 3
+  initial_bridge_count: 2
+  current_markers: [trail, mooring, waystation, tavern, mine, castle, urban, hermitage, smoke, lost_caravan]
+  movement_profiles: [caravan, foot, hunters, mounted, arms, rider, water_raft, water_boat]
+  scout_profiles: [hunters, forester, party]
+  report_sources: [eye_from_hill, adjacent_daily, messenger, scout, caravan, silence]
+  prohibited_actor_ids: [Knight, Explorer]
+
+atlases:
+  - id: rural_hex_guide_v0
+    name: Rural hex guide
+    file: production_grid/rural_hex_guide_v0.png
+    guide_columns: 6
+    guide_rows: 2
+    source_file: references/detail_style_anchor.png
+    source_file_secondary: illustrations_detailed/02_rural_tiles_sheet.png
+    cells:
+      - id: module_cottage_gable_a
+        name: Модуль timber cottage A
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [0, 520, 140, 130]
+        guide_cell: [0, 0]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: building
+        game_forms: [timber_house, village]
+        production_status: crop_reference
+        flat_2d_plate: flat2d_proof/plates/architecture_cottage_gable_a.png
+        flat_2d_status: drawn
+        flat_2d_data_carrier: Tile.dwelling
+      - id: module_cottage_gable_b
+        name: Модуль timber cottage B
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [150, 520, 100, 130]
+        guide_cell: [1, 0]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: building
+        game_forms: [timber_house, village]
+        production_status: crop_reference
+        flat_2d_plate: flat2d_proof/plates/architecture_cottage_gable_b.png
+        flat_2d_status: drawn
+        flat_2d_data_carrier: Tile.dwelling
+      - id: module_house_timber_large
+        name: Модуль большого timber дома
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [265, 515, 95, 140]
+        guide_cell: [2, 0]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: building
+        game_forms: [timber_house, village]
+        production_status: crop_reference
+        flat_2d_plate: flat2d_proof/plates/architecture_house_timber.png
+        flat_2d_status: drawn
+        flat_2d_data_carrier: Tile.dwelling
+      - id: module_shed_small
+        name: Модуль маленького shed
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [380, 520, 75, 130]
+        guide_cell: [3, 0]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: building
+        game_forms: [timber_house]
+        production_status: crop_reference
+        flat_2d_plate: flat2d_proof/plates/architecture_shed_small.png
+        flat_2d_status: drawn
+        flat_2d_data_carrier: Tile.dwelling
+      - id: module_yard_shelter
+        name: Модуль yard shelter
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [465, 520, 80, 130]
+        guide_cell: [4, 0]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: building
+        game_forms: [timber_house, village]
+        production_status: crop_reference
+        flat_2d_plate: flat2d_proof/plates/architecture_yard_shelter.png
+        flat_2d_status: drawn
+        flat_2d_data_carrier: Tile.dwelling
+      - id: module_supply_shed
+        name: Модуль supply shed
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [575, 520, 90, 130]
+        guide_cell: [5, 0]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: building
+        game_forms: [timber_house, village]
+        production_status: crop_reference
+        flat_2d_plate: flat2d_proof/plates/architecture_supply_shed.png
+        flat_2d_status: drawn
+        flat_2d_data_carrier: Tile.dwelling
+      - id: composition_rural_single
+        name: Rural composition single homestead
+        source_file: illustrations_detailed/02_rural_tiles_sheet.png
+        source_crop_px: [60, 25, 560, 405]
+        guide_cell: [0, 1]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: composition_reference
+        game_forms: [timber_house]
+        production_status: composition_reference
+      - id: composition_rural_pair
+        name: Rural composition pair
+        source_file: illustrations_detailed/02_rural_tiles_sheet.png
+        source_crop_px: [650, 20, 560, 410]
+        guide_cell: [1, 1]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: composition_reference
+        game_forms: [village]
+        production_status: composition_reference
+      - id: composition_rural_farm
+        name: Rural composition farm strip
+        source_file: illustrations_detailed/02_rural_tiles_sheet.png
+        source_crop_px: [10, 400, 620, 410]
+        guide_cell: [2, 1]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: composition_reference
+        game_forms: [village, lord_field]
+        production_status: composition_reference
+      - id: composition_rural_cluster
+        name: Rural composition compact cluster
+        source_file: illustrations_detailed/02_rural_tiles_sheet.png
+        source_crop_px: [630, 410, 600, 405]
+        guide_cell: [3, 1]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: composition_reference
+        game_forms: [village]
+        production_status: composition_reference
+      - id: village_hex_5hh
+        name: Rural hex с пятью дворами
+        source_file: production_grid/source_village_hex_5hh.png
+        source_crop_px: [0, 0, 1456, 720]
+        guide_cell: [4, 1]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: composition_required
+        game_forms: [village]
+        production_status: source_generated
+        required_by: rural_household_cap_5
+
+  - id: manor_complex_guide_v0
+    name: Manor complex guide
+    file: production_grid/manor_complex_guide_v0.png
+    guide_columns: 5
+    guide_rows: 2
+    source_file: references/detail_style_anchor.png
+    source_file_secondary: illustrations_detailed/07_thegn_frontier.png
+    cells:
+      - id: root_manor_reference
+        name: Root manor composition reference
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [0, 0, 700, 520]
+        guide_cell: [0, 0]
+        target_canvas_px: [256, 192]
+        footprint_hexes: [3, 3]
+        anchor_px: [128, 144]
+        layer: composition_reference
+        game_forms: [hall_on_hill]
+        production_status: composition_reference
+      - id: thegn_estate_reference
+        name: Thegn estate composition reference
+        source_file: illustrations_detailed/07_thegn_frontier.png
+        source_crop_px: [0, 0, 920, 672]
+        guide_cell: [1, 0]
+        target_canvas_px: [256, 192]
+        footprint_hexes: [3, 2]
+        anchor_px: [128, 144]
+        layer: composition_reference
+        game_forms: [thegn_estate]
+        production_status: composition_reference
+      - id: granary_context
+        name: Granary context reference
+        source_file: illustrations_detailed/07_thegn_frontier.png
+        source_crop_px: [800, 150, 280, 330]
+        guide_cell: [2, 0]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: building_context
+        game_forms: [thegn_estate]
+        production_status: needs_isolation
+        note: Granary is an art candidate; current runtime has no Granary entity or form.
+      - id: module_palisade_wall
+        name: Timber palisade wall module
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [720, 30, 235, 280]
+        guide_cell: [3, 0]
+        target_canvas_px: [128, 96]
+        footprint_hexes: [1, 0]
+        anchor_px: [64, 80]
+        layer: infrastructure
+        game_forms: [thegn_estate]
+        production_status: crop_reference
+        flat_2d_plate: flat2d_proof/plates/architecture_palisade.png
+        flat_2d_status: drawn
+        flat_2d_data_carrier: null
+        flat_2d_note: >-
+          Drawn, but no simulation field identifies a palisade or a gate: the seat
+                forms describe the estate, not a wall with a gap in it. See ADR 0180.
+      - id: module_watchtower
+        name: Timber watchtower module
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [1000, 10, 270, 350]
+        guide_cell: [4, 0]
+        target_canvas_px: [128, 128]
+        footprint_hexes: [1, 1]
+        anchor_px: [64, 80]
+        layer: structure_candidate
+        game_forms: []
+        production_status: needs_ontology_check
+        note: No current tower entity or form exists.
+      - id: module_timber_bridge
+        name: Timber bridge crossing module
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [720, 330, 540, 360]
+        guide_cell: [0, 1]
+        target_canvas_px: [256, 192]
+        footprint_hexes: [2, 1]
+        anchor_px: [128, 144]
+        layer: infrastructure
+        game_forms: [crossing]
+        production_status: crop_reference
+        flat_2d_plate: flat2d_proof/plates/architecture_bridge.png
+        flat_2d_status: drawn
+        flat_2d_data_carrier: Tile.bridge
+      - id: composition_logging_camp
+        name: Logging camp composition reference
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [720, 620, 540, 230]
+        guide_cell: [1, 1]
+        target_canvas_px: [256, 192]
+        footprint_hexes: [2, 2]
+        anchor_px: [128, 144]
+        layer: composition_reference
+        game_forms: [forest]
+        production_status: composition_reference
+      - id: composition_field_strip
+        name: Manor field strip reference
+        source_file: illustrations_detailed/03_hill_manor.png
+        source_crop_px: [0, 410, 420, 310]
+        guide_cell: [2, 1]
+        target_canvas_px: [256, 192]
+        footprint_hexes: [1, 1]
+        anchor_px: [128, 144]
+        layer: field_reference
+        game_forms: [lord_field, open_field]
+        production_status: composition_reference
+      - id: composition_supply_yard
+        name: Manor supply yard reference
+        source_file: illustrations_detailed/03_hill_manor.png
+        source_crop_px: [1010, 400, 446, 320]
+        guide_cell: [3, 1]
+        target_canvas_px: [256, 192]
+        footprint_hexes: [1, 1]
+        anchor_px: [128, 144]
+        layer: composition_reference
+        game_forms: [hall_on_hill]
+        production_status: composition_reference
+      - id: module_gate_fence
+        name: Gate and fence module
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [200, 730, 95, 105]
+        guide_cell: [4, 1]
+        target_canvas_px: [128, 96]
+        footprint_hexes: [1, 0]
+        anchor_px: [64, 80]
+        layer: infrastructure
+        game_forms: [thegn_estate]
+        production_status: crop_reference
+        flat_2d_plate: flat2d_proof/plates/architecture_gate.png
+        flat_2d_status: drawn
+        flat_2d_data_carrier: null
+        flat_2d_note: >-
+          Drawn, but no simulation field identifies a palisade or a gate: the seat
+                forms describe the estate, not a wall with a gap in it. See ADR 0180.

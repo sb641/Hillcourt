@@ -291,9 +291,33 @@ class TestManorEntity(unittest.TestCase):
         self.assertEqual(len(world.manors), 1)
 
     def test_call_boon_has_effect(self) -> None:
+        """ЗАКОН по имени теста: крик лорда **даёт** помощь, а тишина — нет.
+
+        Отдельно проверяется отказ: `call_boon` в месяце без `boon_allowed`
+        **бросает** `ValueError` (ADR 0202 §1, ADR 0215 «дыра 2»), а не возвращает
+        `False`. Отказ проверяется как отказ и не подменяет главного утверждения —
+        эффекта от крика.
+
+        Проверяемое, а не «не упало»:
+          * отказ законом в M1 и отсутствие флага помочи после него;
+          * крик в M8 → `_render_boon(force=True)` даёт **больше нуля**;
+          * без крика (чистый мир, `force=False`) `_render_boon` даёт ровно `0.0`.
+        """
         world = self.world
         world.clock.month = 8
-        self.assertFalse(call_boon(world, 1), "Помога вне boon_allowed")
+        self.assertFalse(
+            world.calendar[1].boon_allowed, "M1 не должен разрешать boon — стенд сбит"
+        )
+        with self.assertRaises(ValueError) as ctx:
+            call_boon(world, 1)
+        self.assertIn(
+            "boon_allowed", str(ctx.exception),
+            f"Отказ не назвал закон: {str(ctx.exception)!r}",
+        )
+        self.assertNotEqual(
+            world.stats.get("boon_called_month"), 1.0,
+            "Отказ поставил флаг помочи — помощь выдастся в запрещённый месяц",
+        )
         self.assertTrue(call_boon(world, 8))
         self.assertGreater(
             manor_economy._render_boon(world, 0.0, force=True),

@@ -99,12 +99,45 @@ class TestEaseAndBoon(unittest.TestCase):
         )
 
     def test_call_boon_outside_allowed_month_is_refused(self) -> None:
+        """Закон отказа (ADR 0202 §1, ADR 0215 «дыра 2»): отказ — **исключение**.
+
+        Прежняя версия ждала `assertFalse(call_boon(world, 3))`, то есть контракта
+        «вернуть `False`». Его больше нет: возврат значения означал «никто не
+        спрашивает» — `runner._dispatch_call_boon` результат выбрасывал, и кнопка
+        «помочь» восемь месяцев из двенадцати была мёртвой, а выглядела живой.
+        Теперь отказ — `ValueError`, его ловит runner, пишет `refused=True` и идёт
+        дальше; прогон обрываться не должен.
+
+        Проверяется ровно закон, а не «не упало»:
+          * отказ **бросается** типом из `ORDER_REFUSALS` (иначе runner его не поймает);
+          * сообщение называет месяц и закон (`boon_allowed`) — иначе игрок не знает,
+            что делать дальше;
+          * отказ **ничего не пишет** в лог приказов и **не вооружает** флаг
+            `boon_called_month`: отказанный крик не должен выдать помощь;
+          * в разрешённый месяц крик принимается, возвращает `True` и пишет ровно
+            одну запись в лог.
+        """
         from hillcourt.engine.manor import call_boon
+        from hillcourt.runner import ORDER_REFUSALS
 
         world = load_scenario(SHIRE, seed=SEED)
         self.assertFalse(world.calendar[3].boon_allowed, "M3 не должен разрешать boon")
-        self.assertFalse(call_boon(world, 3), "Помоча вне boon_allowed не отклонена")
+        with self.assertRaises(ValueError) as ctx:
+            call_boon(world, 3)
+        message = str(ctx.exception)
+        self.assertIn("M3", message, f"Отказ не назвал месяц: {message!r}")
+        self.assertIn(
+            "boon_allowed", message, f"Отказ не назвал закон: {message!r}"
+        )
+        self.assertIn(
+            ValueError, ORDER_REFUSALS,
+            "Отказ закона бросается вне ORDER_REFUSALS — runner его не поймает",
+        )
         self.assertEqual(_actions(world, "call_boon"), [], "Отказ попал в лог")
+        self.assertNotEqual(
+            world.stats.get("boon_called_month"), 3.0,
+            "Отказанный крик вооружил флаг помочи — помощь выдастся без закона",
+        )
 
         self.assertTrue(world.calendar[8].boon_allowed, "M8 должен разрешать boon")
         self.assertTrue(call_boon(world, 8), "Помоча в разрешённый месяц не принята")
@@ -181,7 +214,7 @@ class TestBookLevers(unittest.TestCase):
             4,
         )
 
-        right_id = f"right_tenement_hh_02_{DEMESNE_FIELD}"
+        right_id = f"right_hh_02_{DEMESNE_FIELD}"
         self.assertIn(right_id, granted.rights, "Право держания не создано")
         self.assertEqual(granted.tiles[DEMESNE_FIELD].regime_id, "villein_tenement")
         self.assertEqual(

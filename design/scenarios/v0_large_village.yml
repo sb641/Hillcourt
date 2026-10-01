@@ -1,0 +1,277 @@
+id: v0_large_village
+title: "Крупная деревня у реки"
+seed: 1729
+
+clock:
+  start_year: 1
+  start_month: 1
+  months_per_year: 12
+
+map:
+  width: 24
+  height: 18
+  default: heath
+  regions:
+    - {terrain: forest, rect: [1, 1, 6, 7]}
+    - {terrain: pasture, rect: [8, 8, 13, 12]}
+  tiles:
+    - {at: [5, 6], terrain: hill}
+    - {at: [5, 7], terrain: pasture}
+    - {at: [6, 7], terrain: field}
+    - {at: [7, 7], terrain: field}
+    - {at: [8, 7], terrain: field}
+    - {at: [6, 8], terrain: field}
+    - {at: [7, 8], terrain: field}
+    - {at: [8, 8], terrain: field}
+    - {at: [9, 8], terrain: field}
+    - {at: [9, 11], terrain: field}
+    - {at: [10, 11], terrain: field}
+    - {at: [11, 11], terrain: field}
+    - {at: [12, 11], terrain: field}
+    - {at: [12, 12], terrain: field}
+    - {at: [13, 12], terrain: field}
+    - {at: [13, 11], terrain: field}
+    - {at: [13, 9], terrain: field}
+
+rivers:
+  - id: village_river
+    source: [19, 7]
+    mouth: [19, 11]
+    flow_order:
+      - [19, 7]
+      - [19, 8]
+      - [19, 9]
+      - [19, 10]
+      - [19, 11]
+
+settlements:
+  - id: hill_court
+    name: "Двор барона"
+    kind: hill_court
+    at: [5, 6]
+    holding_tiles:
+      - [5, 7]
+    works_tiles:
+      - [6, 7]
+      - [7, 7]
+      - [8, 7]
+      - [6, 8]
+      - [7, 8]
+      - [8, 8]
+  - id: large_village
+    name: "Крупная деревня у реки"
+    kind: village
+    at: [10, 10]
+    home_terrain: pasture
+    household_tiles:
+      - [9, 9]
+      - [10, 9]
+      - [11, 9]
+      - [9, 10]
+      - [10, 10]
+      - [11, 10]
+      - [12, 10]
+    works_tiles:
+      - [9, 8]
+      - [9, 11]
+      - [10, 11]
+      - [11, 11]
+      - [12, 11]
+      - [12, 12]
+      - [13, 12]
+      - [13, 11]
+      - [13, 9]
+      - [9, 9]
+      - [10, 9]
+      - [11, 9]
+      - [9, 10]
+      - [10, 10]
+      - [11, 10]
+      - [12, 10]
+
+marks:
+  - {at: [19, 9], mark: mooring}
+
+rights:
+  - {id: right_hh_village_villein_a_001, kind: tenure, holder_household_id: hh_village_villein_a_001, at: [9, 8], regime: villein_tenement}
+  - {id: right_hh_village_villein_a_002, kind: tenure, holder_household_id: hh_village_villein_a_002, at: [9, 8], regime: villein_tenement}
+  - {id: right_hh_village_villein_a_003, kind: tenure, holder_household_id: hh_village_villein_a_003, at: [9, 8], regime: villein_tenement}
+  - {id: right_hh_village_villein_a_004, kind: tenure, holder_household_id: hh_village_villein_a_004, at: [9, 8], regime: villein_tenement}
+  - {id: right_hh_village_villein_a_005, kind: tenure, holder_household_id: hh_village_villein_a_005, at: [9, 8], regime: villein_tenement}
+  - {id: right_hh_village_villein_b_001, kind: tenure, holder_household_id: hh_village_villein_b_001, at: [9, 11], regime: villein_tenement}
+  - {id: right_hh_village_villein_b_002, kind: tenure, holder_household_id: hh_village_villein_b_002, at: [9, 11], regime: villein_tenement}
+  - {id: right_hh_village_villein_b_003, kind: tenure, holder_household_id: hh_village_villein_b_003, at: [9, 11], regime: villein_tenement}
+  - {id: right_hh_village_villein_b_004, kind: tenure, holder_household_id: hh_village_villein_b_004, at: [9, 11], regime: villein_tenement}
+  - {id: right_hh_village_villein_b_005, kind: tenure, holder_household_id: hh_village_villein_b_005, at: [9, 11], regime: villein_tenement}
+  - {id: right_hh_village_villein_c_001, kind: tenure, holder_household_id: hh_village_villein_c_001, at: [10, 11], regime: villein_tenement}
+  - {id: right_hh_village_villein_c_002, kind: tenure, holder_household_id: hh_village_villein_c_002, at: [10, 11], regime: villein_tenement}
+  - {id: right_hh_village_villein_c_003, kind: tenure, holder_household_id: hh_village_villein_c_003, at: [10, 11], regime: villein_tenement}
+  - {id: right_hh_village_villein_c_004, kind: tenure, holder_household_id: hh_village_villein_c_004, at: [10, 11], regime: villein_tenement}
+  - {id: right_hh_village_villein_d_001, kind: tenure, holder_household_id: hh_village_villein_d_001, at: [11, 11], regime: villein_tenement}
+  - {id: right_hh_village_villein_d_002, kind: tenure, holder_household_id: hh_village_villein_d_002, at: [11, 11], regime: villein_tenement}
+  - {id: right_hh_village_villein_d_003, kind: tenure, holder_household_id: hh_village_villein_d_003, at: [11, 11], regime: villein_tenement}
+  - {id: right_hh_village_villein_d_004, kind: tenure, holder_household_id: hh_village_villein_d_004, at: [11, 11], regime: villein_tenement}
+  - {id: right_hh_village_cotter_a_001, kind: tenure, holder_household_id: hh_village_cotter_a_001, at: [12, 11], regime: cotter_plot}
+  - {id: right_hh_village_cotter_a_002, kind: tenure, holder_household_id: hh_village_cotter_a_002, at: [12, 11], regime: cotter_plot}
+  - {id: right_hh_village_cotter_a_003, kind: tenure, holder_household_id: hh_village_cotter_a_003, at: [12, 11], regime: cotter_plot}
+  - {id: right_hh_village_cotter_a_004, kind: tenure, holder_household_id: hh_village_cotter_a_004, at: [12, 11], regime: cotter_plot}
+  - {id: right_hh_village_cotter_b_001, kind: tenure, holder_household_id: hh_village_cotter_b_001, at: [12, 12], regime: cotter_plot}
+  - {id: right_hh_village_cotter_b_002, kind: tenure, holder_household_id: hh_village_cotter_b_002, at: [12, 12], regime: cotter_plot}
+  - {id: right_hh_village_cotter_b_003, kind: tenure, holder_household_id: hh_village_cotter_b_003, at: [12, 12], regime: cotter_plot}
+  - {id: right_hh_village_cotter_b_004, kind: tenure, holder_household_id: hh_village_cotter_b_004, at: [12, 12], regime: cotter_plot}
+  - {id: right_hh_village_cotter_c_001, kind: tenure, holder_household_id: hh_village_cotter_c_001, at: [13, 12], regime: cotter_plot}
+  - {id: right_hh_village_cotter_c_002, kind: tenure, holder_household_id: hh_village_cotter_c_002, at: [13, 12], regime: cotter_plot}
+  - {id: right_hh_village_cotter_c_003, kind: tenure, holder_household_id: hh_village_cotter_c_003, at: [13, 12], regime: cotter_plot}
+  - {id: right_hh_village_cotter_c_004, kind: tenure, holder_household_id: hh_village_cotter_c_004, at: [13, 12], regime: cotter_plot}
+  - {id: right_hh_village_cotter_d_001, kind: tenure, holder_household_id: hh_village_cotter_d_001, at: [13, 11], regime: cotter_plot}
+  - {id: right_hh_village_cotter_d_002, kind: tenure, holder_household_id: hh_village_cotter_d_002, at: [13, 11], regime: cotter_plot}
+  - {id: right_hh_village_cotter_d_003, kind: tenure, holder_household_id: hh_village_cotter_d_003, at: [13, 11], regime: cotter_plot}
+  - {id: right_hh_village_cotter_d_004, kind: tenure, holder_household_id: hh_village_cotter_d_004, at: [13, 11], regime: cotter_plot}
+  - {id: right_hh_village_cotter_e_001, kind: tenure, holder_household_id: hh_village_cotter_e_001, at: [13, 9], regime: cotter_plot}
+
+player:
+  court_settlement_id: hill_court
+  household_id: hh_court
+  rent_share: 0.1
+
+script:
+  - {at_month: 1, action: set_tile_regime, tile: t_06_06, regime: demesne}  # расчистка исполнима: право clear_forest даёт только demesne (ADR 0182)
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_a_001, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_a_001}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_a_002, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_a_002}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_a_003, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_a_003}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_a_004, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_a_004}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_a_005, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_a_005}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_b_001, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_b_001}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_b_002, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_b_002}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_b_003, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_b_003}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_b_004, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_b_004}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_b_005, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_b_005}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_c_001, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_c_001}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_c_002, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_c_002}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_c_003, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_c_003}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_c_004, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_c_004}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_d_001, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_d_001}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_d_002, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_d_002}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_d_003, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_d_003}
+  - {at_month: 1, action: add_obligation, household: hh_village_villein_d_004, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_villein_d_004}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_a_001, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_a_001}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_a_002, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_a_002}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_a_003, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_a_003}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_a_004, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_a_004}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_b_001, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_b_001}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_b_002, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_b_002}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_b_003, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_b_003}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_b_004, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_b_004}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_c_001, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_c_001}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_c_002, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_c_002}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_c_003, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_c_003}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_c_004, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_c_004}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_d_001, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_d_001}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_d_002, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_d_002}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_d_003, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_d_003}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_d_004, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_d_004}
+  - {at_month: 1, action: add_obligation, household: hh_village_cotter_e_001, kind: rent, due_good: grain, due_amount: 0.1, right_id: right_hh_village_cotter_e_001}
+
+households:
+  - {id: hh_court, name: "Двор барона", settlement_id: hill_court, adults: 2, children: 2, legal_status: holder}
+
+household_groups:
+  - id_prefix: hh_village_villein_a
+    settlement_id: large_village
+    name: "Вилланская семья A"
+    count: 5
+    adults: 3
+    children: 2
+    legal_status: villein
+    livestock_every: 1
+    livestock: {goat: 1.0, sheep: 1.0}
+  - id_prefix: hh_village_villein_b
+    settlement_id: large_village
+    name: "Вилланская семья B"
+    count: 5
+    adults: 3
+    children: 2
+    legal_status: villein
+    livestock_every: 1
+    livestock: {goat: 1.0, sheep: 1.0}
+  - id_prefix: hh_village_villein_c
+    settlement_id: large_village
+    name: "Вилланская семья C"
+    count: 4
+    adults: 3
+    children: 2
+    legal_status: villein
+    livestock_every: 1
+    livestock: {goat: 1.0, sheep: 1.0}
+  - id_prefix: hh_village_villein_d
+    settlement_id: large_village
+    name: "Вилланская семья D"
+    count: 4
+    adults: 3
+    children: 2
+    legal_status: villein
+    livestock_every: 1
+    livestock: {goat: 1.0, sheep: 1.0}
+  - id_prefix: hh_village_cotter_a
+    settlement_id: large_village
+    name: "Коттерская семья A"
+    count: 4
+    adults: 3
+    children: 2
+    legal_status: cotter
+    livestock_every: 1
+    livestock: {goat: 1.0, sheep: 1.0}
+  - id_prefix: hh_village_cotter_b
+    settlement_id: large_village
+    name: "Коттерская семья B"
+    count: 4
+    adults: 3
+    children: 2
+    legal_status: cotter
+    livestock_every: 1
+    livestock: {goat: 1.0, sheep: 1.0}
+  - id_prefix: hh_village_cotter_c
+    settlement_id: large_village
+    name: "Коттерская семья C"
+    count: 4
+    adults: 3
+    children: 2
+    legal_status: cotter
+    livestock_every: 1
+    livestock: {goat: 1.0, sheep: 1.0}
+  - id_prefix: hh_village_cotter_d
+    settlement_id: large_village
+    name: "Коттерская семья D"
+    count: 4
+    adults: 3
+    children: 2
+    legal_status: cotter
+    livestock_every: 1
+    livestock: {goat: 1.0, sheep: 1.0}
+  - id_prefix: hh_village_cotter_e
+    settlement_id: large_village
+    name: "Коттерская семья E"
+    count: 1
+    adults: 3
+    children: 2
+    legal_status: cotter
+    livestock_every: 1
+    livestock: {goat: 1.0, sheep: 1.0}
+
+starting_stocks:
+  "tile:t_06_06": {log: 12.0, stone: 12.0}  # пни и камень под выкорчёвку
+catalogs:
+  goods: design/catalogs/goods.yml
+  recipes: design/catalogs/recipes.yml
+  spawn_rules: design/catalogs/spawn_rules.yml
+  hazards: design/catalogs/hazards.yml
+  obligations: design/catalogs/obligations.yml
+  rights: design/catalogs/rights.yml
+  land_regimes: design/catalogs/land_regimes.yml
+  legal_statuses: design/catalogs/legal_statuses.yml
+  offices: design/catalogs/offices.yml
+  needs: design/catalogs/needs.yml
+  actions_household: design/catalogs/actions_household.yml
+  manor: design/catalogs/manor.yml
+  seasons: design/catalogs/seasons.yml
+  calendar: design/catalogs/calendar_v0.yml

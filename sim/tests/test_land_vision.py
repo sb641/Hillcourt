@@ -3,7 +3,18 @@
 Пины: новые формы каталога; маркеры видения (без разметки вид побайтово
 старый — весь v0_shire только из 17 прежних форм); кормовая ёмкость пастбищ —
 чистые данные (материя/труд стоят, тик не читает); тропа vs строеная;
-стадии роста (legacy-6 — village, 10+ — large_village); городов нет.
+стадии роста видом сняты (ADR 0158: `large_village` и порог 10 дворов); городов нет.
+
+Про стадии роста. Форма клетки — **вид, а не игра** (ADR 0065, И-5): ни бонусов,
+ни переходов, ни последствий для труда. Стадии роста видом больше нет (ADR 0158):
+форма `large_village` и порог 10 жилых дворов сняты как недостижимые, кап
+плотности 5 дворов на гекс (ADR 0083, закон загрузчика — `test_density_cap`) не
+поднят. Поселение большой деревни живёт: 35 дворов на 9 гексах (`v0_large_village`)
+грузятся и работают, снято только имя формы на гексе.
+
+Поэтому числа для вида задаёт фикстура ниже: дворы двигаются в уже загруженном
+мире, а не пишется перенаселённый сценарий — такой сценарий загрузчик обязан
+отвергнуть.
 """
 
 from __future__ import annotations
@@ -12,11 +23,11 @@ import math
 import unittest
 from pathlib import Path
 
+from hillcourt.engine import tile_view as tile_view_module
 from hillcourt.engine.terrain import entry_cost
 from hillcourt.engine.tile_view import (
     FORMS,
     LAND_MARKS,
-    LARGE_VILLAGE_MIN_HOUSEHOLDS,
     PASTURE_FORAGE_CAPACITY,
     coarse_map_view,
     dwelling_form,
@@ -31,6 +42,27 @@ from hillcourt.scenario import load_scenario
 ROOT = Path(__file__).resolve().parents[2]
 SHIRE = ROOT / "design" / "scenarios" / "v0_shire.yml"
 HILL = ROOT / "design" / "scenarios" / "v0_hill_and_salt.yml"
+
+# Гекс деревни под наделом: не зал барона и не трон, поэтому форму решает счётчик
+# дворов, а не маркер вида. Остальные дворы уходят на `OTHER_TILE`, иначе гекс
+# набирал бы ещё и своих жильцов, и счётчик был бы неточным.
+STAGE_TILE = "t_01_02"
+OTHER_TILE = "t_01_01"
+
+
+def _stage_world(count: int, tile_id: str = STAGE_TILE):
+    """Мир, где ровно `count` дворов стоят на `tile_id`.
+
+    Дворы переставляются в памяти: кап плотности проверяет загрузчик, а здесь
+    проверяется вид. Ничего не пишется в файлы и ничего не создаётся — материя
+    двора не меняется, движок вид не читает.
+    """
+    world = load_scenario(HILL, seed=1729)
+    for index, hid in enumerate(sorted(world.households)):
+        world.households[hid].current_tile_id = (
+            tile_id if index < count else OTHER_TILE
+        )
+    return world, tile_id
 
 OLD_FORMS = {
     "open_field",
@@ -60,7 +92,6 @@ NEW_FORMS = {
     "waystation",
     "tavern_site",
     "iron_mine",
-    "large_village",
     "tribal_village",
     "baron_castle",
     "tent_earth_homestead",
@@ -72,6 +103,8 @@ NEW_FORMS = {
     "smoke_site",
     "lost_caravan",
     "city_quarter",
+    "own_farm",
+    "corvee_labor",
 }
 
 
@@ -96,16 +129,16 @@ class TestVisionCatalog(unittest.TestCase):
 
 
 class TestMarksKeepOldView(unittest.TestCase):
-    """Без разметки меняется только стадия роста: ясень 16 дворов — большая."""
+    """Без разметки меняется только стадия роста: names — только из старых форм."""
 
-    def test_shire_without_marks_only_old_forms_plus_growth(self) -> None:
+    def test_shire_without_marks_only_old_forms(self) -> None:
         world = load_scenario(SHIRE)
         forms = {tile_form(world, tid) for tid in world.tiles}
         self.assertTrue(
-            forms <= OLD_FORMS | {"large_village", "salt_settlement", "ruin_site"},
-            f"Неожиданные формы без разметки: {forms - OLD_FORMS - {'large_village', 'salt_settlement', 'ruin_site'}}",
+            forms <= OLD_FORMS | {"salt_settlement", "ruin_site"},
+            f"Неожиданные формы без разметки: {forms - OLD_FORMS - {'salt_settlement', 'ruin_site'}}",
         )
-        self.assertEqual(tile_form(world, "t_02_07"), "large_village")
+        self.assertNotIn("large_village", forms, "Снятая форма вернулась на карту")
 
     def test_mine_sites_empty_without_marks(self) -> None:
         world = load_scenario(SHIRE)
@@ -337,14 +370,36 @@ class TestCoarseMapView(unittest.TestCase):
 
 
 class TestGrowthStages(unittest.TestCase):
-    """Стадии роста видом: 1 — двор, 2–9 — деревня, 10+ — большая."""
+    """Стадии роста видом сняты (ADR 0158): 1 — двор, 2+ — деревня."""
 
-    def test_thresholds(self) -> None:
-        self.assertEqual(LARGE_VILLAGE_MIN_HOUSEHOLDS, 10)
-        world = load_scenario(SHIRE)
-        ash = "t_02_07"
-        self.assertGreaterEqual(household_count(world, ash), 10)
-        self.assertEqual(tile_form(world, ash), "large_village")
+    def test_large_village_form_is_gone(self) -> None:
+        """Формы `large_village` и её порога 10 дворов больше нет (ADR 0158).
+
+        Порог был недостижим: кап плотности гекса 5 (ADR 0083) не даёт гексу
+        десяти дворов, а гекс `hill_court` всегда `hall_on_hill`. Кап не поднят —
+        это закон расселения, и поднимать его ради картинки нельзя.
+        """
+        self.assertNotIn("large_village", FORMS, "Форма снята, но осталась в каталоге")
+        self.assertFalse(
+            hasattr(tile_view_module, "LARGE_VILLAGE_MIN_HOUSEHOLDS"),
+            "Порог стадии снят, а константа осталась в коде",
+        )
+        self.assertIn("village", FORMS)
+
+    def test_two_and_more_households_are_one_village_form(self) -> None:
+        """Два и больше дворов на гексе — одна форма `village`, без стадий.
+
+        Числа задаёт фикстура, а не карта: вид — только имя клетки (ADR 0065,
+        И-5), ни бонусов, ни переходов.
+        """
+        for count in (2, 5, 9, 12):
+            with self.subTest(households=count):
+                world, tile_id = _stage_world(count)
+                self.assertEqual(household_count(world, tile_id), count)
+                self.assertEqual(
+                    tile_form(world, tile_id), "village",
+                    f"{count} дворов на гексе: форма не та",
+                )
 
     def test_legacy_six_stays_village(self) -> None:
         world = load_scenario(HILL)

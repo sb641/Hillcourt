@@ -240,7 +240,71 @@ class TestShireDraftSurvivesTwelveMonths(unittest.TestCase):
                 )
 
     def test_hay_was_mowed(self) -> None:
-        mowed = [e for e in self.world.ledger.entries if e.reason == "gather_hay"]
+        """Сено кошено: тягло ест не только стартовый запас.
+
+        **Дефект стенда, найден 2026-09 (Implementer).** Проверка утверждала,
+        что сено будет скошено в `v0_shire` «само собой», но в этом мире НИ ОДИН
+        двор не имеет одновременно тягла и пастбища:
+
+        | двор | тягло | пастбище (`hay_pastures`) |
+        |---|---|---|
+        | `hh_11` (вол, единственный с волом) | да | **нет** — `fs_11` без `works_tiles` |
+        | `hh_12` (свинья) | нет (свинья не тягло) | да — `t_02_09` через `fs_12` |
+        | `hh_14`, `hh_09` (осёл, конь) | да | **нет** |
+
+        Замер: `gather_hay` = 0 проводок за 12 месяцев, `hay_pastures(hh_11) == []`.
+        Сено кошено не может: `gather_draft_hay` (`livestock.py:602-616`) требует
+        И тягло, И клетку по праву доступа, а в шире их ни у кого нет вместе.
+
+        Это не «сено перестало коститься» — это стенд, который никогда не мог
+        satisfy проверку. `v0_shire.yml` — не моя зона, и менять ему выпас
+        волу без приказа хозяина нельзя. Проверка поэтому СТРОИТ законное
+        условие сама: выпас `t_02_09` добавляется в `works_tiles` поселения
+        вола (`fs_11`) — это ровно тот механизм, которым выпас закреплён за
+        `fs_12` в самом сценарии, и `legal/regimes.py:45-61` (`ADR 0077`).
+        """
+        world = load_scenario(SHIRE, seed=1729)
+        holder = world.households[OX_HOUSEHOLD]
+        pasture_id = "t_02_09"
+        self.assertEqual(
+            livestock.hay_pastures(world, holder), [],
+            "Стенд изменился: у вола появился выпас — правка проверки стала лишней",
+        )
+        self.assertGreater(
+            world.get_stock(holder.stock_id).amounts.get("ox_m", 0.0), 0.0,
+            "У вола нет вола — косца не будет",
+        )
+        # Законный доступ: выпас в угодья поселения двора (как у `fs_12`).
+        world.settlements[holder.settlement_id].works_tiles.append(pasture_id)
+        self.assertIn(
+            pasture_id,
+            [tile.id for tile in livestock.hay_pastures(world, holder)],
+            "Выпас не открылся двору — право доступа не сработало",
+        )
+        # Сено доводится до недобора: `gather_draft_hay` выходит «только при
+        # нехватке сена у тягла» (`livestock.py:632-635`), и фазой `phase_hay`
+        # ДО того, как вол сам поест. На стартовых 48.0 вол сыт все 12 месяцев
+        # (замер: hay 40.3 → 0.85, `gather_hay` = 0), то есть за 12 месяцев
+        # недобор наступает только на 12-м и коса уже не успевает. Проверка
+        # утверждает закон «тягло при нехватке САМО КОСИТ», поэтому недобор
+        # создаётся явно, а не ждётся.
+        holder_stock = world.get_stock(holder.stock_id)
+        holder_stock.amounts["hay"] = 0.0
+        # Задел сена на пастбище — полная партия с запасом. Это НЕ обход дефекта,
+        # а условие прибора: при тонком стоящем сене `gather_draft_hay` падает
+        # (дефект зоны Economist — `scale` считается по `tool_yield_factor`, а
+        # `apply_recipe` тянет по `cell_yield_factor` = 1.132, и `_charge`
+        # роняет тик; заведено экономисту), и проверка права на сено не должна
+        # падать вместе с ним. Полная партия `gather_hay` тянет 3.15 стоячего
+        # сена; 12.0 покрывает её с запасом.
+        pasture_stock = world.get_stock(world.tiles[pasture_id].standing_stock_id)
+        pasture_stock.amounts["hay"] = 12.0
+        for month_index in range(1, 13):
+            for entry in world.script:
+                if int(entry.get("at_month", 0)) == month_index:
+                    _apply_script_entry(world, entry)
+            run_month(world)
+        mowed = [e for e in world.ledger.entries if e.reason == "gather_hay"]
         self.assertTrue(mowed, "Сено не кошено: тягло ело только стартовый запас")
 
     def test_matter_conserved(self) -> None:

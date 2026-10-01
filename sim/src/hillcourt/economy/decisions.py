@@ -12,8 +12,11 @@ from ..engine.manor import manor_of_household, manor_stock
 from ..ontology import Household, Tile
 from ..world import World
 from ..engine.hexgrid import neighbor_ids
-from .livestock import draft_goods_for
-from .needs import ADULT_LABOR_DAYS, food_months, monthly_food_need
+from ..legal.manor import hire_out_allowed
+from .cooking import can_cook
+from .labor import _feeding_tiles
+from .livestock import DAIRY_GOODS, EGG_GOODS, draft_goods_for
+from .needs import ADULT_LABOR_DAYS, food_months, food_shortfall, monthly_food_need
 
 EPSILON = 1e-9
 
@@ -145,21 +148,74 @@ def _surplus_hands(world: World, household: Household) -> bool:
 def allowed_action_ids(world: World, household: Household) -> set[str]:
     """Какие действия доступны двору по его правовому пресету (один выборщик, разные наборы)."""
     preset = world.catalogs.legal_statuses.get(household.legal_status_id)
-    base = {"request_relief", "idle_repair", "hide_stores", "travel_adjacent"}
+    base = {"request_relief", "idle_repair", "hide_stores", "travel_adjacent", "cook_meal"}
     if preset is None:
-        return base | {"work_plot", "forage_adjacent", "cut_wood_if_allowed", "tend_animals"}
+        return base | {"work_plot", "forage_adjacent", "cut_wood_if_allowed", "tend_animals", "milk_animal", "make_cheese", "make_butter"}
     if preset.personal_status == "slave":
         return {"demesne_labor", "idle_repair"}
     if preset.land_relation == "landless":
-        return base | {"forage_adjacent", "hire_out"}
+        # Безземельный двор — экономический агент на своём гексе (ADR 0113 п. 1):
+        # работает кормящие клетки, где стоит, добывает топливо и пасёт своё.
+        # `hire_out` остаётся честным уходом, когда работы нет или предприятие
+        # не платит (ADR 0097), но он не единственный и не первый выбор.
+        return base | {"work_plot", "forage_adjacent", "cut_wood_if_allowed", "tend_animals"} | ({"hire_out"} if hire_out_allowed(world, household) else set())
     if not preset.ploughs:
         # Лорд/тэн сам не пашет. Исключение — соляная деревня: там и «держатель»
         # вываривает соль со своего надела (иначе соль не едет).
         settlement = world.settlements.get(household.settlement_id or "")
         if settlement is not None and settlement.kind == "salt_village":
-            return base | {"work_plot", "forage_adjacent", "cut_wood_if_allowed", "tend_animals"}
+            return base | {"work_plot", "forage_adjacent", "cut_wood_if_allowed", "tend_animals", "milk_animal", "make_cheese", "make_butter"}
         return base | {"oversee"}
-    return base | {"work_plot", "forage_adjacent", "cut_wood_if_allowed", "tend_animals"}
+    return base | {"work_plot", "forage_adjacent", "cut_wood_if_allowed", "tend_animals", "milk_animal", "make_cheese", "make_butter"}
+
+
+def _saltworks_job(world: World, household: Household) -> str | None:
+    """Работа на солеварне по потребности: топливо → выварка; None — не работник.
+
+    Только НАЁМНЫЙ работник (безземельный) предприятия (ADR 0092/0097): держатель
+    с собственным соляным наделом — хозяин у себя, его работа не «наём хозяина»,
+    и приоритет нужды ему не диктуется.
+
+    - предприятие не платит (склад без зерна) → `None`: честный `hire_out`,
+      вина хозяина, а не «не мог» двора;
+    - на руках топлива меньше одной партии выварки → `cut_wood_if_allowed`:
+      без торфа выварки нет, следовательно нет и соли, и жалованья;
+    - топливо есть → `work_plot`: выварка на соляных гексах предприятия.
+    """
+    settlement = world.settlements.get(household.settlement_id or "")
+    if settlement is None or settlement.kind != "salt_village":
+        return None
+    preset = world.catalogs.legal_statuses.get(household.legal_status_id)
+    if preset is None or preset.land_relation != "landless":
+        return None
+    stores = world.stocks.get(settlement.stores_stock_id)
+    if stores is None or stores.amounts.get("grain", 0.0) <= 1e-9:
+        return None
+    recipe = world.catalogs.recipes.get("boil_salt")
+    fuel_need = 0.0
+    if recipe is not None:
+        fuel_need = sum(recipe.inputs.values())
+    stock = world.get_stock(household.stock_id)
+    if stock.amounts.get("peat", 0.0) + 1e-9 < fuel_need:
+        return "cut_wood_if_allowed"
+    return "work_plot"
+
+
+def _own_hex_has_crop(world: World, household: Household) -> bool:
+    """Есть ли на гексе двора что собирать: стоячая материя на кормящих клетках.
+
+    Голодный двор ест со своего гекса, если там что-то выросло (ADR 0113 п. 1:
+    «хекс × люди = еда»). Считать это нужно по данным, а не по наличию клетки:
+    пустое поле и пустой выпас не дают еды, и тогда двор правда идёт собирать
+    у соседей или наниматься.
+    """
+    for tile in _feeding_tiles(world, household):
+        standing = world.get_stock(tile.standing_stock_id)
+        for good, amount in standing.amounts.items():
+            rule = world.catalogs.goods.get(good)
+            if amount > EPSILON and rule is not None and rule.edible:
+                return True
+    return False
 
 
 def _clamp(action: str, allowed: set[str], fallbacks: tuple[str, ...]) -> str:
@@ -196,14 +252,30 @@ def choose_actions(world: World, household: Household) -> tuple[str, str]:
     book_grain = _own_book_grain(world, household)
 
     main = "work_plot"
-    if (
-        household.hunger_days >= 2
+    works_job = _saltworks_job(world, household)
+    if works_job is not None:
+        # Солеварня платит (склад предприятия не пуст) → двор работает на варне:
+        # зимой/при нехватке топлива — топливо, иначе выварка. Не платит →
+        # честный уход в наём (ADR 0097), а не работа вслепую.
+        main = works_job
+    elif (
+        food_shortfall(world, household) > EPSILON
         and book_grain is not None
         and book_grain >= world.needs.relief_min_court_grain
     ):
+        # Помощь предлагается в том же месяце, в каком двор не покрыл нужду
+        # (ADR 0114 п. 2): ждать двух месяцев голода — это и был хронический голод.
+        # Пашня при этом не брошена: см. минорный слот ниже — двор, у которого на
+        # своём кормящем гексе стоит урожай, просит подачу И работает поле.
         main = "request_relief"
     elif months < 1.0:
-        if household.hunger_days > 0 and forage_target is not None and surplus:
+        if can_cook(world, household):
+            main = "cook_meal"
+        elif _own_hex_has_crop(world, household):
+            # Свой гекс кормит первым (ADR 0113): пока на нём есть что собрать,
+            # двор не тратит труд на пустой сбор у соседей.
+            main = "work_plot"
+        elif household.hunger_days > 0 and forage_target is not None and surplus:
             main = "forage_adjacent"
         else:
             main = "work_plot"
@@ -220,8 +292,32 @@ def choose_actions(world: World, household: Household) -> tuple[str, str]:
     main = _clamp(main, allowed, ("work_plot", "hire_out", "oversee", "forage_adjacent"))
 
     minor = "idle_repair"
-    if has_tool and household.tool_wear >= world.needs.axe_break_below:
+    if (
+        main == "request_relief"
+        and _own_hex_has_crop(world, household)
+    ):
+        # ADR 0113 п. 1 рядом с ADR 0114 п. 2: подача не отменяет пашню, иначе
+        # двор замыкается сам на себя — не пахал → не собрал → недобор → подача →
+        # пашня не сорвана → недобор. Замер `start_stand` (24 мес, сид 1729): все
+        # пять `INITIAL_FAMILIES` получили `harvest_grain` 0.000 при стоящем зерне
+        # 8.0 на своём наделе; `hh_wave_01`, пришедший с едой в стоке, выбрал
+        # `work_plot` и собрал 6.4516. Ровно это проверяет
+        # `test_personal_holding_feeds_the_household_and_not_the_court`.
+        #
+        # Именно минорный слот, а не главный: главный выбор «подача или пашня» —
+        # это ложная развилка, оба закона правы, и двор вправе делать и то и
+        # другое. Проверка «хватает ли урожая на месяц» здесь была бы ошибкой:
+        # стоячая материя пред жатвой (6.2 → 5.0 зерна), и её нельзя сравнивать с
+        # потребностью напрямую — двор с 1.2 зерна при нужде 2.7 работал бы впустую
+        # и получил один голодный день вместо подачи.
+        minor = "work_plot"
+    elif has_tool and household.tool_wear >= world.needs.axe_break_below:
         minor = "idle_repair"
+    elif any(
+        stock.amounts.get(good, 0.0) > 0
+        for good in tuple(DAIRY_GOODS.values()) + tuple(EGG_GOODS.values())
+    ):
+        minor = "milk_animal"
     elif stock.amounts.get("pig", 0.0) > 0 or stock.amounts.get("wool", 0.0) > 0:
         minor = "tend_animals"
     elif any(stock.amounts.get(good, 0.0) > 0 for good in draft_goods_for(world, household)):

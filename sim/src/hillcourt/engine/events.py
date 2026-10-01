@@ -29,6 +29,7 @@
 
 from __future__ import annotations
 
+from ..ontology import SimDate
 from ..world import World
 
 CARAVAN_LOAD = "caravan_load"
@@ -38,6 +39,7 @@ ARRIVAL = "arrival"
 HARVEST_GRAIN = "harvest_grain"
 GATHER_HAY = "gather_hay"
 GRAZE = "graze"
+SCOUT_OBSERVE = "scout_observe"
 
 SETTLEMENT_PREFIX = "settlement:"
 PACK_PREFIX = "pack:"
@@ -120,14 +122,30 @@ def _entry_event(world: World, entry) -> dict | None:
     src, dst = entry.src_id or "", entry.dst_id or ""
     src_settlement = _settlement_for(world, src)
     dst_settlement = _settlement_for(world, dst)
+    # Для ВЫБОРА вида события годятся только ПРЯМые владельцы контейнеров.
+    # `_settlement_for` (выше) дополнительно разрешает `household:*` по поселению
+    # двора — это правильно для поля `settlement_id` в ответе, но неверно как
+    # признак события: из-за него у любой загрузки в воз `src_settlement` был
+    # непустым, ветка `caravan_departure` срабатывала первой, и `pack_departure`
+    # не могла быть выбрана НИКОГДА. То же с `pack_arrival`.
+    src_own_settlement = _settlement_of(src)
+    dst_own_settlement = _settlement_of(dst)
     src_pack = src.startswith(PACK_PREFIX)
     dst_pack = dst.startswith(PACK_PREFIX)
 
-    if entry.reason == CARAVAN_UNLOAD and dst_settlement is not None:
-        kind = "caravan_arrival"
-    elif entry.reason == CARAVAN_LOAD and src_settlement is not None:
+    # **Дефект, найден 2026-09 (Implementer).** Порядок ветвей выбран по таблице
+    # `events.py:17-20`, где вид события — это СТОРОНА КОНТЕЙНЕРА:
+    #   * груз ушёл ИЗ стока поселения / пришёл В сток поселения → `caravan_*`;
+    #   * груз выехал ИЗ ВОЗА / въехал В ВОЗ                      → `pack_*`.
+    # Строка «поселение — источник» проверяется ПРЯМЫМ владением
+    # (`settlement:*`), а не поселением двора: иначе двор, сдавший своё зерно в
+    # обоз, давал бы событие деревни, а не событие воза, и различие событий
+    # схлопывалось бы в одно.
+    if entry.reason == CARAVAN_LOAD and src_own_settlement is not None:
         kind = "caravan_departure"
-    elif (entry.reason in (CARAVAN_LOAD, DEPARTURE_CARGO)) and dst_pack:
+    elif entry.reason == CARAVAN_UNLOAD and dst_own_settlement is not None:
+        kind = "caravan_arrival"
+    elif entry.reason in (CARAVAN_LOAD, DEPARTURE_CARGO) and dst_pack:
         kind = "pack_departure"
     elif entry.reason in (CARAVAN_UNLOAD, ARRIVAL) and src_pack:
         kind = "pack_arrival"
@@ -149,11 +167,32 @@ def _entry_event(world: World, entry) -> dict | None:
     }
 
 
+def scout_events(world: World, as_of=None) -> list[dict]:
+    """Вернуть события `scout_observe` месяца в детерминированном порядке."""
+    date = as_of or world.clock.date
+    events = [
+        event
+        for event in world.month_events
+        if event.get("kind") == SCOUT_OBSERVE
+        and isinstance(event.get("date"), SimDate)
+        and event["date"].year == date.year
+        and event["date"].month == date.month
+    ]
+    return sorted(
+        events,
+        key=lambda event: (
+            event["date"].to_day_index(),
+            str(event.get("observer_id", "")),
+            str(event.get("tile_id", "")),
+        ),
+    )
+
+
 def month_events(world: World, as_of=None) -> list[dict]:
     """События месяца по дате `as_of` (по умолчанию текущая), детерминированно.
 
-    Читает только `world.ledger.entries` — то, что тик УЖЕ посчитал. Ничего не
-    двигает, не создаёт и не меняет числа.
+    Объединяет события журнала и физические наблюдения разведки, не меняя
+    числа мира. Наблюдения приходят готовыми в `world.month_events`.
     """
     date = as_of or world.clock.date
     events: list[dict] = []
@@ -163,13 +202,16 @@ def month_events(world: World, as_of=None) -> list[dict]:
         event = _entry_event(world, entry)
         if event is not None:
             events.append(event)
+    events.extend(scout_events(world, date))
     events.sort(
         key=lambda e: (
             e["date"].to_day_index(),
             e["kind"],
-            e["good"],
-            e["src_id"] or "",
-            e["dst_id"] or "",
+            str(e.get("good", "")),
+            str(e.get("src_id") or ""),
+            str(e.get("dst_id") or ""),
+            str(e.get("observer_id") or ""),
+            str(e.get("tile_id") or ""),
         )
     )
     return events

@@ -16,6 +16,7 @@ from pathlib import Path
 
 from hillcourt.economy import livestock
 from hillcourt.economy.labor import _tile_batch_cap, apply_recipe, work_month
+from hillcourt.economy.needs import food_months
 from hillcourt.engine.tick import run_month
 from hillcourt.scenario import load_scenario
 
@@ -104,8 +105,41 @@ class TestSmeltWiring(unittest.TestCase):
         )
 
     def test_sated_household_smelts_by_action(self) -> None:
+        """Сытый двор с рудой и дровами выплавит крицу, когда до неё дойдёт очередь.
+
+        Столдвор накормлен сыром, а не зерном: с зерном в стоке минорную очередь
+        съедает помол (`mill_flour` идёт первым по ADR 0095 и забирает месяц, пока
+        есть что молоть). Месяц стенда — `repair_axe` + `smelt_iron_bloom`, оба
+        числа из каталога, и стенд проверяет, что очередь E2 доходит до выплавки.
+
+        **Сейчас падает не из-за стенда.** `_apply_set` (`economy/labor.py`) берёт
+        рецепт жадно, партия за партией, пока хватает входов и труда, и переходит
+        к следующему рецепту только тогда, когда текущий исчерпан. `repair_axe`
+        требует 0.1 железа и не насыщается, поэтому он забирает месяц целиком, а
+        до выплавки очередь не доходит — хотя железа на выплавку нужно больше
+        (1.2). Это механика economically-зоны, не стенд: тест оставлен красным
+        и ждёт решения экономиста, а не подгонки числа.
+        """
         world, household, stock = self._sated_smith()
+        grain = stock.amounts.get("grain", 0.0)
+        if grain > 0.0:
+            world.ledger.transfer(
+                stock, world.get_stock("settlement:hill_court"), "grain", grain,
+                "test_setup", world.clock.date,
+            )
+        stock.amounts["cheese"] = 50.0
+        # Баланс меряем ПОСЛЕ сборки стенда: сыр выше записан прямо в сток, и до
+        # этой строки он был бы посчитан какmatter, созданная тиком (дельта +50.0).
+        # Тик ниже обязан сохранить материю, а стенд — нет.
         world.ledger.capture_initial(world.total_matter())
+        self.assertGreaterEqual(
+            food_months(world, household), 2.0,
+            "Стенд не сытый: гейт дорогого дела не пройден",
+        )
+        household.labor_days = sum(
+            float(world.catalogs.recipes[recipe_id].labor_days)
+            for recipe_id in ("repair_axe", "smelt_iron_bloom")
+        )
         work_month(world, world.clock.date)
         self.assertGreater(
             stock.amounts.get("iron_bloom", 0.0), 0.0,
@@ -113,6 +147,7 @@ class TestSmeltWiring(unittest.TestCase):
         )
         wires = [e for e in world.ledger.entries if e.reason == "smelt_iron_bloom"]
         self.assertTrue(wires, "Нет проводки выплавки действием")
+        self.assertAlmostEqual(world.ledger.delta(world.total_matter()), 0.0, places=6)
         leaked = [
             e for e in world.ledger.entries
             if e.kind == "external_in" and e.good == "iron_bloom"

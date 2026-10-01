@@ -135,7 +135,16 @@ class TestThegnFullBarn(unittest.TestCase):
         self.assertEqual(relief, [], "Замок выдал relief двору тэна")
         self.assertEqual(_relief(holder.stock_id), [])
 
-        # b) Амбар тэна ≥ min: relief идёт из своей книги.
+        # b) Амбар тэна ≥ min: relief идёт из своей книги. Собственный сток
+        # держателя пуст — иначе нужды нет (`food_shortfall` = −16.16 при 19.16
+        # зерна) и подача не идёт законно, то есть проверка была бы слепой.
+        holder_grain = world.get_stock(holder.stock_id).amounts.get("grain", 0.0)
+        if holder_grain > 0:
+            world.ledger.transfer(
+                world.get_stock(holder.stock_id), castle, "grain", holder_grain,
+                "test_setup", world.clock.date,
+            )
+        self.assertEqual(world.get_stock(holder.stock_id).amounts.get("grain", 0.0), 0.0)
         barn.amounts["grain"] = 10.0
         n0 = len(world.ledger.entries)
         exchange.apply_relief(world, world.clock.date)
@@ -156,7 +165,15 @@ class TestThegnFullBarn(unittest.TestCase):
         exchange.apply_relief(world, world.clock.date)
         self.assertEqual(_relief(salt.stock_id), [], "Соляной двор получил relief")
 
-        # d) Корневой двор — из замка, как раньше.
+        # d) Корневой двор — из замка, как раньше. Его сток тоже пуст: у двора с
+        # зерном нужды нет, и подача не идёт (проверка на полном стоке слепа).
+        root_grain = world.get_stock(root_hh.stock_id).amounts.get("grain", 0.0)
+        if root_grain > 0:
+            world.ledger.transfer(
+                world.get_stock(root_hh.stock_id), castle, "grain", root_grain,
+                "test_setup", world.clock.date,
+            )
+        self.assertEqual(world.get_stock(root_hh.stock_id).amounts.get("grain", 0.0), 0.0)
         root_hh.main_action = "request_relief"
         n0 = len(world.ledger.entries)
         exchange.apply_relief(world, world.clock.date)

@@ -1,6 +1,8 @@
 # Правила появления. Владелец: Economist.
 # Любая новая материя/угроза/обоз обязаны иметь правило здесь (И-1, И-7).
-# `external: nature` означает поток извне системы; он пишется в Ledger как external_in.
+# Поток извне системы помечается не здесь, а в бухгалтерии: вид проводки
+# `LedgerEntry.kind` и непустой `rule_id` (его и проверяет И-1).
+# Ярлык происхождения у правила снят: он грузился и не читался (ADR 0164 п. 2).
 # `cap_per_tile` — потолок стоячей материи на клетке: природа не бездонный кран,
 # запас не растёт линейно вечно (иначе узкое место — только труд, и двор кормится вечно).
 # В v0 исполняются только `kind: calendric`, `target: good` (phase_growth). Остальные
@@ -13,50 +15,190 @@ spawn_rules:
     name: Всходы на поле
     target: good
     kind: calendric
-    external: nature
-    params: {good: grain, terrain: field, amount: 10.0, cap_per_tile: 40.0, season_peak_month: 7}
+    # Потолка нет (ADR 0137): клетка копит standing столько, сколько успеет снять
+    # уборкой; ёмкость гекса — функция числа работников, а не регламент.
+    #
+    # ПРИБАВКИ УРОЖАЙНОСТИ ПАШНИ (слова хозяина). Это МНОЖИТЕЛИ выхода гекса,
+    # а не потолки: каждый = 1.0, пока причина не наступила. Множатся и стоячая
+    # материя, и выход ( labour не множится), поэтому масса сходится.
+    #   demesne_base_yield — множитель выхода гекса ДОМЕНА. Домен — не надел: у него
+    #                   своя норма. Полосы выхода как нормы больше НЕТ (ADR 0142;
+    #                   реестр отмен ADR 0143), и потолка урожая тоже нет
+    #                   (ADR 0137 п. 2, ADR 0142 п. 3): ёмкость гекса — функция
+    #                   числа работников.
+    #                   Арифметика, труд не тронут: спрос гекса
+    #                   `manor.yml::demesne.demand_days_per_tile` = 1458 трудодней
+    #                   в год = 72.9 партии по 20 дней; Σ(d_m × demesne_yield_m) =
+    #                   1024.3; выход = 5.0 × 1024.3 / 20 = 256.1 при 1.0.
+    #                   Отсюда ×1.17 = 300, ×1.37 = 350; стоит 1.27 = 325.2.
+    #                   Множится и стоячая материя клетки домена, и выход: иначе
+    #                   урожайный потолок превратился бы в нехватку посева.
+    #   tool_yield    — плуг/лемех в стоке двора (ADR 0110: tool_multiplier).
+    #   draft_yield_per_head — ПРИБАВКА ЗА ГОЛОВУ тягла (слово хозяина:
+    #                   «повышающий коэффициент от пахоты с буйволом и плугами»).
+    #                   Голова = стойловая единица по норме
+    #                   `needs.yml.livestock.feed_per_month` (ox_m 1.2, ox_f 1.0);
+    #                   телята в плуг не идут, поэтому только взрослые.
+    #                   Буйвол — единственное тягло с прибавкой; конь и осёл пашут
+    #                   без неё, закона про них нет. Потолок `draft_yield_cap`.
+    #   manure_*      — навоз, разложенный на самой клетке: множитель растёт от
+    #                   числа голов скота, считается по стойловой норме
+    #                   `needs.yml.livestock.feed_per_month` (ox_m 1.2, ox_f 1.0),
+    #                   и потолка `manure_yield_cap` не имеет.
+    #   manure_uptake — сколько навозу клетка берёт из standing за партию жатвы.
+    #   rotation_*    — СМЕНА ПОЛЕЙ: единственный множитель, зависящий от времени.
+    #                   Прибавка включается только в год ПОСЛЕ смены (через год).
+    params:
+      good: grain
+      terrain: field
+      amount: 50.0
+      season_peak_month: 7
+      demesne_base_yield: 1.27
+      tool_yield: {wooden_plough: 1.05, iron_share: 1.15}
+      draft_yield_per_head: {ox: 0.06, horse: 0.0, donkey: 0.0}
+      draft_yield_cap: 1.30
+      manure_yield_per_head: 0.004
+      manure_yield_cap: 1.20
+      manure_uptake: 0.6
+      rotation_yield: 1.08
+      rotation_month: 11
+      rotation_days_per_tile: 30.0
+      spread_days_per_unit: 3.0
+      spread_units_per_month: 1.0
   - id: grow_firewood
     name: Валежник в лесу
     target: good
     kind: calendric
-    external: nature
     params: {good: firewood, terrain: forest, amount: 1.5, cap_per_tile: 12.0, season_peak_month: 9}
   - id: grow_log
     name: Прирост леса
     target: good
     kind: calendric
-    external: nature
-    params: {good: log, terrain: forest, amount: 1.2, cap_per_tile: 10.0, season_peak_month: 8}
+    # Потолок 36.0 = 3 партии `uproot_stumps` по 12.0 standing-бревна: на клетке
+    # три расчистки, а не одна (ADR 0175 §3). Возобновление 36 / 1.2 = 30 месяцев —
+    # лес становится конечным активом, а не краном материи.
+    params: {good: log, terrain: forest, amount: 1.2, cap_per_tile: 36.0, season_peak_month: 8}
+  - id: grow_stone
+    name: Обнажение камня
+    target: good
+    kind: calendric
+    # Камень НЕ растёт: правило моделирует медленное обнажение породы и выход
+    # валунов на поверхность. Поэтому прирост вдвое медленнее древесины
+    # (`grow_log` 1.2, здесь 0.6), а год пика — 9, общий с `grow_firewood`:
+    # каменная и лесная работа идут одной осенью, после жатвы и до стужи.
+    # Потолок 36.0 = 3 партии `uproot_stumps` по 12.0 standing-камня, как и
+    # потолок бревна. Возобновление 36 / 0.6 = 60 месяцев: расчищенная клетка
+    # остаётся бедной на годы — иначе вырубка стала бы краном материи (И-1).
+    params: {good: stone, terrain: forest, amount: 0.6, cap_per_tile: 36.0, season_peak_month: 9}
   - id: grow_peat
     name: Нарост торфа
     target: good
     kind: calendric
-    external: nature
-    params: {good: peat, terrain: marsh, amount: 0.5, cap_per_tile: 6.0, season_peak_month: 6}
+    # Ёмкость болота — 1200.0 (ADR 0187: «торф берётся с тайла болота, огромного
+    # тайла, ёмкость большая»). Прежние 6.0 были не аналогом леса или пашни, а
+    # грядкой: при оттоке 3.15 за партию и приросте 0.5 в месяц болото держало
+    # 1.9 партии, и замер `v0_hill_and_salt` (24 мес, сид 1729) показывал
+    # `cut_peat` только в месяцах 4 и 12, после чего торф кончался и солеварня
+    # стояла: 0 выварок, 0 соли.
+    #
+    # Число выведено из класса, а не из вкуса. Замерено по всем правилам
+    # `spawn_rules.yml`: ПОТОЛКИ в каталоге от 1.0 (белка) до 36.0 (бревно, камень),
+    # а тысячный класс стоит на пашне — `grow_grain` вообще БЕЗ потолка, 50.0 в
+    # месяц, то есть поле копит 1200.0 зерна за 24 месяца. Болото — природная
+    # кладовая того же порядка, что и пашня, и торф берётся с неё руками, а не
+    # выращивается: 1200.0 и есть та же величина, что у поля за два года.
+    #
+    # Следствие, которое НЕЛЬЗЯ прятать: при расходе промысла 5.6 торфа в месяц
+    # (замер: 45 выварок за 24 месяца = 1.875 выварки = 5.625 торфа) одного болота
+    # хватает на 1200 / 5.625 = **213 месяцев, около 18 лет**. Значит ИСЧЕРПАНИЕ
+    # тайла перестаёт быть причиной переезда, и повод для переезда должен быть
+    # другим — его у хозяина нет и в коде я его не выдумываю (см. отчёт).
+    params: {good: peat, terrain: marsh, amount: 0.5, cap_per_tile: 1200.0, season_peak_month: 6}
   - id: grow_brine
     name: Напор рапы
     target: good
     kind: calendric
-    external: nature
     params: {good: brine, terrain: salt_flat, amount: 8.0, cap_per_tile: 30.0, season_peak_month: 6}
   - id: grow_hay
     name: Травостой на выпасе
     target: good
     kind: calendric
-    external: nature
     params: {good: hay, terrain: pasture, amount: 2.0, cap_per_tile: 20.0, season_peak_month: 7}
   - id: grow_wool
     name: Нагул шерсти
     target: good
     kind: calendric
-    external: nature
     params: {good: wool, terrain: pasture, amount: 0.4, cap_per_tile: 6.0, season_peak_month: 5}
+  - id: game_squirrel
+    name: Белка на лесной клетке
+    target: good
+    kind: calendric
+    params: {good: squirrel, terrain: forest, amount: 0.15, cap_per_tile: 1.0, season_peak_month: 4}
+  - id: game_rabbit
+    name: Кролик на лесной клетке
+    target: good
+    kind: calendric
+    params: {good: rabbit, terrain: forest, amount: 0.2, cap_per_tile: 1.2, season_peak_month: 4}
+  - id: game_deer
+    name: Олень на лесной клетке
+    target: good
+    kind: calendric
+    params: {good: deer, terrain: forest, amount: 0.3, cap_per_tile: 2.0, season_peak_month: 10}
+  - id: game_boar
+    name: Кабан на лесной клетке
+    target: good
+    kind: calendric
+    params: {good: boar, terrain: forest, amount: 0.25, cap_per_tile: 1.6, season_peak_month: 11}
   - id: grow_iron
     name: Руда в топи
     target: good
     kind: calendric
-    external: nature
     params: {good: iron, terrain: marsh, amount: 0.15, cap_per_tile: 3.0, season_peak_month: 5}
+
+  # --- Серебро извне: закупка королевского двора (ADR 0219). ---
+  #
+  # ЗАКОН ХОЗЯИНА: «само серебро не чеканится в баронстве — только королевский
+  # двор». Значит серебро в баронстве не РАСТЁТ и не ВЫПЛАВЛЯЕТСЯ: оно ПРИХОДИТ
+  # только в обмен на хлеб, который физически ушёл из мира. Поэтому здесь
+  # `kind: conditional`, а не `calendric`: фаза роста исполняет только
+  # `kind == "calendric"` с `target == "good"` (`engine/growth.py`), и
+  # календарное серебро было бы кражей материи из воздуха.
+  #
+  # И-1 держится на ПАРЕ проводок, а не на объявлении. Первая — расход зерна из
+  # мира (вид проводки в бухгалтерии, `LedgerEntry.kind` в коде), вторая — приход
+  # серебра по этому же правилу с непустым `rule_id`. Серебра не может быть
+  # больше, чем зерна ушло наружу, помноженного на каталожную цену, — и это
+  # проверяет обвинитель `test_silver_enters_only_from_outside.py`, а не доверие
+  # к коду.
+  - id: royal_court_buys_grain
+    name: Закупка хлеба королевским двором
+    target: good
+    kind: conditional
+    params:
+      # Товар, который ПОЯВЛЯЕТСЯ извне. Серебро — не монета в кармане, а единица
+      # оценки труда и товара, и в мире её нет до тех пор, пока двор не заплатит.
+      good: silver
+      # `terrain` у правила с `target: good` — клетка, чей рост это правило
+      # описывает. У серебра такой клетки НЕТ: источник вне карты, поэтому
+      # здесь честное `outside`, а не выдуманный рельеф. На исполнение не
+      # влияет: рост читает только `calendric`-правила (см. выше).
+      terrain: outside
+      # ВИДИМЫЙ ИСТОЧНИК (требование хозяина к И-1). Не анонимный приход
+      # «откуда-то», а имя той стороны, которая платит. Обвинитель требует это
+      # поле у правила прихода серебра, поэтому «серебро из ниоткуда» нельзя
+      # завести молча.
+      source: royal_court
+      # Чем платит двор: зерно, ушедшее из мира.
+      bought_good: grain
+      # Сколько месяцев еды СВОИХ дворов амбар обязан удержать. Тот же смысл, что
+      # `caravan_visit.params.need_buffer_months` (2.0) у обоза: съедобный груз
+      # не вывозится ниже буфера, иначе проданное зерно — это зерно, которым
+      # кормят деревню. Барон не продаёт хлеб, на котором держится его деревня
+      # (ADR 0148), только излишек сверх буфера.
+      keep_months_food: 2.0
+      # Цена — не число в коде: берётся `goods.yml::<bought_good>.price_silver`
+      # (ADR 0101/0153). Здесь только указатель, чем именно платят.
+      price_of: grain
 
   # --- Заготовка (не исполняется в v0). ---
   # `wolves_den` — топ-ап СУЩЕСТВУЮЩИХ волков (допуск ADR 0042): новых сущностей

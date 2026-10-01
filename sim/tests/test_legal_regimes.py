@@ -13,6 +13,7 @@ from hillcourt.legal.regimes import (
     can_be_sent,
     can_leave,
     effective_regime_id,
+    hunt_destination_stock_id,
     vassalage_allowed,
 )
 from hillcourt.scenario import load_scenario
@@ -48,9 +49,20 @@ class TestLegalRegimes(unittest.TestCase):
         )
         actions = allowed_actions(self.world, hh, forest)
         self.assertNotIn("gather_brushwood", actions)
-        self.assertIn("take_game", actions)
+        self.assertNotIn("take_game", actions)
 
-    def test_foreign_tile_only_leave(self) -> None:
+    def test_retinue_can_hunt_into_baron_stock(self) -> None:
+        hh = self.world.households["hh_retinue"]
+        forest = next(
+            t for t in self.world.tiles.values() if t.terrain == "forest"
+        )
+        actions = allowed_actions(self.world, hh, forest)
+        self.assertIn("take_game", actions)
+        self.assertEqual(
+            hunt_destination_stock_id(self.world, hh),
+            self.world.manors["manor_hill"].stock_id,
+        )
+
         hh = self.world.households["hh_01"]
         salt = self.world.settlements["salt_village"]
         salt_tile = self.world.tiles[f"t_{salt.coord[0]:02d}_{salt.coord[1]:02d}"]
@@ -99,7 +111,7 @@ class TestLegalRegimes(unittest.TestCase):
     def test_grant_tenure_registers_right(self) -> None:
         right = grant_tenure(self.world, "hh_01", "t_00_00", rent_share=0.2)
         self.assertIn(right.id, self.world.rights)
-        self.assertEqual(self.world.tiles["t_00_00"].regime_id, "tenement")
+        self.assertEqual(self.world.tiles["t_00_00"].regime_id, "free_holding")
 
     def test_corvee_accrues_on_period_only(self) -> None:
         hh = self.world.households["hh_02"]

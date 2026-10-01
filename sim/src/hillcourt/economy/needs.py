@@ -13,6 +13,21 @@ EPSILON = 1e-9
 ADULT_LABOR_DAYS = 20.0
 
 
+def edible_order(configured: list[str], eat_last: list[str] | tuple[str, ...] = ()) -> list[str]:
+    """Порядок расхода еды по правилу ADR 0098, а не по списку в коде.
+
+    Правило одно: товары из `eat_last` (мясо — праздник и резерв, ADR 0098 п. 2 и 4)
+    идут последними, остальные сохраняют бережливый порядок каталога
+    (`food.edible_order`): скоропортящееся раньше стойкого. Состав не меняется и не
+    дополняется: новое съедобное обязано появиться в `needs.yml`, иначе оно не
+    попадёт в корзину, — это проверяет тест-обвинитель `sim/tests/test_needs.py`.
+    """
+    tail = [good for good in configured if good in set(eat_last)]
+    tail_set = set(tail)
+    head = [good for good in configured if good not in tail_set]
+    return head + tail
+
+
 def load_needs(path: str | Path) -> NeedConfig:
     """Прочитать needs.yml и собрать строгий NeedConfig."""
     with Path(path).open("r", encoding="utf-8") as fh:
@@ -33,7 +48,10 @@ def load_needs(path: str | Path) -> NeedConfig:
         adult_food_per_month=float(food.get("adult_per_month", 1.0)),
         child_food_per_month=float(food.get("child_per_month", 0.7)),
         elder_food_per_month=float(food.get("elder_per_month", 0.8)),
-        edible_order=list(food.get("edible_order", ["grain"])),
+        edible_order=edible_order(
+            list(food.get("edible_order", ["grain"])),
+            [str(good) for good in (food.get("eat_last") or [])],
+        ),
         winter_months=[int(m) for m in fuel.get("winter_months", [])],
         firewood_per_adult_winter_month=float(
             fuel.get("firewood_per_adult_winter_month", 0.0)
@@ -46,7 +64,9 @@ def load_needs(path: str | Path) -> NeedConfig:
         axe_break_below=float(tool.get("break_below", 0.0)),
         wear_recipes=list(tool.get("wear_recipes", [])),
         relief_min_court_grain=float(relief.get("min_court_grain", 0.0)),
-        relief_amount=float(relief.get("amount", 0.0)),
+        relief_amount=float(
+            relief.get("cap_grain_per_month", relief.get("amount", 0.0))
+        ),
         birth_food_months=float(birth.get("food_months", 3.0)),
         birth_streak_months=int(birth.get("streak_months", 3)),
         birth_max_household=int(birth.get("max_household", 8)),
@@ -62,6 +82,7 @@ def load_needs(path: str | Path) -> NeedConfig:
     # месяцы подножного корма и доля зимней нормы сеном в них (допуск ADR 0053).
     config.graze_months = [int(m) for m in livestock.get("graze_months", [])]
     config.graze_hay_fraction = float(livestock.get("graze_hay_fraction", 1.0))
+    config.eat_last = [str(good) for good in (food.get("eat_last") or [])]
     return config
 
 
@@ -125,6 +146,28 @@ def edible_mass(world: World, household: Household) -> float:
     for good in order:
         total += stock.amounts.get(good, 0.0)
     return total
+
+
+def edible_nutrition(world: World, household: Household) -> float:
+    """Сколько «рот-единиц» набирает весь съедобный запас двора.
+
+    Считается с питательностью товара, как это делает расход в `phase_consume`:
+    сыр кормит как 2.4 рот-единицы с единицы, зерно — как 1.0. От этого зависит
+    фактический недобор, который закрывает помощь (ADR 0114 п. 1).
+    """
+    stock = world.get_stock(household.stock_id)
+    order = world.needs.edible_order if world.needs else ["grain"]
+    total = 0.0
+    for good in order:
+        rule = world.catalogs.goods.get(good)
+        nutrition = rule.nutrition if rule is not None else 0.0
+        total += stock.amounts.get(good, 0.0) * nutrition
+    return total
+
+
+def food_shortfall(world: World, household: Household) -> float:
+    """Недобор двора до месячной нормы в «рот-единицах» (≤ 0 — нужду покрыл)."""
+    return monthly_food_need(world, household) - edible_nutrition(world, household)
 
 
 def food_months(world: World, household: Household) -> float:

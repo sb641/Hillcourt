@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
@@ -33,13 +35,33 @@ DEFAULT_CATALOG_MAP: dict[str, str] = {
     "offices": "design/catalogs/offices.yml",
 }
 
+# Словарь действий земли (ADR 0161 п. 2, ADR 0182). Объявлено только то, на что
+# механизм отвечает: `plough` — пахота (`engine/yield_law.py::field_yield_factor`),
+# `take_game` — охота, `leave` — право уйти, `clear_forest` — расчистка леса
+# (право выдаёт только домен, работа — рецепт `uproot_stumps` через
+# `LAND_ACTION_RECIPES` ниже). Право и рецепт носят РАЗНЫЕ имена, как `take_game`
+# и `take_game_*`: право — разрешение, рецепт — работа. Сбор хвороста снят тем
+# же основанием, что и постройка (ADR 0150 п. 1, ADR 0161 п. 2): рецепта у него
+# не было ни одного, а лес убирается существующим действием двора
+# `cut_wood_if_allowed`. Право, которому нечем исполниться, — не право, а
+# объявление, которое вводит юриста в заблуждение.
 LAND_ACTIONS: tuple[str, ...] = (
     "plough",
-    "gather_brushwood",
     "take_game",
-    "build_hut",
     "leave",
+    "clear_forest",
 )
+
+LAND_ACTION_RECIPES: dict[str, tuple[str, ...]] = {
+    "take_game": (
+        "take_game_squirrel",
+        "take_game_rabbit",
+        "take_game_deer",
+        "take_game_boar",
+    ),
+    # Расчистка леса: право `clear_forest` исполняется рецептом выкорчёвки (ADR 0182).
+    "clear_forest": ("uproot_stumps",),
+}
 
 
 @dataclass
@@ -57,6 +79,9 @@ class Catalogs:
     offices: dict[str, Office] = field(default_factory=dict)
     bundles: dict[str, ObligationBundle] = field(default_factory=dict)
     source_paths: dict[str, str] = field(default_factory=dict)
+
+
+_CATALOG_CACHE: dict[tuple[tuple[str, str], ...], Catalogs] = {}
 
 
 def _check_record(record: Any, known: set[str], required: set[str], key: str) -> dict:
@@ -77,7 +102,10 @@ def _check_record(record: Any, known: set[str], required: set[str], key: str) ->
 
 
 def _parse_goods(docs: dict) -> dict[str, Good]:
-    known = {"id", "name", "category", "storage", "spoil_per_month", "edible", "nutrition"}
+    known = {
+        "id", "name", "category", "storage", "spoil_per_month", "edible", "nutrition",
+        "price_silver", "price_labor_silver", "price_materials_silver", "price_losses_silver",
+    }
     out: dict[str, Good] = {}
     for record in docs.get("goods", []):
         r = _check_record(record, known, {"id", "name", "category", "storage"}, "goods")
@@ -89,6 +117,10 @@ def _parse_goods(docs: dict) -> dict[str, Good]:
             spoil_per_month=float(r.get("spoil_per_month", 0.0)),
             edible=bool(r.get("edible", False)),
             nutrition=float(r.get("nutrition", 0.0)),
+            price_silver=float(r.get("price_silver", 0.0)),
+            price_labor_silver=float(r.get("price_labor_silver", 0.0)),
+            price_materials_silver=float(r.get("price_materials_silver", 0.0)),
+            price_losses_silver=float(r.get("price_losses_silver", 0.0)),
         )
     return out
 
@@ -97,6 +129,7 @@ def _parse_recipes(docs: dict) -> dict[str, Recipe]:
     known = {
         "id", "name", "place", "requires_terrain", "inputs",
         "draws_standing", "outputs", "loss", "labor_days", "transform",
+        "tool_multiplier",
     }
     out: dict[str, Recipe] = {}
     for record in docs.get("recipes", []):
@@ -112,24 +145,55 @@ def _parse_recipes(docs: dict) -> dict[str, Recipe]:
             loss=dict(r.get("loss", {})),
             labor_days=float(r["labor_days"]),
             transform=bool(r.get("transform", False)),
+            tool_multiplier=float(r.get("tool_multiplier", 1.0)),
         )
     return out
 
 
+# Правило `grow_grain` — единственный носитель прибавок урожайности пашни, и
+# `economy/soil.py` читает его `params` без права на подстановку (ADR 0157 п. 5).
+# Ключ, который читает расчёт, обязан лежать в каталоге: отсутствие — ошибка
+# загрузки, а не тихая подмена числа из Python (в `soil.py` таких чисел нет).
+GROW_RULE_PARAMS: tuple[str, ...] = (
+    "tool_yield",
+    "draft_yield_per_head",
+    "draft_yield_cap",
+    "manure_yield_per_head",
+    "manure_yield_cap",
+    "manure_uptake",
+    "rotation_yield",
+    "rotation_month",
+    "rotation_days_per_tile",
+    "spread_days_per_unit",
+    "spread_units_per_month",
+)
+
+
 def _parse_spawn_rules(docs: dict) -> dict[str, SpawnRule]:
-    known = {"id", "name", "target", "kind", "params", "external"}
+    # Ярлык происхождения снят (ADR 0164 п. 2): объявлялся и грузился, но не
+    # читался ни одним потребителем. Происхождение потока несёт вид проводки
+    # `LedgerEntry.kind` и непустой `LedgerEntry.rule_id`, который и проверяет И-1.
+    known = {"id", "name", "target", "kind", "params"}
     out: dict[str, SpawnRule] = {}
     for record in docs.get("spawn_rules", []):
         r = _check_record(
             record, known, {"id", "name", "target", "kind"}, "spawn_rules"
         )
+        params = dict(r.get("params", {}))
+        if r["id"] == "grow_grain":
+            missing = [key for key in GROW_RULE_PARAMS if key not in params]
+            if missing:
+                raise ValueError(
+                    f"Каталог 'spawn_rules', правило 'grow_grain': нет params {missing} — "
+                    "урожай пашни не имеет числа, а подставлять его в коде запрещено "
+                    "(ADR 0157 п. 5)"
+                )
         out[r["id"]] = SpawnRule(
             id=r["id"],
             name=r["name"],
             target=r["target"],
             kind=r["kind"],
-            params=dict(r.get("params", {})),
-            external=r.get("external"),
+            params=params,
         )
     return out
 
@@ -149,6 +213,14 @@ def _parse_hazards(docs: dict) -> dict[str, HazardRule]:
 
 
 def _parse_obligations(docs: dict) -> dict[str, ObligationTemplate]:
+    """Шаблоны повинностей из секции `obligations:` файла `obligations.yml`.
+
+    Секция обязана существовать: пустой список раздела — это «повинностей нет»,
+    а отсутствие ключа — «раздел не написан», и это разные вещи (ADR 0155: тест,
+    который не может упасть, хуже отсутствующего теста).
+    """
+    if "obligations" not in docs:
+        raise ValueError("Файл 'obligations.yml': нет раздела 'obligations'")
     known = {
         "id", "name", "kind", "due_good", "period_months",
         "default_share", "labor_days", "basis", "default_amount",
@@ -261,6 +333,12 @@ _BUNDLE_CURRENCIES = {"labor-day", "in-kind", "penny", "acre"}
 
 
 def _parse_bundles(docs: dict) -> dict[str, ObligationBundle]:
+    """Бандлы повинностей из секции `bundles:` того же файла, что и повинности.
+
+    Секция обязана существовать — по той же причине, что и в `_parse_obligations`.
+    """
+    if "bundles" not in docs:
+        raise ValueError("Файл 'obligations.yml': нет раздела 'bundles'")
     known = {"id", "name", "currency_mix", "terms", "calendar"}
     out: dict[str, ObligationBundle] = {}
     for record in docs.get("bundles", []):
@@ -303,12 +381,23 @@ def _parse_offices(docs: dict) -> dict[str, Office]:
     return out
 
 
+# Секции файла `obligations.yml`: обе обязательны, обе разбираются своими
+# функциями, а в `Catalogs` попадают в разные слоты. Раньше файл вёл только
+# `bundles`, а `obligations:` читался в пустоту (ADR 0186).
+_OBLIGATION_FILE_SECTIONS = ("bundles", "obligations")
+
+
+def _parse_obligations_file(docs: dict) -> tuple[dict, dict]:
+    """Обе секции `obligations.yml`: `(бандлы, шаблоны повинностей)`."""
+    return _parse_bundles(docs), _parse_obligations(docs)
+
+
 _PARSERS: dict[str, tuple[str, Callable[[dict], dict]]] = {
     "goods": ("goods", _parse_goods),
     "recipes": ("recipes", _parse_recipes),
     "spawn_rules": ("spawn_rules", _parse_spawn_rules),
     "hazards": ("hazards", _parse_hazards),
-    "obligations": ("obligations", _parse_bundles),
+    "obligations": ("obligations", _parse_obligations_file),
     "rights": ("rights", _parse_rights),
     "land_regimes": ("land_regimes", _parse_land_regimes),
     "legal_statuses": ("legal_statuses", _parse_legal_statuses),
@@ -316,10 +405,13 @@ _PARSERS: dict[str, tuple[str, Callable[[dict], dict]]] = {
 }
 
 
-def _read_yaml(path: Path) -> dict:
+def _read_yaml(path: Path, source: bytes | None = None) -> dict:
     try:
-        with path.open("r", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
+        if source is None:
+            with path.open("r", encoding="utf-8") as fh:
+                data = yaml.safe_load(fh)
+        else:
+            data = yaml.safe_load(source.decode("utf-8"))
     except FileNotFoundError as exc:
         raise ValueError(f"Файл каталога не найден: {path}") from exc
     if not isinstance(data, dict):
@@ -333,43 +425,66 @@ def load_catalogs(
     """Загрузить каталоги по карте путей относительно корня репозитория."""
     repo_root = Path(repo_root)
     mapping = dict(catalog_map) if catalog_map else dict(DEFAULT_CATALOG_MAP)
-    catalogs = Catalogs()
+    sources: dict[str, bytes] = {}
+    cache_key_items: list[tuple[str, str]] = []
     for key in sorted(mapping):
         if key not in _PARSERS:
             raise ValueError(f"Неизвестный каталог в карте путей: '{key}'")
-        expected_key, parser = _PARSERS[key]
         path = repo_root / mapping[key]
-        docs = _read_yaml(path)
-        allowed_top = {expected_key, "version"}
-        if expected_key == "obligations":
-            allowed_top.add("bundles")
-        unknown_top = sorted(set(docs) - allowed_top)
-        if unknown_top:
-            raise ValueError(
-                f"Каталог '{path}': неизвестные разделы {unknown_top}"
-            )
-        if expected_key not in docs:
-            raise ValueError(
-                f"Каталог '{path}': нет раздела '{expected_key}'"
-            )
-        parsed = parser(docs)
-        if key == "goods":
-            catalogs.goods = parsed
-        elif key == "recipes":
-            catalogs.recipes = parsed
-        elif key == "spawn_rules":
-            catalogs.spawn_rules = parsed
-        elif key == "hazards":
-            catalogs.hazard_rules = parsed
-        elif key == "obligations":
-            catalogs.bundles = parsed
-        elif key == "rights":
-            catalogs.right_templates = parsed
-        elif key == "land_regimes":
-            catalogs.land_regimes = parsed
-        elif key == "legal_statuses":
-            catalogs.legal_statuses = parsed
-        elif key == "offices":
-            catalogs.offices = parsed
-        catalogs.source_paths[key] = str(path)
+        try:
+            source = path.read_bytes()
+        except FileNotFoundError as exc:
+            raise ValueError(f"Файл каталога не найден: {path}") from exc
+        sources[key] = source
+        cache_key_items.append((key, hashlib.sha256(source).hexdigest()))
+
+    cache_key = tuple(cache_key_items)
+    cached = _CATALOG_CACHE.get(cache_key)
+    if cached is not None:
+        catalogs = copy.deepcopy(cached)
+    else:
+        catalogs = Catalogs()
+        for key in sorted(mapping):
+            expected_key, parser = _PARSERS[key]
+            path = repo_root / mapping[key]
+            docs = _read_yaml(path, sources[key])
+            allowed_top = {expected_key, "version"}
+            required_sections = (expected_key,)
+            if key == "obligations":
+                allowed_top.update(_OBLIGATION_FILE_SECTIONS)
+                required_sections = _OBLIGATION_FILE_SECTIONS
+            unknown_top = sorted(set(docs) - allowed_top)
+            if unknown_top:
+                raise ValueError(
+                    f"Каталог '{path}': неизвестные разделы {unknown_top}"
+                )
+            for section in required_sections:
+                if section not in docs:
+                    raise ValueError(
+                        f"Каталог '{path}': нет раздела '{section}'"
+                    )
+            parsed = parser(docs)
+            if key == "goods":
+                catalogs.goods = parsed
+            elif key == "recipes":
+                catalogs.recipes = parsed
+            elif key == "spawn_rules":
+                catalogs.spawn_rules = parsed
+            elif key == "hazards":
+                catalogs.hazard_rules = parsed
+            elif key == "obligations":
+                catalogs.bundles, catalogs.obligation_templates = parsed
+            elif key == "rights":
+                catalogs.right_templates = parsed
+            elif key == "land_regimes":
+                catalogs.land_regimes = parsed
+            elif key == "legal_statuses":
+                catalogs.legal_statuses = parsed
+            elif key == "offices":
+                catalogs.offices = parsed
+            catalogs.source_paths[key] = str(path)
+        _CATALOG_CACHE[cache_key] = copy.deepcopy(catalogs)
+    catalogs.source_paths = {
+        key: str(repo_root / mapping[key]) for key in sorted(mapping)
+    }
     return catalogs

@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from hillcourt.economy.needs import member_counts, monthly_food_need
+from hillcourt.engine.manor import call_boon
 from hillcourt.engine.tick import phase_migrate
 from hillcourt.legal.calendar import (
     BOON_USED_KEY,
@@ -167,16 +168,77 @@ class TestManorAxes(unittest.TestCase):
             self.assertNotIn("low_labor", bundle.terms)
 
     def test_boon_capped_and_counted(self) -> None:
+        """ЗАКОН: помога — только по крику лорда и не более потолка на год.
+
+        Прежняя версия этого теста звала `take_boon` **без** `call_boon`, получала
+        `0.0` и зеленела при любом состоянии потолка: годовой cap можно было бы
+        снять целиком, и тест остался бы зелёным. Тест, который зеленеет всегда,
+        вреднее падающего — он снимает тревогу.
+
+        Ещё одна правка контракта: `call_boon` в месяце без `boon_allowed`
+        **бросает** `ValueError`, а не возвращает `False` (ADR 0202 §1, ADR 0215
+        «дыра 2»). Пункт (1) поэтому проверяет отказ законом, а не «молчаливый
+        ноль», — и отдельно проверяет, что отказ **не вооружил** флаг помочи:
+        иначе `take_boon` в том же месяце выдал бы дни мимо закона.
+
+        Теперь проверяется то, что в нём и утверждается:
+          1) месяц без `boon_allowed` отклоняет крик (`ValueError`) и не даёт
+             помочи даже после попытки крика;
+          2) крик лорда в разрешённом месяце даёт дни, и они не превышают потолок;
+          3) повторный крик в том же году сверх потолка даёт ноль;
+          4) **после смены года** тот же крик снова даёт дни — потолок годовой, а не
+             разовый. Пункты 3 и 4 и есть пара, которая падает при снятии cap.
+        """
         world = self.world
         hh = world.households["hh_02"]  # villein, boon_days_cap = 3
         cap = boon_cap(world, hh)
-        self.assertGreater(cap, 0.0)
-        self.assertEqual(take_boon(world, hh, 1), 0.0, "Помога в месяц без boon_allowed")
-        total = 0.0
+        self.assertGreater(cap, 0.0, "У двора нет потолка помочи — проверять нечего")
+
+        # (1) месяц без boon_allowed: крик отклонён законом, дней нет.
+        self.assertFalse(
+            world.calendar[1].boon_allowed, "M1 не должен разрешать boon — стенд сбит"
+        )
+        with self.assertRaises(ValueError) as ctx:
+            call_boon(world, month=1)
+        self.assertIn(
+            "boon_allowed", str(ctx.exception),
+            f"Отказ не назвал закон: {str(ctx.exception)!r}",
+        )
+        self.assertNotEqual(
+            world.stats.get("boon_called_month"), 1.0,
+            "Отказ поставил флаг помочи: take_boon выдаст дни в запрещённый месяц",
+        )
+        self.assertEqual(
+            take_boon(world, hh, 1), 0.0, "Помога в месяц без boon_allowed"
+        )
+
+        # (2) крик в разрешённом месяце даёт дни, не выше потолка.
+        self.assertTrue(call_boon(world, month=8), "Крик помощи в M8 не разрешён")
+        first = take_boon(world, hh, 8)
+        self.assertGreater(first, 0.0, "Крик лорда не дал ни дня помощи")
+        self.assertLessEqual(first, cap, "Помога превысила годовой потолок")
+
+        # (3) тот же год, повторные крики: потолок держит.
+        rest = 0.0
         for _ in range(5):
-            total += take_boon(world, hh, 8)
-        self.assertLessEqual(total, cap)
-        self.assertAlmostEqual(world.stats.get(BOON_USED_KEY, 0.0), total)
+            call_boon(world, month=8)
+            rest += take_boon(world, hh, 8)
+        spent = first + rest
+        self.assertLessEqual(spent, cap, f"Год отдал {spent} дней при потолке {cap}")
+        self.assertAlmostEqual(
+            world.stats.get(BOON_USED_KEY, 0.0), spent, places=6,
+            msg="Книга потолка разошлась с выданным: сверяем по BOON_USED_KEY",
+        )
+
+        # (4) новый год — потолок сбрасывается, и это ОБЯЗАННО даёт дни снова.
+        world.clock.year += 1
+        call_boon(world, month=8)
+        next_year = take_boon(world, hh, 8)
+        self.assertGreater(
+            next_year, 0.0,
+            "После смены года помощь не вернулась: потолок не годовой, а разовый",
+        )
+        self.assertLessEqual(next_year, cap)
 
     def test_gafol_acres_move_grain_to_demesne(self) -> None:
         world = self.world

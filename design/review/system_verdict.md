@@ -66,12 +66,20 @@
 
 ### 7. Путь, воз, дальняя соль
 
-- Состояние: `Pack` есть, но создаётся только тестами; `send_party` несёт пустой cargo;
-  `phase_travel` разрешает дошедшие посылки.
-- Дыра: `caravan_visit` не исполняется; соль из деревни никуда не едет; 0 transfer соли;
-  замок за 60 мес не получил ни грамма.
-- Цена для игрока: столп «путь и дальняя соль имеют цену» — ложь: цены нет, потому что пути нет.
-- Не чинить сейчас: нет — это пункт A1 бэклога.
+- Состояние: `Pack` создаётся не только тестами — `phase_caravan` отправляет обозы по
+  каденции; `phase_travel` разрешает дошедшие посылки.
+- **Исправлено 29.09.2026. Прежний текст этого слоя говорил: «`caravan_visit` не
+  исполняется; соль из деревни никуда не едет; 0 transfer соли; замок за 60 мес не
+  получил ни грамма». Для стенда и шира это было ложью — обобщением частного случая
+  (старого баронства на 600 дворах) на весь мир.** Замер `v0_barony_100`, 24 месяца:
+  `salt caravan_load` **115**, `caravan_unload` **7**, соль в замке **39.3** на обоих
+  сидах (4242 и 1729), `salt external_in` **0**, телепорт `household→castle` **0** —
+  то есть соль едет настоящим обозом и не появляется из воздуха. На стенде
+  `start_stand` за 24 месяца соль в замке **39.2**.
+- Цена для игрока: **соляная деревня — не декорация**, её соль доезжает и видна в книге
+  сеньора. Чего игрок по-прежнему не видит — обоз в пути: только весть по прибытии.
+- Не чинить сейчас: нет — пункт закрыт замером; остаётся лишь убедиться, что
+  `external_in` соли остаётся нулём на 60 месяцах (ADR 0134 требует длинного горизонта).
 
 ### 8. Hazard как тело (волки), не ивент
 
@@ -84,24 +92,52 @@
 
 ### 9. Рычаги игрока в логе
 
-- Состояние: шесть действий пишут `player_actions`; `runner` их не вызывает; лог их не печатает.
-- Дыра: `grant_tenure/send_party/add_obligation` не логируются; `revoke_tenure` и пр. не сделаны.
-- Цена для игрока: в headless он зритель. Проверить решение нельзя.
-- Не чинить сейчас: нет — шаг B.
+- Состояние: **исправлено 29.09.2026. Прежний текст говорил: «шесть действий пишут
+  `player_actions`; `runner` их не вызывает; лог их не печатает». Это ложь на три
+  трети.** `_apply_script_entry` исполняет записи `script:` по `at_month` и пишет их в
+  `world.player_actions`, а `runner.main()` печатает каждую запись. Замер
+  `start_stand`, 24 и 120 месяцев, сид 1729: **17 строк приказов игрока с датами**
+  (`set_tile_regime` ×2, `add_obligation` ×6, `grant_tenure` ×6, `grant_tenement` ×1,
+  `grant_tenure`/`add_obligation` по паре на M7). На баронстве — 4 записи, отказов 0.
+- Остаётся по делу: не все приказы логируются одинаково подробно, и не каждый отказ
+  записан в `player_actions` отдельной строкой (ADR 0202 требует — и это делается для
+  `ORDER_REFUSALS`).
+- Цена для игрока: в headless он **не зритель** — его приказ исполняется и печатается
+  строкой с датой, а отказ виден отдельной строкой `ОТКАЗАНО приказов: N из M`.
+- Не чинить сейчас: нет.
+
+### 9a. Порядок фаз в `docs/04_tick.md` (добавлено 29.09.2026)
+
+- Дыра, найденная при сверке: документ обещал **20 фаз** и перечислял их в порядке,
+  который **не совпадал с кодом** — `phase_exchange` и `phase_consume` стояли местами
+  наоборот, а фазы с `phase_demography` дальше были сдвинуты на единицу.
+  В тике `PHASES` — **21 фаза**, и в нём `phase_ruin` (ADR 0209) индексом 14.
+- Цена для игрока: «еда раньше повинностей» — закон (ADR 0158 п. 3), и по документу
+  его нельзя было проверить, потому что документ показывал другой порядок.
+- Не чинить сейчас: документ приведён в соответствие (`docs/04_tick.md`), порядок
+  закрыт проверяемой командой.
 
 ### 10. Масштаб и LOD
 
 - Состояние: 63 клетки, 14 дворов, месяц — тик; дневного обхода всех `Person` нет; pathfinding
-  нет. Скрытого RimWorld на всю карту нет.
+  нет. Скрытого RimWorld на всю карту нет. **На целевом мире (`v0_barony_100`) — 10 000
+  гексов, 150 дворов, 4 поселения, объединение `Settlement.works_tiles` = 89 гексов
+  (0.89 %).**
 - Дыра: соляная деревня считается поштучно, хотя заявлена как дальняя; но это допустимо.
+  **Уточнение 29.09.2026: считаются поштучно не только она, а все дворы мира** —
+  `economy/labor.py::work_month` обходит `for hid in sorted(world.households)`, то
+  есть агрегат-LOD в коде нет нигде, а не «у соляной деревни». `docs/06_lod.md` приведён
+  в соответствие.
 - Цена для игрока: нет.
 - Не чинить: нет.
 
 ### 11. Обещано в docs, но нет в runner
 
 - `spawn_rules` pack/hazard/ruin — мертвы; `caravan` и `sheriff` — только Report.
-- Соляная деревня как агрегат-LOD — нет.
-- Руина как объект/событие — нет.
+  **Уточнение 29.09.2026: `ruin` больше не мёртв** — `phase_ruin` (ADR 0209) считает
+  оба проигрыша и рождает весть через `news/ruin.py`; `caravan` исполняется
+  (`caravan_load` 115 / `caravan_unload` 7 за 24 месяца на баронстве).
+- Соляная деревня как агрегат-LOD — нет (и не у одного поселения: см. слой 10).
 - `Muster` как появление вооружённого человека — нет.
 - `revoke_tenure`, `set_rent_share`, `send_pack`, `send_messenger`, `patrol` — заявлены, нет.
 - `docs/08_manor.md:67-71` отстал от кода (перевод по-манорски уже сделан).
@@ -111,9 +147,60 @@
 
 ```bash
 bash sim/run_tests.sh
+
+# Лог приказов игрока печатается: считаем строки с датой
 PYTHONPATH=sim/src python3 -m hillcourt.runner \
-  --scenario design/scenarios/v0_hill_and_salt.yml --months 36 --print-log
+  --scenario design/scenarios/start_stand.yml --months 24 --seed 1729 \
+  | grep -cE '^\[Y[0-9]+-M[0-9]+\] ' # → 17
+
+# Соль едет обозом, а не появляется: леджер баронства за 24 месяца
+PYTHONPATH=sim/src python3 - <<'PY'
+from pathlib import Path
+from hillcourt.engine.tick import run_month
+from hillcourt.runner import _apply_script_entry
+from hillcourt.scenario import load_scenario
+world = load_scenario(Path('design/scenarios/v0_barony_100.yml'), seed=4242)
+for month in range(1, 25):
+    for entry in list(world.script):
+        if int(entry.get('at_month', 0)) == month:
+            _apply_script_entry(world, entry)
+    run_month(world)
+salt = [e for e in world.ledger.entries if e.good == 'salt']
+print('load', sum(1 for e in salt if e.reason == 'caravan_load'),
+      '| unload', sum(1 for e in salt if e.reason == 'caravan_unload'),
+      '| external_in', sum(1 for e in salt if e.kind == 'external_in'),
+      '| телепорт', sum(1 for e in salt if e.kind == 'transfer'
+                        and e.src_id.startswith('household:')))
+# → load 115 | unload 7 | external_in 0 | телепорт 0
+
+# Порядок фаз: 21, и документ совпадает с кодом
+PYTHONPATH=sim/src python3 -c "
+from hillcourt.engine.tick import PHASES
+names = [p.__name__ for p in PHASES]
+print(len(names)); assert len(names) == 21
+assert names.index('phase_migrate') < names.index('phase_ruin') < names.index('phase_caravan')
+print('TICK ORDER OK')"
+
+# Объём подробного контура
+PYTHONPATH=sim/src python3 -c "
+from pathlib import Path
+from hillcourt.scenario import load_scenario
+w = load_scenario(Path('design/scenarios/v0_barony_100.yml'), seed=1729)
+det = set()
+for s in w.settlements.values():
+    det |= set(s.works_tiles)
+print('гексов', len(w.tiles), '| works_tiles', len(det))"
+# → гексов 10000 | works_tiles 89
+grep -n "for hid in sorted(world.households)" sim/src/hillcourt/economy/labor.py
 ```
 
 Критерий: каждый пункт «Дыра» подтверждается либо красным тестом из backlog, либо `file:line`
 в `gd_intake.md`/`role_gaps.md`; ни один пункт не требует нового класса `Knight`.
+Слои 7, 9, 10 и 11 считаются закрытыми замером: команды выше печатают `17`,
+`load 115 | unload 7 | external_in 0 | телепорт 0`, `TICK ORDER OK` и
+`гексов 10000 | works_tiles 89`.
+
+**Что здесь перепроверено 29.09.2026 (Scribe):** слои 7, 9, 9a, 10, 11. **Не
+перепроверено:** слои 1–6 и 8 — их числа сняты на старых срезах и после пересборки
+мира (ADR 0207) не обновлялись; полный сюит `bash sim/run_tests.sh` не гонялся
+(~22 минуты, это прогон хозяина).

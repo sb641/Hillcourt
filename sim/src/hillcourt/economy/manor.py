@@ -26,7 +26,8 @@ from ..legal.calendar import (
 )
 from ..ontology import Household, SimDate, Stock, Tile
 from ..world import World
-from .labor import apply_recipe, tool_yield_factor
+from . import soil
+from .labor import apply_recipe, draw_factor
 from .needs import ADULT_LABOR_DAYS, monthly_food_need
 from .seasons import demesne_yield
 
@@ -307,10 +308,15 @@ def _board(world: World, date: SimDate) -> None:
 
 
 def _hire(world: World, manor, pool: float, shortfall: float, date: SimDate) -> float:
-    """Нанять свободных без земли (и лишние руки коттеров) за еду/пенс.
+    """Нанять свободных без земли за харчи и зарплату деньгами (ADR 0120).
 
     Найм — по манору двора: корень платит из замка, тэн — из `manor:<id>`.
-    Только если домен не закрыт барщиной и у амбара манора есть зерно/серебро.
+    **Двор с наделом не нанимается** (`docs/09_economy.md:107-115`): он работает своё
+    хозяйство, его доход — надел; нанимаются только `land_relation = landless`.
+    Оплата — оба канала сразу, без «или» (ADR 0120 п. 1: зарплата деньгами **и**
+    содержанием): харчи зерном и зарплата серебром из амбара манора; серебра
+    может не хватить — тогда зарплата частичная, но харчи платятся. Ничего не
+    создаётся: всё перенос из склада (И-1). Домен закрыт барщиной — найма нет.
     """
     config = world.manor
     source = manor_stock(world, manor)
@@ -329,29 +335,26 @@ def _hire(world: World, manor, pool: float, shortfall: float, date: SimDate) -> 
         preset = _preset(world, household)
         if preset is None or _is_slave(world, household):
             continue
-        if preset.land_relation == "landless":
-            capacity = household.labor_days
-        elif preset.land_kind == "cotter_plot":
-            capacity = household.labor_days * 0.5
-        else:
+        if preset.land_relation != "landless":
             continue
+        capacity = household.labor_days
         days = min(capacity, shortfall)
         if days <= EPSILON:
             continue
         wage_grain = days * config.hire_wage_grain_per_day
         wage_silver = days * config.hire_wage_silver_per_day
-        if source.amounts.get(GRAIN, 0.0) >= max(config.hire_min_castle_grain, wage_grain):
-            world.ledger.transfer(
-                source, world.get_stock(household.stock_id), GRAIN, wage_grain,
-                "hire", date,
-            )
-        elif source.amounts.get(SILVER, 0.0) >= wage_silver:
-            world.ledger.transfer(
-                source, world.get_stock(household.stock_id), SILVER, wage_silver,
-                "hire", date,
-            )
-        else:
+        if source.amounts.get(GRAIN, 0.0) < max(config.hire_min_castle_grain, wage_grain):
             break
+        world.ledger.transfer(
+            source, world.get_stock(household.stock_id), GRAIN, wage_grain,
+            "hire", date,
+        )
+        paid_silver = min(wage_silver, source.amounts.get(SILVER, 0.0))
+        if paid_silver > EPSILON:
+            world.ledger.transfer(
+                source, world.get_stock(household.stock_id), SILVER, paid_silver,
+                "hire", date,
+            )
         household.labor_days -= days
         pool += days
         shortfall -= days
@@ -448,10 +451,11 @@ def _work_demesne(world: World, date: SimDate) -> dict[str, float]:
     """Каждый манор пашет СВОЙ домен своим пулом; урожай — в свой амбар.
 
     Трудодни манора пашут только его клетки `regime:demesne`. Недобор режет
-    урожай этого домена, а не чужого. Инструмент работника (плуг/лемех) множит
-    и стоячую материю, и выход — проверка доступности обязана считать тем же
-    множителем, что `apply_recipe`, иначе спишется больше, чем есть. Если дни
-    есть, а доменных клеток нет — `wasted_labor_days` в статистике.
+    урожай этого домена, а не чужого. Множитель клетки (инструмент и тягло
+    работника, навоз, смена полей — `economy/soil.py`) множит и стоячую материю,
+    и выход, поэтому проверка доступности обязана считать тем же множителем, что
+    `apply_recipe`, иначе спишется больше, чем есть. Если дни есть, а доменных
+    клеток нет — `wasted_labor_days` в статистике.
     """
     config = world.manor
     recipe = world.catalogs.recipes.get(config.harvest_recipe) if config else None
@@ -473,29 +477,67 @@ def _work_demesne(world: World, date: SimDate) -> dict[str, float]:
             continue
         if worker is None:
             continue
-        combined = factor * tool_yield_factor(world, worker)
+        pool = _rotate_demesne_fields(world, fields, pool, date)
         demand = float(manor.demesne_labor_demand_this_month)
         budget = min(pool, demand)
         for tile in fields:
             tile_stock = world.get_stock(tile.standing_stock_id)
-            while budget > EPSILON:
-                need = recipe.draws_standing.get(GRAIN, 0.0) * combined
+            # Множитель жатвы домена, СОБРАННЫЙ РОВНО ОДИН РАЗ (ADR 0106/0110).
+            #
+            # `apply_recipe` получает СЕЗОН × норму домена и сам домножает на
+            # прибавки клетки (`labor.draw_factor` → `soil.cell_yield_factor`).
+            # Раньше сюда уходил готовый `cell` = сезон × `tile_yield_factor`, а
+            # `apply_recipe` домножал прибавки клетки ещё раз — двойной счёт: жатва
+            # брала из клетки в 1.132 раза (замерено на v0_shire: base 1.27 × клетка
+            # 1.132) больше стоячей материи, чем в ней было, и бухгалтерия отказывала:
+            # `ValueError: Недостаточно 'grain' в стоке 'tile:t_41_52': есть 1.1407,
+            # нужно 1.2320` (v0_barony_100, 13-й месяц).
+            #
+            # Сторож `need` и списание зерна теперь считают ОДНО И ТО ЖЕ число —
+            # `draw_factor` вместо второй копии формулы, поэтому единица последнего
+            # знака уже не может разойтись.
+            season_and_base = factor * soil.demesne_base_factor(world, tile)
+            cell = draw_factor(world, worker, recipe, season_and_base, tile)
+            while pool > EPSILON:
+                need = recipe.draws_standing.get(GRAIN, 0.0) * cell
                 standing = tile_stock.amounts.get(GRAIN, 0.0)
                 standing_ok = 1.0 if need <= 0 else standing / need
-                labor_ok = budget / recipe.labor_days if recipe.labor_days > 0 else 1.0
+                labor_ok = pool / recipe.labor_days if recipe.labor_days > 0 else 1.0
                 scale = min(1.0, standing_ok, labor_ok)
                 if scale <= 1e-4:
                     break
                 before = stock.amounts.get(GRAIN, 0.0)
                 apply_recipe(
                     world, worker, tile, recipe, scale, date,
-                    output_stock=stock, yield_factor=factor,
+                    output_stock=stock, yield_factor=season_and_base,
                 )
+                soil.take_manure_uptake(world, tile, scale, date)
                 used = recipe.labor_days * scale
-                budget -= used
+                pool -= used
                 worked_by[manor.id] += used
                 world.bump("demesne_grain", stock.amounts.get(GRAIN, 0.0) - before)
     return worked_by
+
+
+def _rotate_demesne_fields(
+    world: World, fields: list[Tile], pool: float, date: SimDate
+) -> float:
+    """Смена полей на домене оплачивается его же пулом барщины; вернуть остаток.
+
+    Смена поля стоит `rotation_days_per_tile` трудодней и отдаётся из пула ДО
+    жатвы, иначе прибавка «через год» была бы бесплатной. Прибавка включается
+    только в следующем году (`soil.rotation_factor`), поэтому в год смены домен
+    теряет трудодни, а поднимается на следующий.
+    """
+    if world.clock.month != soil.rotation_month(world):
+        return pool
+    days = soil.rotation_days(world)
+    for tile in fields:
+        if pool < days or not soil.rotate_cell(world, tile, world.clock.year):
+            break
+        pool -= days
+        world.bump("soil_labor", days)
+    return pool
 
 
 def _replenish_labor(world: World) -> None:
@@ -516,18 +558,70 @@ def _demand_per_tile(world: World, month: int) -> float:
     return config.demand_days_per_tile.get(month, 0.0) if config else 0.0
 
 
+def _sell_to_royal_court(world: World, date: SimDate) -> float:
+    """Излишек амбара — королевскому двору, серебро обратно в амбар (ADR 0219).
+
+    Где стоит этот шаг — закон, а не вкус. Месяц манора (ADR 0148 п. 2) идёт:
+    паёк → жалованье найму → гэфоль → посев гэфоль-акров → **здесь продажа
+    наружу** → прилавок для своих дворов.
+
+    * **После пайка** — паёк платится из амбара, и продавать до пайка значило бы
+      кормить двор зерном, которого уже нет.
+    * **До прилавка** — `offer_manor_surplus` выставляет остаток амбара, и если
+      продать после него, прилавок обещал бы зерна больше, чем в амбаре есть.
+    * **Своим дворам — не в ущерб** — продаётся только излишек сверх
+      `keep_months_food` месяцев нужды дворов книги; сам закон «буфер» держит
+      `exchange.sell_grain_to_royal_court`, а место шага держит этот модуль.
+
+    Чего шаг **не** делает: не чеканит серебро, не платит его двору и не трогает
+    потолок закупки (ADR 0144) — закупка своя, а это торг с внешней стороной.
+    """
+    from . import exchange
+
+    return exchange.sell_grain_to_royal_court(world, date)
+
+
+def _offer_surplus(world: World) -> None:
+    """Остаток амбара каждого манора — на прилавок для своих дворов (ADR 0148).
+
+    Порядок месяца — закон (ADR 0148 п. 2): **сначала долг хозяину своим дворам** —
+    паёк (`_board`), жалованье найму (`_hire`), гэфоль (`_gafol`), посев гэфоль-акров
+    (`_sow_demesne`, месяцы 10-11: зерно идёт в поле, а не на прилавок) — и только
+    потом остаток предлагается поселенцам. Барон не продаёт зерно, на котором
+    держится его деревня.
+
+    Продаёт прилавок `economy/exchange.py::sell_listed_grain` в фазе `phase_exchange`
+    того же месяца: там уже написаны цена каталога, потолок `monthly_food_need` на
+    двор, общий счётчик закупки на оба канала и оба способа оплаты и непричастность
+    relief к лимиту (ADR 0139, ADR 0144). Своего второго правила здесь не заводим.
+
+    Проводка живёт в маноре, а не в `engine/tick.py` (ADR 0148 п. 5): фаза
+    `phase_manor` уже вызывает `manor_month`, движок не трогаем.
+    """
+    from . import exchange
+
+    for manor in sorted(world.manors.values(), key=lambda m: m.id):
+        exchange.offer_manor_surplus(world, manor.id)
+
+
 def manor_month(world: World, date: SimDate) -> None:
-    """Один месяц манора: труд → барщина → паёк → найм → гэфоль/посев → урожай.
+    """Один месяц манора: труд → барщина → паёк → найм → гэфоль/посев → урожай → рынок.
 
     Труд, спрос, найм и книга — по КАЖДОМУ манору: корень и тэн не смешивают
     стоки времени. Помочи — только корень (`ease_week_work`/`call_boon` тоже).
+    Предпоследний шаг месяца — продажа излишка королевскому двору (ADR 0219),
+    последний — `_offer_surplus`: остаток амбара идёт на прилавок для своих
+    дворов (ADR 0148), и только после долга хозяину пайком, наймом, гэфолем и
+    посевом.
     """
-    # Оброк племени (ADR 0064) — до фазы повинностей того же месяца: повинности
-    # заводит/держит экономика племени, оплату и `arrears` делает
-    # `phase_obligations` (движок не тронут).
+    # Оброк племени (ADR 0064) и жалованье солеварни (ADR 0092) — до фазы
+    # повинностей/потребления того же месяца: обе выплаты — transfer из стока
+    # предприятия, оплату/долг делает существующая `phase_obligations`.
+    from .saltworks import saltworks_month
     from .tribe import tribe_tribute_month
 
     tribe_tribute_month(world, date)
+    saltworks_month(world, date)
     if world.manor is None:
         return
     month = world.clock.month
@@ -540,23 +634,38 @@ def manor_month(world: World, date: SimDate) -> None:
         demands[manor.id] = demand
     corvee_pool = _render_pool(world, caps=demands)  # пул корня до помочи и найма
     hired_before = world.stats.get("hired_days", 0.0)
-    force_boon = world.stats.get("boon_called_month", 0.0) == float(month)
+    # Приказ игрока приходит ПОСЛЕ `phase_manor` этого месяца (он жмёт кнопку
+    # между тиками), поэтому сравнение «номер вызова == номер месяца» всегда
+    # отстаёт на месяц и вызов сгорает. Правило ADR 0186: неиспользованный
+    # вызов — это ЛЮБОЙ ненулевой флаг; он тратится в ближайшей фазе, где
+    # месяц вообще разрешён (`boon_allowed`, M6–M9).
+    force_boon = float(world.stats.get("boon_called_month", 0.0)) > 0.0
     root_pool = 0.0
+    boon_month = 0.0
     for manor in sorted(world.manors.values(), key=lambda m: m.id):
         demand = demands[manor.id]
         pool = float(manor.demesne_labor_filled)
         if root is not None and manor.id == root.id:
-            pool += _render_boon(world, max(0.0, demand - pool), force=force_boon)
+            boon_month = _render_boon(
+                world, max(0.0, demand - pool), force=force_boon
+            )
+            pool += boon_month
         shortfall = max(0.0, demand - pool)
         pool = _hire(world, manor, pool, shortfall, date)
         manor.demesne_labor_filled = pool
         if root is not None and manor.id == root.id:
             root_pool = pool
-    world.stats["boon_called_month"] = 0.0
+    if force_boon:
+        # Гасим ТОЛЬКО израсходованный вызов. Безусловное обнуление здесь
+        # было второй половиной поломки: флаг, поставленный игроком после фазы,
+        # должен дожить до следующей фазы, а не сгорать в том же тике.
+        world.stats["boon_called_month"] = 0.0
     _gafol(world, date)
     _sow_demesne(world, date)
     worked_by = _work_demesne(world, date)
     _board(world, date)  # кормим после урожая: амбар тэна уже наполнен
+    _sell_to_royal_court(world, date)  # излишек — двору, остаток — прилавку
+    _offer_surplus(world)
     root_demand = root.demesne_labor_demand_this_month if root is not None else 0.0
     root_worked = worked_by.get(root.id, 0.0) if root is not None else 0.0
     world.manor_log.append(
@@ -564,6 +673,10 @@ def manor_month(world: World, date: SimDate) -> None:
             "date": str(date),
             "demand": root_demand,
             "corvee_pool": corvee_pool,
+            # Помочи ИМЕННО этого месяца, в днях. `stats["boon_days"]` —
+            # накопительный счётчик за все месяцы, его в запись класть нельзя:
+            # месяц с нулём читался бы как «помощи не было, счётчик растёт».
+            "boon": boon_month,
             "pool": root_pool,
             "worked": root_worked,
             "shortfall": max(0.0, root_demand - root_worked),

@@ -1,0 +1,14 @@
+version: 0
+id: hillcourt_granary_candidate_v1
+name: Isolated granary candidate
+
+source:
+  file: asset_library_v1/architecture/source_granary_isolated.png
+  guide: asset_library_v1/architecture/guides/granary_candidate_guide_v1.png
+  target_canvas_px: [128, 128]
+  anchor_px: [64, 80]
+  status: needs_ontology_check
+  game_forms: []
+  game_entities: []
+  final_claims: false
+  note: Current runtime has no Granary entity or renderer form; keep this as an art candidate only.

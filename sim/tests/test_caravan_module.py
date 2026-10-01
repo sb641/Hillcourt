@@ -66,6 +66,9 @@ class TestCaravanModule(unittest.TestCase):
     def test_arrived_pack_with_cargo_is_still_unloaded(self) -> None:
         """Дневной контур пометил воз arrived, но груз обязан доехать до замка."""
         world = self.world
+        stores = world.get_stock("settlement:salt_village")
+        stores.add("salt", 2.0)
+        world.ledger.capture_initial(world.total_matter())
         for _ in range(2):
             run_month(world)
         packs = caravan.dispatch_caravans(world, world.clock.date)
@@ -88,6 +91,8 @@ class TestCaravanModule(unittest.TestCase):
 
     def test_caravan_delivers_salt_over_36_months(self) -> None:
         world = self.world
+        world.get_stock("settlement:salt_village").add("salt", 2.0)
+        world.ledger.capture_initial(world.total_matter())
         initial_salt = sum(st.amounts.get("salt", 0.0) for st in world.stocks.values())
         self._run_months()
 
@@ -99,8 +104,8 @@ class TestCaravanModule(unittest.TestCase):
         ]
         self.assertTrue(loads, "Ни одного погруза соли в обоз")
         self.assertTrue(
-            any(e.src_id.startswith("household:hh_salt") for e in loads),
-            "Соль не грузилась со стоков дворов солеваров",
+            any(e.src_id == "settlement:salt_village" for e in loads),
+            "Соль не грузилась со склада соляного предприятия",
         )
 
         unloads = [

@@ -27,23 +27,33 @@ def _data() -> dict:
         return yaml.safe_load(fh)
 
 
-def _write(data: dict) -> Path:
+def _write(data: dict, tmp_dir: Path) -> Path:
+    """Сценарий-фикстура — во временный каталог теста, а не в корень репозитория.
+
+    `NamedTemporaryFile(delete=False)` без `dir=` ронял файл в текущий каталог, а
+    прогон `sim/run_tests.sh` идёт из корня: там копился мусор `tmp*.yml`.
+    """
+    import os
     import tempfile
 
     import yaml
 
-    with tempfile.NamedTemporaryFile(
-        "w", suffix=".yml", delete=False, encoding="utf-8"
-    ) as fh:
+    handle, name = tempfile.mkstemp(suffix=".yml", dir=tmp_dir)
+    with os.fdopen(handle, "w", encoding="utf-8") as fh:
         yaml.safe_dump(data, fh, allow_unicode=True)
-        return Path(fh.name)
+    return Path(name)
 
 
 class TestMarksSection(unittest.TestCase):
     """Форма появляется из YAML; значения и клетки проверяются."""
 
     def setUp(self) -> None:
+        import tempfile
+
         self.world = load_scenario(SCENARIO, seed=1729)
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp_dir = Path(self._tmp.name)
 
     def test_forms_appear_from_yaml(self) -> None:
         self.assertEqual(tile_form(self.world, DWELLING_TILE), "tent_earth_homestead")
@@ -81,25 +91,25 @@ class TestMarksSection(unittest.TestCase):
         data = _data()
         data["marks"] = [{"at": [9, 9], "mark": "tavern"}]
         with self.assertRaises(ValueError):
-            load_scenario(_write(data), seed=1729)
+            load_scenario(_write(data, self.tmp_dir), seed=1729)
 
     def test_unknown_mark_rejected(self) -> None:
         data = _data()
         data["marks"] = [{"at": [0, 3], "mark": "wat_mill"}]
         with self.assertRaises(ValueError):
-            load_scenario(_write(data), seed=1729)
+            load_scenario(_write(data, self.tmp_dir), seed=1729)
 
     def test_unknown_dwelling_value_rejected(self) -> None:
         data = _data()
         data["marks"] = [{"at": [0, 3], "mark": "dwelling", "value": "barracks"}]
         with self.assertRaises(ValueError):
-            load_scenario(_write(data), seed=1729)
+            load_scenario(_write(data, self.tmp_dir), seed=1729)
 
     def test_boolean_mark_rejects_value(self) -> None:
         data = _data()
         data["marks"] = [{"at": [0, 3], "mark": "tavern", "value": "beer"}]
         with self.assertRaises(ValueError):
-            load_scenario(_write(data), seed=1729)
+            load_scenario(_write(data, self.tmp_dir), seed=1729)
 
     def test_canon_scenarios_load_without_marks(self) -> None:
         for name in ("v0_hill_and_salt.yml", "v0_two_settlements.yml", "v0_shire.yml"):

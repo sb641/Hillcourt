@@ -315,9 +315,40 @@ class TestCaravanTrade(unittest.TestCase):
         )
         self.assertAlmostEqual(world.ledger.delta(world.total_matter()), 0.0, places=6)
 
+    def _fail_the_harvest(self, world) -> None:
+        """Превратить год в неурожай: правило роста зерна молчит (ADR 0124).
+
+        Это сценарий проверки, а не правка каталога: `amount` и `spread_units_per_month`
+        обнуляются в памяти мира, значения `spawn_rules.yml` (в т.ч. ADR 0141 п. 2) не
+        трогаются. Закон, который мы проверяем, звучит «голод законен ПРИ НЕУРОЖАЕ» —
+        значит, неурожай и должен быть условием прогона.
+        """
+        params = world.catalogs.spawn_rules["grow_grain"].params
+        params["amount"] = 0.0
+        params["spread_units_per_month"] = 0.0
+
     def test_intervillage_transfer_and_hunger_over_four_seeds(self) -> None:
-        """36 месяцев × 4 seed: обмен идёт, но голод не убит обменом-богом."""
-        numbers: dict[int, tuple[float, float, float]] = {}
+        """36 месяцев × 4 seed: обоз идёт, а голод при неурожае остаётся (ADR 0124).
+
+        ADR 0144 переписал выражение инварианта: раньше голод держала завышенная цена
+        обмена (`GRAIN_PRICE_SILVER = 0.5`), теперь — честная каталожная цена
+        `0.128165` и **потолок закупки** (месячная норма двора). Проверяем оба.
+
+        1. Обычный год, 36 месяцев × 4 seed: зерно доходит до ясеня, соль — до замка,
+           дельта материи 0.
+        2. Тот же мир с выключенным урожаем: голодные дворомесяцы > 0 на каждом сиде.
+           Это и есть «голод законен при неурожае» — дешёвый каталожный обмен и потолок
+           закупки не покупают двору сытость.
+
+        Замеряно честно, для чтения: в обычном году `hunger_months` на всех 4 сидах равен
+        0, и потолок закупки здесь **не причина** — в тике никто не продаёт зерно из
+        амбара барона (вызывающих `sell_manor_grain`/`list_manor_grain` в симуляции нет:
+        прилавок пуст), а сытость держат подача (`relief`) и паёк (`board`), которые по
+        ADR 0144 п. 2 потолком закупки не ограничены. Соседский торг двор↔двор на этом
+        сценарии не работает вовсе: `buy_grain` = 0.00 и при старой ставке 0.5, и при
+        каталожной (серебра в обороте 15.0 на 26 дворов, упирается в деньги, не в цену).
+        """
+        famine: dict[int, float] = {}
         for seed in SEEDS:
             world = load_scenario(SCENARIO, seed=seed)
             _run_monthly(world, MONTHS)
@@ -327,20 +358,35 @@ class TestCaravanTrade(unittest.TestCase):
             salt = _transfer_sum(
                 world, good="salt", reason="caravan_unload", dst=COURT_STORES
             )
-            hunger = float(world.stats.get("hunger_months", 0.0))
             self.assertGreater(grain, 0.0, f"seed {seed}: зерно не дошло до ясеня")
             self.assertGreater(salt, 0.0, f"seed {seed}: соль не дошла до замка")
-            self.assertGreater(
-                hunger, 0.0, f"seed {seed}: обмен-бог убил голод целиком"
-            )
             self.assertAlmostEqual(
                 world.ledger.delta(world.total_matter()),
                 0.0,
                 places=6,
                 msg=f"seed {seed}: материя не сохранилась",
             )
-            numbers[seed] = (grain, salt, hunger)
-        self.assertEqual(sorted(numbers), sorted(SEEDS))
+
+            # Тот же мир, тот же сид — но год без урожая: голод обязан остаться.
+            lean = load_scenario(SCENARIO, seed=seed)
+            self._fail_the_harvest(lean)
+            _run_monthly(lean, MONTHS)
+            hunger = float(lean.stats.get("hunger_months", 0.0))
+            self.assertGreater(
+                hunger, 0.0,
+                f"seed {seed}: при неурожае голода нет — сытость куплена или подана",
+            )
+            self.assertAlmostEqual(
+                lean.ledger.delta(lean.total_matter()),
+                0.0,
+                places=6,
+                msg=f"seed {seed}: материя не сохранилась в неурожай",
+            )
+            famine[seed] = hunger
+        self.assertEqual(sorted(famine), sorted(SEEDS))
+        self.assertGreater(
+            sum(famine.values()), 0.0, "Ни на одном сиде голод не остался возможным"
+        )
 
     def test_road_on_route_shortens_days_and_keeps_delta(self) -> None:
         """Дорога на маршруте обоза дешевит вход: дни `find_path` падают, дельта 0."""

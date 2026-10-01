@@ -1,0 +1,340 @@
+version: 0
+id: hillcourt_goods_props_v1
+name: Supported goods and props library v1
+
+atlas:
+  file: asset_library_v1/items/items_atlas_v1.png
+  guide: asset_library_v1/items/guides/items_guide_v1.png
+  plate_dir: asset_library_v1/items/plates
+  columns: 3
+  cell_canvas_px: [128, 128]
+  anchor_px: [64, 80]
+  background: transparent
+  status: drawn_flat_2d
+  final_claims: false
+  previous_status: clean_crop_reference
+
+cells:
+  - id: good_salt_pile
+    name: Salt pile
+    game_goods: [salt]
+    source_plate: item_salt_pile
+
+    flat_2d_form: heap
+    flat_2d_plate: flat2d_proof/plates/good_salt_pile.png
+    status: drawn_flat_2d
+  - id: good_peat_bricks
+    name: Peat bricks
+    game_goods: [peat]
+    source_plate: item_peat_bricks
+
+    flat_2d_form: brick_stack
+    flat_2d_plate: flat2d_proof/plates/good_peat_bricks.png
+    status: drawn_flat_2d
+  - id: good_grain_sacks
+    name: Grain sacks
+    game_goods: [grain]
+    source_plate: item_grain_sacks
+
+    flat_2d_form: sacks
+    flat_2d_plate: flat2d_proof/plates/good_grain_sacks.png
+    status: drawn_flat_2d
+  - id: good_wool_bale
+    name: Wool bale
+    game_goods: [wool]
+    source_plate: item_wool_bale
+
+    flat_2d_form: bale
+    flat_2d_plate: flat2d_proof/plates/good_wool_bale.png
+    status: drawn_flat_2d
+  - id: good_log_stack
+    name: Log stack
+    game_goods: [log]
+    source_plate: item_log_stack
+
+    flat_2d_form: log_stack
+    flat_2d_plate: flat2d_proof/plates/good_log_stack.png
+    status: drawn_flat_2d
+  - id: good_boat
+    name: Boat and net
+    game_goods: [boat]
+    source_plate: item_boat_net
+
+    flat_2d_form: hull
+    flat_2d_plate: flat2d_proof/plates/good_boat.png
+    status: drawn_flat_2d
+  - id: good_cart
+    name: Loaded cart
+    game_goods: [cart]
+    source_plate: prop_cart_loaded
+
+    flat_2d_form: cart
+    flat_2d_plate: flat2d_proof/plates/good_cart.png
+    status: drawn_flat_2d
+  - id: good_iron_tools
+    name: Iron tools
+    game_goods: [iron]
+    source_plate: prop_tool_board
+
+    flat_2d_form: tool_board
+    flat_2d_plate: flat2d_proof/plates/good_iron_tools.png
+    status: drawn_flat_2d
+  - id: good_boat_small
+    name: Small boat
+    game_goods: [boat]
+    source_plate: prop_boat_small
+
+    flat_2d_form: hull
+    flat_2d_plate: flat2d_proof/plates/good_boat_small.png
+    status: drawn_flat_2d
+    variant_of: good_boat
+    variant_note: >-
+      Same good as good_boat. The small hull is the same
+      entity at a different scale, not a second good,
+      so the runtime picks one by size, not by id.
+
+  - id: good_axe
+    name: Axe
+    game_goods: [axe]
+    flat_2d_form: axe
+    flat_2d_plate: flat2d_proof/plates/good_axe.png
+    status: drawn_flat_2d
+  - id: good_board
+    name: Sawn boards
+    game_goods: [board]
+    flat_2d_form: boards
+    flat_2d_plate: flat2d_proof/plates/good_board.png
+    status: drawn_flat_2d
+  - id: good_butter_churn
+    name: Butter churn
+    game_goods: [butter_churn]
+    flat_2d_form: churn
+    flat_2d_plate: flat2d_proof/plates/good_butter_churn.png
+    status: drawn_flat_2d
+  - id: good_cloth
+    name: Cloth bolt
+    game_goods: [cloth]
+    flat_2d_form: bolt
+    flat_2d_plate: flat2d_proof/plates/good_cloth.png
+    status: drawn_flat_2d
+  - id: good_firewood
+    name: Split firewood
+    game_goods: [firewood]
+    flat_2d_form: billets
+    flat_2d_plate: flat2d_proof/plates/good_firewood.png
+    status: drawn_flat_2d
+  - id: good_hay
+    name: Hayrick
+    game_goods: [hay]
+    flat_2d_form: hayrick
+    flat_2d_plate: flat2d_proof/plates/good_hay.png
+    status: drawn_flat_2d
+  - id: good_hide
+    name: Cured hide
+    game_goods: [hide]
+    flat_2d_form: hide
+    flat_2d_plate: flat2d_proof/plates/good_hide.png
+    status: drawn_flat_2d
+  - id: good_iron_bloom
+    name: Iron bloom
+    game_goods: [iron_bloom]
+    flat_2d_form: bloom
+    flat_2d_plate: flat2d_proof/plates/good_iron_bloom.png
+    status: drawn_flat_2d
+  - id: good_iron_share
+    name: Iron ploughshare
+    game_goods: [iron_share]
+    flat_2d_form: share
+    flat_2d_plate: flat2d_proof/plates/good_iron_share.png
+    status: drawn_flat_2d
+  - id: good_manure
+    name: Manure heap
+    game_goods: [manure]
+    flat_2d_form: heap
+    flat_2d_plate: flat2d_proof/plates/good_manure.png
+    status: drawn_flat_2d
+  - id: good_meat
+    name: Butchered meat
+    game_goods: [meat]
+    flat_2d_form: carcass
+    flat_2d_plate: flat2d_proof/plates/good_meat.png
+    status: drawn_flat_2d
+  - id: good_plank
+    name: Planks
+    game_goods: [plank]
+    flat_2d_form: boards
+    flat_2d_plate: flat2d_proof/plates/good_plank.png
+    status: drawn_flat_2d
+  - id: good_raft
+    name: Lashed raft
+    game_goods: [raft]
+    flat_2d_form: raft
+    flat_2d_plate: flat2d_proof/plates/good_raft.png
+    status: drawn_flat_2d
+  - id: good_stone
+    name: Field stone
+    game_goods: [stone]
+    flat_2d_form: rubble
+    flat_2d_plate: flat2d_proof/plates/good_stone.png
+    status: drawn_flat_2d
+  - id: good_straw
+    name: Straw sheaf
+    game_goods: [straw]
+    flat_2d_form: sheaf
+    flat_2d_plate: flat2d_proof/plates/good_straw.png
+    status: drawn_flat_2d
+  - id: good_wooden_plough
+    name: Wooden plough
+    game_goods: [wooden_plough]
+    flat_2d_form: plough
+    flat_2d_plate: flat2d_proof/plates/good_wooden_plough.png
+    status: drawn_flat_2d
+# The drawn plates live in the proof tree, because that is the only place where
+# geometry is machine-checked. A plate that is not verified there is a picture.
+flat_2d_proof:
+  manifest: flat2d_proof/flat2d_proof_manifest.yml
+  verifier: flat2d_proof/verify_proof.py
+  mutation_test: flat2d_proof/mutation_test.py
+  anchor_px: [64, 64]
+  data_carrier: Good.id
+  data_carrier_kind: declared_field
+  sprite_selector: none
+  data_carrier_note: >-
+    Good.id identifies the depicted good and the catalog is loaded from it, so
+    the mapping is checkable. It is not a sprite selector - no code picks a
+    plate per good while client/ is frozen. See ADR 0180.
+  note: >-
+    The proof anchor is 64,64. The isometric reference anchor 64,80 declared
+    above is a different point and is used by no flat 2D plate.
+  good_catalog_check: >-
+    Every id in game_goods was checked against design/catalogs/goods.yml and
+    exists there. salt, peat, grain, wool, log, boat, cart and iron are all
+    catalog goods, so no plate in this file is an object without matter behind
+    it.
+
+# Livestock. Nine plates for nine species; the sex and age keys in
+# needs.yml are the same animal at a different size, so each plate declares
+# which catalog goods it serves. Without that declaration the runtime has
+# to choose between `horse` and `horse_foal`, and nothing says how.
+# validate_mapping.py requires every key in needs.yml's feed table to be
+# served by exactly one plate, in both directions. Every key in
+# design/catalogs/needs.yml livestock.feed_per_month must be served by exactly
+# one plate above, and every good in serves_goods must exist in goods.yml.
+livestock:
+  - id: animal_donkey
+    name: Donkey
+    status: drawn_flat_2d
+    form: quadruped
+    serves_goods: [donkey_m, donkey_f, donkey_foal]
+    flat_2d_plate: flat2d_proof/plates/animal_donkey.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_duck
+    name: Duck
+    status: drawn_flat_2d
+    form: bird
+    serves_goods: [duck]
+    flat_2d_plate: flat2d_proof/plates/animal_duck.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_goat
+    name: Goat
+    status: drawn_flat_2d
+    form: quadruped
+    serves_goods: [goat]
+    flat_2d_plate: flat2d_proof/plates/animal_goat.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_goose
+    name: Goose
+    status: drawn_flat_2d
+    form: bird
+    serves_goods: [goose]
+    flat_2d_plate: flat2d_proof/plates/animal_goose.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_hen
+    name: Hen
+    status: drawn_flat_2d
+    form: bird
+    serves_goods: [hen]
+    flat_2d_plate: flat2d_proof/plates/animal_hen.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_horse
+    name: Horse
+    status: drawn_flat_2d
+    form: quadruped
+    serves_goods: [horse_m, horse_f, horse_foal]
+    flat_2d_plate: flat2d_proof/plates/animal_horse.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_ox
+    name: Ox
+    status: drawn_flat_2d
+    form: quadruped
+    serves_goods: [ox_m, ox_f, ox_calf]
+    flat_2d_plate: flat2d_proof/plates/animal_ox.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_pig
+    name: Pig
+    status: drawn_flat_2d
+    form: quadruped
+    serves_goods: [pig]
+    flat_2d_plate: flat2d_proof/plates/animal_pig.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_sheep
+    name: Sheep
+    status: drawn_flat_2d
+    form: quadruped
+    serves_goods: [sheep]
+    flat_2d_plate: flat2d_proof/plates/animal_sheep.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_boar
+    name: Wild boar
+    status: drawn_flat_2d
+    form: quadruped
+    serves_goods: [boar]
+    flat_2d_plate: flat2d_proof/plates/animal_boar.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_deer
+    name: Deer
+    status: drawn_flat_2d
+    form: quadruped
+    serves_goods: [deer]
+    flat_2d_plate: flat2d_proof/plates/animal_deer.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_rabbit
+    name: Hare
+    status: drawn_flat_2d
+    form: quadruped
+    serves_goods: [rabbit]
+    flat_2d_plate: flat2d_proof/plates/animal_rabbit.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_squirrel
+    name: Squirrel
+    status: drawn_flat_2d
+    form: quadruped
+    serves_goods: [squirrel]
+    flat_2d_plate: flat2d_proof/plates/animal_squirrel.png
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none

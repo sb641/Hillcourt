@@ -43,7 +43,8 @@ bundles:
     calendar: calendar_v0
     currency_mix: [in-kind, penny]
     terms:
-      fixed_rent_grain_or_pence: {value: 0.6, unit: in-kind, note: "seed: мешок зерна или эквивалент в пенсах"}
+      fixed_rent_grain_or_pence: {value: 0.6, unit: in-kind, note: "seed: зерно; денежный эквивалент считается как 0.6 × price_good × 12 пенса на 1 серебра"}
+      fixed_rent_price_conversion: {grain: 0.6, price_good: grain, price_silver: 0.128165, pence_per_silver: 12.0, equivalent_pence: 0.922788}
       rare_labor: {value: true, unit: null}
       may_leave: {value: true, unit: null}
 
@@ -74,4 +75,63 @@ bundles:
     name: Без повинности (безземельный)
     currency_mix: []
     terms: {}
-obligations: []
+# Виды повинностей (шаблоны). Владелец: Legal.
+#
+# Раздел разбирается: `catalogs.py::_parse_obligations_file` ведёт `bundles` и
+# `obligations` по разным слотам, а `_parse_obligations` требует сам ключ
+# `obligations`. Пустой список значит «видов повинностей нет», отсутствие ключа —
+# «раздел не написан», и это разные вещи.
+#
+# НАПРАВЛЕНИЕ. Все прочие виды (`rent`, `labor_duty`, `levy`, `muster`) значат
+# «двор должен сеньору». Подача обратна: должен СЕНЬОР двору. Направление написано
+# в `name` и в самом `kind` — `relief_granted` называет АКТ (дача), а не долг, и
+# потому не может быть спутан с рентой ни в книге, ни в выборке по виду. Поля
+# `direction` у шаблона нет, а `_check_record` (`catalogs.py:91-94`) неизвестные
+# поля отвергает: поле не потеряется молча, но и не появится, пока его не
+# заведут. Машиночитаемое направление и контрагент — ADR 0186.
+#
+# ЧИСЛА НЕ ОБЪЯВЛЯЮТСЯ. `default_share` и `default_amount` пусты намеренно: подача
+# не по ставке и не по твёрдой сумме, и вписанное число было бы выдуманной
+# ставкой. `basis: measured` — четвёртый класс основания рядом с `share`, `fixed`
+# и `duty`: величина не объявлена, а измерена (величина недобора получателя за
+# месяц). Название класса, а не повтор вида: `basis: relief` было бы тавтологией.
+obligations:
+  - id: works_founded
+    name: Основание промысла — сеньор кладёт своих работников
+    kind: works_founded
+    due_good: null
+    period_months: 1
+    basis: founded
+    default_amount: 1
+
+  - id: rent_share
+    name: Оброк — доля от урожая двора за прошлый месяц
+    kind: rent
+    due_good: grain
+    period_months: 1
+    basis: share
+    default_share: 0.1
+    # ОКНО базы: `default_share` умножается на урожай ДВОРА, собранный
+    # РОВНО В ПРОШЛОМ МЕСЯЦЕ (ADR 0192 п. 1), а не на остаток амбара и не на
+    # весь урожай, который двор вырастил когда-либо. Счёт выставляется помесячно
+    # (`period_months: 1`).
+    #
+    # ПОЧЕМУ ОКНО, А НЕ «ВСЁ ДО ТЕКУЩЕГО МЕСЯЦА». Без нижней границы каждый
+    # старый урожай облагается снова: за 24 месяца стенда `start_stand` (сид 1729)
+    # выставлено 845.844 при урожае наделов 860.525, то есть 98.3 % урожая вместо
+    # объявленных 10 %, и недоимка растёт монотонно. Доляю оброк становится только
+    # тогда, когда каждое зерно обложено один раз. Окно шире года (12 мес) даёт
+    # 77.7 % урожая, окно «с прошлого расчёта» — 47.8 % и зависит от того, собрал
+    # ли лорд долг. Проверка: `sim/tests/test_rent_base_window.py`.
+    #
+    # Числа окна в YAML НЕТ: у `ObligationTemplate` нет поля `base_window_months`,
+    # а `_check_record` отвергает неизвестные поля. Окно живёт в
+    # `legal/obligations.py::RENT_BASE_WINDOW_MONTHS`; чтобы перенести его в
+    # каталог, нужно поле в `ontology.py` — это не зона Legal.
+
+  - id: relief_granted
+    name: Подача сеньора двору (долг сеньора, а не долг двора)
+    kind: relief_granted
+    due_good: grain
+    period_months: 1
+    basis: measured

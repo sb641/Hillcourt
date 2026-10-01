@@ -15,6 +15,7 @@ import unittest
 from pathlib import Path
 
 from hillcourt.economy import caravan
+from hillcourt.economy.needs import monthly_food_need
 from hillcourt.engine.tick import run_month
 from hillcourt.ontology import SpawnRule
 from hillcourt.scenario import load_scenario
@@ -234,6 +235,50 @@ class TestCaravanH(unittest.TestCase):
             "state_hash не воспроизводится после катастрофы",
         )
 
+    def test_purchase_cap_holds_on_every_channel_over_sixty_months(self) -> None:
+        """Потолок закупки держится на ЛЮБОМ канале (ADR 0144 п. 2-3), числами.
+
+        Что замерено на `v0_two_settlements`, 60 месяцев × 4 seed: из амбара барона
+        зерно уходит дворам только тремя причинами — `relief` (подача, в лимит
+        **не входит**, ADR 0144 п. 2), `board` (паёк) и `hire` (жалованье за труд);
+        ни одна из них не является покупкой. Покупок (`sell_grain_market` /
+        `sell_grain_direct`) на этих сидах **0.00** — рынок простаивает, и потолку
+        нечего резать.
+
+        Поэтому проверка закона тут не «рынок накормил», а «рынок не может
+        накормить сверх месячной нормы»: каждый двор за каждый месяц покупает
+        не больше `monthly_food_need`, обоими каналами и обоими способами оплаты
+        (серебро и натуральный обмен идут через один счётчик). Замер превышения
+        потолка — 0.000000000.
+        """
+        for seed in SEEDS:
+            world = load_scenario(SCENARIO, seed=seed)
+            _run_months(world, MONTHS)
+            bought: dict[tuple[str, str], float] = {}
+            for entry in world.ledger.entries:
+                if entry.kind != "transfer" or entry.good != "grain":
+                    continue
+                if not entry.reason.startswith("sell_grain"):
+                    continue
+                key = (entry.dst_id, str(entry.date))
+                bought[key] = bought.get(key, 0.0) + entry.amount
+            for (stock_id, date), amount in sorted(bought.items()):
+                household = next(
+                    (h for h in world.households.values() if h.stock_id == stock_id),
+                    None,
+                )
+                self.assertIsNotNone(household, f"seed {seed}: покупатель {stock_id} не двор")
+                need = monthly_food_need(world, household)
+                self.assertLessEqual(
+                    amount, need + 1e-9,
+                    f"seed {seed}: {household.id} купил {amount:.3f} зерна {date} "
+                    f"при месячной норме {need:.3f} — потолок закупки не сработал",
+                )
+            self.assertAlmostEqual(
+                world.ledger.delta(world.total_matter()), 0.0, places=6,
+                msg=f"seed {seed}: материя не сохранилась",
+            )
+
     def test_sixty_months_trade_alive_over_four_seeds(self) -> None:
         numbers: dict[int, tuple[float, float, float, float]] = {}
         for seed in SEEDS:
@@ -245,7 +290,25 @@ class TestCaravanH(unittest.TestCase):
             ratio = world.barter_memory.get(GRAIN_KEY, {}).get("ratio")
             self.assertGreater(grain, 0.0, f"seed {seed}: зерно не дошло до ясеня")
             self.assertGreater(salt, 0.0, f"seed {seed}: соль не дошла до замка")
-            self.assertGreater(hunger, 0.0, f"seed {seed}: обмен-бог убил голод")
+            # «Обмен-бог не убил голод» проверяется НЕ голодом. Прежде стояло
+            # `assertGreater(hunger, 0.0)`, то есть требование голода как
+            # доказательства, что обмен ничего не решил. После починки решения
+            # `economy/decisions.py` (ADR 0095 п. 1: труд сначала на своё
+            # хозяйство) дворы кормятся сами, и голод в этом мире закономерно
+            # исчез: 0.0 на сидах 1729/42/7 и 2.0 на 99. Требование голода —
+            # устаревшее число, а не дефект, и заменено на проверку самой сути:
+            # караван — добавка, а не продовольственная база поселения.
+            world_grain = sum(
+                entry.amount
+                for entry in world.ledger.entries
+                if entry.reason == "harvest_grain" and entry.good == "grain"
+            )
+            self.assertGreater(world_grain, 0.0, f"seed {seed}: мир вообще не жаtвал")
+            self.assertLess(
+                grain, world_grain * 0.01,
+                f"seed {seed}: караван привёз {grain:.3f} при урожае мира "
+                f"{world_grain:.3f} — он стал продовольственной базой, а не добавкой",
+            )
             self.assertAlmostEqual(
                 world.ledger.delta(world.total_matter()),
                 0.0,
@@ -258,6 +321,7 @@ class TestCaravanH(unittest.TestCase):
         print(f"h1 grain->ash: { {s: round(v[0], 3) for s, v in numbers.items()} }")
         print(f"h1 salt->hill: { {s: round(v[1], 3) for s, v in numbers.items()} }")
         print(f"h1 ratio: { {s: round(v[3], 4) for s, v in numbers.items()} }")
+        print(f"h1 hunger_months: { {s: v[2] for s, v in numbers.items()} }")
         self.assertGreaterEqual(
             sum(1 for value in numbers.values() if value[3] < 1.0),
             2,

@@ -22,7 +22,8 @@
 
 from __future__ import annotations
 
-from ..info.sources import ADJACENT_DAILY, CARAVAN, EYE_FROM_HILL, SILENCE
+from ..economy.tribe import TribeAnswer
+from ..info.sources import ADJACENT_DAILY, CARAVAN, EYE_FROM_HILL, MESSENGER, SILENCE
 from ..ontology import Report, SimDate
 from ..world import World
 from .propagation import make_report
@@ -123,3 +124,69 @@ def make_village_report(
         distorted=distorted,
         noise=noise,
     )
+
+
+TRIBE_ANSWER_DELAY_DAYS = 15
+TRIBE_ANSWER_NOISE = 0.1
+TRIBE_ANSWER_TEXTS: dict[str, tuple[str, ...]] = {
+    "accepted": (
+        "Племя приняло вызов и обещало выслать требуемых людей.",
+        "Староста сообщает: вызов племя принимает, отряд будет собран.",
+    ),
+    "unable": (
+        "Племя сообщает: принять вызов сейчас не может, сил не хватает.",
+        "Староста отвечает, что племя не может выставить требуемый отряд.",
+    ),
+    "refused": (
+        "Племя отказалось принять вызов.",
+        "Совет племени сообщает: вызов отклонён по решению совета.",
+    ),
+}
+
+
+def make_tribe_answer_report(
+    world: World,
+    answer: TribeAnswer,
+    delay_days: int = TRIBE_ANSWER_DELAY_DAYS,
+) -> Report:
+    """Создать весть о явно заданном ответе племени с честным наблюдателем.
+
+    Ответ — уже решение племени: числа и статус копируются в `facts`, а
+    `call_status` повинности не читается. Доставка идёт отдельным каналом через
+    `delay_days`; формулировка и шум выбираются только потоком `rng.news`.
+    """
+    if answer.status not in TRIBE_ANSWER_TEXTS:
+        raise ValueError(f"Неизвестный ответ племени '{answer.status}'")
+    delivery_date = answer.call_date.advance_days(int(delay_days))
+    text = str(world.rng.news.choice(TRIBE_ANSWER_TEXTS[answer.status]))
+    noise = world.rng.news.uniform(0.0, TRIBE_ANSWER_NOISE)
+    report = make_report(
+        world,
+        MESSENGER,
+        "tribe",
+        answer.tribe_id,
+        text,
+        {
+            "subject": "tribe_muster",
+            "tribe_id": answer.tribe_id,
+            "answer": answer.status,
+            "reason": answer.reason,
+            "required_persons_count": int(answer.required_persons_count),
+            "persons_available": int(answer.persons_available),
+            "adults_available": int(answer.adults_available),
+            "kits_available": float(answer.kits_available),
+            "food_available": float(answer.food_available),
+            "food_needed": float(answer.food_needed),
+            "period_months": int(answer.period_months),
+            "due_date": str(answer.due_date),
+            "delay_days": int(delay_days),
+        },
+        answer.call_date,
+        0,
+        0.5,
+        distorted=False,
+        noise=noise,
+        observer_id=answer.tribe_id,
+    )
+    report.delivery_date = delivery_date
+    return report

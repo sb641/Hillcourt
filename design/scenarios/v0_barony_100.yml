@@ -1,5 +1,60 @@
+# Баронство 100×100 — 600 ЖИТЕЛЕЙ, 150 ДВОРОВ, 4 ПОСЕЛЕНИЯ (ADR 0207).
+#
+# ГЛАВНОЕ ЧИСЛО ФАЙЛА. Баронство — это 600 ЖИТЕЛЕЙ, а не 600 дворов. Прежняя
+# редакция объявляла 600 дворов по 2 взрослых + 1 ребёнок, то есть 1800 человек:
+# карта была раздута втрое по населению и вчетверо по числу дворов. На этой цифре
+# стояли замеры нескольких агентов студии и «известный долг» ACCEPTANCE §7
+# («дыра 1140 зерна/мес»). Ошибка исправлена здесь и в §1a; подгонкой её не
+# чинят — мир пересчитан заново.
+#
+# ПОЧЕМУ 4 ЧЕЛОВЕКА НА ДВОР. 600 / 150 = 4, и при `adults: 2` единственное
+# разложительное соотношение — 2 взрослых + 2 ребёнка. Сценарии `start_stand`,
+# `v0_shire` и `v0_two_settlements` объявляют 2 + 1 = 3 человека на двор, но это
+# размер РЕГРЕССИОННОЙ ФИКСТУРЫ, а не демографическое утверждение: их дворы идут
+# по одному на клетку, и лишний ребёнок там ничего не проверяет. Баронство —
+# единственный мир, чей размер является продуктовым решением, поэтому оно несёт
+# реальный состав ядерной семьи. Побочный эффект честный и назван: нужда двора
+# растёт с 2.7 до 3.4 зерна в месяц (needs.yml: взрослый 1.0, ребёнок 0.7), а
+# труд остаётся 40 трудодней — дети не дают рук. На двор приходится БОЛЬШЕ еды
+# на ТОТ ЖЕ труд, то есть баланс от нового состава строже, а не мягче.
+#
+# ЧЕТЫРЕ ПОСЕЛЕНИЯ, и каждое стоит на своём рельефе. Прежние девять деревень были
+# названы по специализации, а стояли все на пятнадцати пашнях: «Лесная» целиком
+# на поле, «Мельничная» без воды, «Речная» без единой водной клетки. Название без
+# рельефа — враньё, и обвинитель на это `test_barony_100.py::TestSpecialisation`.
+# Специализация выражена НЕ новым `Settlement.kind` (их пять, `docs/03_ontology`),
+# а рельефом `works_tiles`: двор работает на клетке, только если она в угодьях его
+# поселения (`docs/07_legal.md:113`). Всё, что растёт в мире, растёт на `field`,
+# `forest`, `pasture`, `marsh` и `salt_flat`; на `heath` и `water` не растёт
+# НИЧЕГО (правила `grow_*` в `spawn_rules.yml` не знают этих рельефов), поэтому
+# поселение на пустоши и есть поселение, которое ничего не производит.
+#
+#   hill_court    90  столица и зерновой амбар баронства. 23 works_tiles: 15
+#                       доменных пашен под режимом `demesne` (ADR 0182) с
+#                       `demesne_base_yield` 1.27, 5 бургессских свободных
+#                       держаний и 3 луга. Втрое с лишним больше любой деревни —
+#                       иначе замок не читается столицей. 8 кварталов по капу 20
+#                       = 160 мест.
+#   village_forest 24  ЛЕС: 16 лесных угодьев из 30. Продукт — древо и дичь
+#                       (`cut_firewood`, `cut_wood`, `split_logs`, белка, заяц).
+#                       Плюс 10 своих пашен (свой хлеб: `villein` без кормящей
+#                       клетки не загрузится) и 4 луга (сено).
+#   native_village 18  ЛУГ и родовая пашня: 16 works_tiles, 10 лугов и 6 пашен. СКОТ и молоко
+#                       (`grow_hay`, `grow_wool`, `pick_greens`). Вне книги
+#                       манора (ADR 0060), оброком не облагается, общая земля.
+#   salt_village   18  СОЛОНЧАК и торфяник: 20 works_tiles, 15 ванн и 5 болот. Единственный
+#                       источник соли: `cut_peat` → `boil_salt`. Пашен нет вовсе —
+#                       солеварня платит харчем из своего амбара, и двор, умеющий
+#                       пахать, просто ушёл бы в поле. Все 18 безземельные.
+#
+# МЕСТО ЕСТЬ. Кап жилых дворов — 20 на `hill_court` и 5 на сельский гекс
+# (`scenario._household_cap`, ADR 0083/0132). Проверка капа обязательна: шестой
+# двор на сельском гексе и двадцать первый на городском — ОТКАЗ загрузчика, а не
+# «поместилось». Занято 12 городских дворов на квартал и 2–3 сельских на гекс;
+# всего 310 мест при 150 дворах, то есть поздняя стадия до 200 дворов помещается
+# без расширения карты. Проверка — `test_barony_100.py::TestBaronyPlacement`.
 id: v0_barony_100
-title: "Баронство 100×100"
+title: "Баронство 100×100: книга земли, солеварня и обозы"
 seed: 1729
 
 clock:
@@ -15,7 +70,7 @@ map:
     - {terrain: forest, rect: [2, 25, 21, 44]}
     - {terrain: forest, rect: [27, 58, 46, 75]}
     - {terrain: forest, rect: [55, 2, 78, 21]}
-    - {terrain: field, rect: [41, 52, 46, 56]}
+    - {terrain: field, rect: [41, 52, 47, 56]}
     - {terrain: field, rect: [11, 17, 15, 19]}
     - {terrain: field, rect: [31, 17, 35, 19]}
     - {terrain: field, rect: [71, 17, 75, 19]}
@@ -25,7 +80,20 @@ map:
     - {terrain: field, rect: [11, 57, 15, 59]}
     - {terrain: field, rect: [21, 32, 25, 34]}
     - {terrain: field, rect: [81, 67, 85, 69]}
+    - {terrain: field, rect: [76, 78, 80, 81]}
+    - {terrain: field, rect: [76, 82, 77, 83]}
     - {terrain: salt_flat, rect: [81, 82, 85, 84]}
+    - {terrain: marsh, rect: [78, 82, 78, 86]}
+    # Лесная деревня: пашни и луг вырезаны ВНУТРИ леса (области применяются по
+    # очереди, поздняя перезаписывает раннюю). Обоснование поселения — в этом:
+    # деревня стоит там, где лес сходится с пашней и лугом, иначе двор без
+    # кормящей клетки (`_validate_household_land_basis`) не загрузится.
+    - {terrain: field, rect: [36, 65, 41, 68]}
+    - {terrain: pasture, rect: [42, 65, 46, 67]}
+    # Племенная деревня: луг родовой общины (сено, шерсть, зелень).
+    - {terrain: pasture, rect: [82, 62, 88, 64]}
+    # Квартальные пашни замка под бургессские наделы.
+    - {terrain: field, rect: [36, 47, 40, 51]}
   tiles:
     - {at: [15, 35], terrain: ruin}
     - {at: [90, 60], terrain: ruin}
@@ -295,82 +363,97 @@ rivers:
       - [70, 55]
 
 settlements:
+  # ЧЕТЫРЕ ПОСЕЛЕНИЯ, и каждое стоит на своём рельефе (ADR 0207). Прежние девять
+  # деревень были названы по специализации, а стояли все на пятнадцати пашнях:
+  # «Лесная» целиком на поле, «Мельничная» без воды, «Речная» без единой водной
+  # клетки. Название без рельефа — враньё, и обвинитель на это
+  # `sim/tests/test_barony_100.py::TestSpecialisation`. Специализация выражена
+  # НЕ новым `Settlement.kind` (их пять, `docs/03_ontology.md`), а рельефом
+  # `works_tiles`: двор работает на клетке, только если она в угодьях его поселения
+  # (`docs/07_legal.md:113`).
   - id: hill_court
     name: "Город на холме"
     kind: hill_court
     at: [45, 50]
     home_terrain: hill
-    household_tiles:
-      - [45, 50]
-      - [46, 50]
-      - [47, 50]
-      - [44, 51]
-      - [45, 51]
-    quarter_tiles:
-      - [45, 50]
-      - [46, 50]
-      - [47, 50]
-      - [44, 51]
-      - [45, 51]
-      - [46, 51]
-      - [47, 51]
-      - [48, 51]
-    works_tiles:
-      - [41, 52]
-      - [42, 52]
-      - [43, 52]
-      - [44, 52]
-      - [45, 52]
-      - [46, 52]
-      - [41, 53]
-      - [42, 53]
-      - [43, 53]
-      - [44, 53]
-      - [45, 53]
-      - [46, 53]
-      - [41, 54]
-      - [42, 54]
-      - [43, 54]
-      - [44, 54]
-      - [45, 54]
-      - [46, 54]
-      - [41, 55]
-      - [42, 55]
-      - [43, 55]
-      - [44, 55]
-      - [45, 55]
-      - [46, 55]
-      - [41, 56]
-      - [42, 56]
-      - [43, 56]
-      - [44, 56]
-      - [45, 56]
-      - [46, 56]
-  - {id: village_ash, name: "Деревня у ясеня", kind: village, at: [15, 15], home_terrain: pasture, household_tiles: [[13, 15], [14, 15], [15, 15], [16, 15], [17, 15], [13, 16], [14, 16], [15, 16], [16, 16], [17, 16]], works_tiles: [[11, 17], [12, 17], [13, 17], [14, 17], [15, 17], [11, 18], [12, 18], [13, 18], [14, 18], [15, 18], [11, 19], [12, 19], [13, 19], [14, 19], [15, 19]]}
-  - {id: village_oak, name: "Деревня у дуба", kind: village, at: [35, 15], home_terrain: pasture, household_tiles: [[33, 15], [34, 15], [35, 15], [36, 15], [37, 15], [33, 16], [34, 16], [35, 16], [36, 16], [37, 16]], works_tiles: [[31, 17], [32, 17], [33, 17], [34, 17], [35, 17], [31, 18], [32, 18], [33, 18], [34, 18], [35, 18], [31, 19], [32, 19], [33, 19], [34, 19], [35, 19]]}
-  - {id: village_river, name: "Речная деревня", kind: village, at: [75, 15], home_terrain: pasture, household_tiles: [[73, 15], [74, 15], [75, 15], [76, 15], [77, 15], [73, 16], [74, 16], [75, 16], [76, 16], [77, 16]], works_tiles: [[71, 17], [72, 17], [73, 17], [74, 17], [75, 17], [71, 18], [72, 18], [73, 18], [74, 18], [75, 18], [71, 19], [72, 19], [73, 19], [74, 19], [75, 19]]}
-  - {id: village_mill, name: "Мельничная деревня", kind: village, at: [85, 45], home_terrain: pasture, household_tiles: [[83, 45], [84, 45], [85, 45], [86, 45], [87, 45], [83, 46], [84, 46], [85, 46], [86, 46], [87, 46]], works_tiles: [[81, 47], [82, 47], [83, 47], [84, 47], [85, 47], [81, 48], [82, 48], [83, 48], [84, 48], [85, 48], [81, 49], [82, 49], [83, 49], [84, 49], [85, 49]]}
-  - {id: village_south, name: "Южная деревня", kind: village, at: [75, 85], home_terrain: pasture, household_tiles: [[73, 85], [74, 85], [75, 85], [76, 85], [77, 85], [73, 86], [74, 86], [75, 86], [76, 86], [77, 86]], works_tiles: [[71, 87], [72, 87], [73, 87], [74, 87], [75, 87], [71, 88], [72, 88], [73, 88], [74, 88], [75, 88], [71, 89], [72, 89], [73, 89], [74, 89], [75, 89]]}
-  - {id: village_west, name: "Западная деревня", kind: village, at: [40, 85], home_terrain: pasture, household_tiles: [[38, 85], [39, 85], [40, 85], [41, 85], [42, 85], [38, 86], [39, 86], [40, 86], [41, 86], [42, 86]], works_tiles: [[36, 87], [37, 87], [38, 87], [39, 87], [40, 87], [36, 88], [37, 88], [38, 88], [39, 88], [40, 88], [36, 89], [37, 89], [38, 89], [39, 89], [40, 89]]}
-  - {id: village_heath, name: "Пустошная деревня", kind: village, at: [15, 55], home_terrain: pasture, household_tiles: [[13, 55], [14, 55], [15, 55], [16, 55], [17, 55], [13, 56], [14, 56], [15, 56], [16, 56], [17, 56]], works_tiles: [[11, 57], [12, 57], [13, 57], [14, 57], [15, 57], [11, 58], [12, 58], [13, 58], [14, 58], [15, 58], [11, 59], [12, 59], [13, 59], [14, 59], [15, 59]]}
-  - {id: village_forest, name: "Лесная деревня", kind: village, at: [25, 30], home_terrain: pasture, household_tiles: [[23, 30], [24, 30], [25, 30], [26, 30], [27, 30], [23, 31], [24, 31], [25, 31], [26, 31], [27, 31]], works_tiles: [[21, 32], [22, 32], [23, 32], [24, 32], [25, 32], [21, 33], [22, 33], [23, 33], [24, 33], [25, 33], [21, 34], [22, 34], [23, 34], [24, 34], [25, 34]]}
-  - {id: native_village, name: "Племенная деревня", kind: native_village, at: [85, 65], home_terrain: heath, household_tiles: [[83, 65], [84, 65], [85, 65], [86, 65], [87, 65], [83, 66], [84, 66], [85, 66], [86, 66], [87, 66]], works_tiles: [[81, 67], [82, 67], [83, 67], [84, 67], [85, 67], [81, 68], [82, 68], [83, 68], [84, 68], [85, 68], [81, 69], [82, 69], [83, 69], [84, 69], [85, 69]]}
-  - {id: salt_village, name: "Соляная деревня", kind: salt_village, at: [85, 80], home_terrain: salt_flat, household_tiles: [[83, 80], [84, 80], [85, 80], [86, 80], [87, 80], [83, 81], [84, 81], [85, 81], [86, 81], [87, 81]], works_tiles: [[81, 82], [82, 82], [83, 82], [84, 82], [85, 82], [81, 83], [82, 83], [83, 83], [84, 83], [85, 83], [81, 84], [82, 84], [83, 84], [84, 84], [85, 84]]}
-  - {id: river_port, name: "Устье", kind: village, at: [55, 95], home_terrain: water}
+    holding_regime: free_holding
+    # Домен сеньора: 15 пашен, работающих за трудодни (`demesne`, ADR 0182) с
+    # повышенным урожаем `demesne_base_yield` 1.27. Это grain granary всего
+    # баронства: 3/4 населения живут здесь и едят с домена.
+    holding_tiles:
+      - [47, 52]
+      - [47, 53]
+      - [47, 54]
+      - [47, 55]
+      - [47, 56]
+    household_tiles: [[45, 50], [46, 50], [47, 50], [44, 51], [45, 51], [46, 51], [47, 51], [48, 51]]
+    quarter_tiles: [[45, 50], [46, 50], [47, 50], [44, 51], [45, 51], [46, 51], [47, 51], [48, 51]]
+    works_tiles: [[41, 52], [45, 52], [46, 52], [41, 53], [42, 53], [43, 53], [45, 53], [46, 53], [41, 54], [42, 54], [43, 54], [45, 54], [46, 54], [41, 55], [45, 55], [42, 52], [43, 52], [44, 52]]
+  - id: village_forest
+    name: "Лесная деревня"
+    kind: village
+    at: [33, 63]
+    home_terrain: forest
+    # ОСНОВАНИЕ: там, где лес сходится с пашней и лугом. Продукт — ДРЕВО и
+    # ДИЧЬ: 16 лесных угодьев дают `cut_firewood`/`cut_wood`/`split_logs`
+    # (`grow_firewood` 1.5/мес, cap 12; `grow_log` 1.2/мес, cap 36) и белку с
+    # зайцем (`game_squirrel`, `game_rabbit`). 10 пашен — свой хлеб, без них
+    # `villein` без кормящей клетки не загрузится; 4 луга — сено свиньям.
+    household_tiles: [[31, 63], [32, 63], [33, 63], [34, 63], [35, 63], [31, 64], [32, 64], [33, 64], [34, 64], [35, 64]]
+    works_tiles: [[29, 60], [30, 60], [31, 60], [32, 60], [33, 60], [34, 60], [35, 60], [36, 60], [29, 61], [30, 61], [31, 61], [32, 61], [33, 61], [34, 61], [35, 61], [36, 61], [36, 65], [37, 65], [38, 65], [39, 65], [40, 65], [41, 65], [36, 66], [37, 66], [38, 66], [39, 66], [42, 65], [43, 65], [44, 65], [45, 65]]
+  - id: native_village
+    name: "Племенная деревня"
+    kind: native_village
+    at: [85, 65]
+    home_terrain: heath
+    # ОСНОВАНИЕ: луг и родовая пашня. Вне книги манора (ADR 0060), оброком не
+    # облагается, живёт общей землёй по `right_native_common`. Продукт — СКОТ и
+    # МОЛОКО: `grow_hay` 2.0/мес, `grow_wool` 0.4/мес на 10 лугах, `pick_greens`
+    # на пашне. Шесть пашен — иначе род не прокормит 18 ртов.
+    household_tiles: [[83, 65], [84, 65], [85, 65], [86, 65], [87, 65], [83, 66], [84, 66], [85, 66], [86, 66], [87, 66]]
+    works_tiles: [[82, 62], [83, 62], [84, 62], [85, 62], [86, 62], [82, 63], [83, 63], [84, 63], [85, 63], [86, 63], [81, 67], [82, 67], [83, 67], [84, 67], [85, 67], [81, 68]]
+  - id: salt_village
+    name: "Соляная деревня"
+    kind: salt_village
+    at: [85, 80]
+    home_terrain: salt_flat
+    # ОСНОВАНИЕ: солончак и торфяник. Продукт — СОЛЬ, единственный источник её в
+    # баронстве: `cut_peat` (5 болот) → `boil_salt` (15 ванн, рапа `grow_brine`
+    # 8.0/мес). Пашен нет вовсе: солеварня платит харчем из своего амбара, и
+    # двор, умеющий пахать, просто ушёл бы в поле.
+    household_tiles: [[83, 80], [84, 80], [85, 80], [86, 80], [87, 80], [83, 81], [84, 81], [85, 81], [86, 81], [87, 81]]
+    works_tiles: [[81, 82], [82, 82], [83, 82], [84, 82], [85, 82], [81, 83], [82, 83], [83, 83], [84, 83], [85, 83], [81, 84], [82, 84], [83, 84], [84, 84], [85, 84], [78, 82], [78, 83], [78, 84], [78, 85], [78, 86]]
 
 household_groups:
-  - {id_prefix: hh_city_court, settlement_id: hill_court, name: "Городской двор", count: 1, adults: 2, children: 1, legal_status: holder, starting_food_months: 3.0}
-  - {id_prefix: hh_city, settlement_id: hill_court, name: "Квартальный двор", count: 99, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
-  - {id_prefix: hh_village_ash, settlement_id: village_ash, name: "Ясеневый двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
-  - {id_prefix: hh_village_oak, settlement_id: village_oak, name: "Дубовый двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
-  - {id_prefix: hh_village_river, settlement_id: village_river, name: "Речной двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
-  - {id_prefix: hh_village_mill, settlement_id: village_mill, name: "Мельничный двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
-  - {id_prefix: hh_village_south, settlement_id: village_south, name: "Южный двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
-  - {id_prefix: hh_village_west, settlement_id: village_west, name: "Западный двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
-  - {id_prefix: hh_village_heath, settlement_id: village_heath, name: "Пустошный двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
-  - {id_prefix: hh_village_forest, settlement_id: village_forest, name: "Лесной двор", count: 50, adults: 2, children: 1, legal_status: villein, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
-  - {id_prefix: hh_native, settlement_id: native_village, name: "Племенной двор", count: 50, adults: 2, children: 1, legal_status: free_landless, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
-  - {id_prefix: hh_salt, settlement_id: salt_village, name: "Солеварный двор", count: 50, adults: 2, children: 1, legal_status: holder, starting_food_months: 3.0, livestock_every: 10, livestock: {pig: 2.0, hay: 8.0}}
+  # Столица: 90 дворов = 360 человек. Втрое с лишним больше любой деревни, иначе
+  # замок не читается столицей. 8 кварталов по капу 20 = 160 мест, занято 12 на
+  # квартал: запас есть, поздняя стадия до 200 дворов влезает без новой карты.
+  - {id_prefix: hh_city_court, settlement_id: hill_court, name: "Городской двор", count: 1, adults: 2, children: 2, legal_status: holder, starting_food_months: 3.0}
+  - {id_prefix: hh_hill_geneat, settlement_id: hill_court, name: "Генеат свиты", count: 1, adults: 2, children: 2, legal_status: geneat, starting_food_months: 3.0, starting_firewood_months: 3.0, starting_stocks: {axe: 1.0}}
+  - {id_prefix: hh_hill_sokeman, settlement_id: hill_court, name: "Сокмен свиты", count: 2, adults: 2, children: 2, legal_status: sokeman, starting_food_months: 3.0, starting_firewood_months: 3.0, starting_stocks: {axe: 1.0}}
+  - {id_prefix: hh_city, settlement_id: hill_court, name: "Квартальный двор", count: 86, adults: 2, children: 2, legal_status: villein, starting_food_months: 3.0}
+  # Лесная деревня: 24 двора = 96 человек, 18 вилланов на домене и 6 коттеров на
+  # отведённых наделах. Скота нет: луг кормит только тех, у кого он свой.
+  - {id_prefix: hh_village_forest, settlement_id: village_forest, name: "Лесной двор", count: 18, adults: 2, children: 2, legal_status: villein, starting_food_months: 3.0}
+  - {id_prefix: hh_village_forest_cotter, settlement_id: village_forest, name: "Лесной клочок", count: 6, adults: 2, children: 2, legal_status: cotter, starting_food_months: 3.0, livestock_every: 3, livestock: {pig: 2.0, hay: 8.0}}
+  # Племенная деревня: 18 дворов одного рода = 72 человека, все безземельные под
+  # общинным правом. Род не растёт делением, поэтому деревня мала — и именно этим
+  # она и опасна: при 8 домах сеньор может купить её, при 50 пришлось бы воевать.
+  - {id_prefix: hh_native, settlement_id: native_village, name: "Племенной двор", count: 18, adults: 2, children: 2, legal_status: free_landless, starting_food_months: 3.0, livestock_every: 6, livestock: {pig: 2.0, hay: 8.0}}
+  # Солеварня: 18 безземельных наёмных рук = 72 человека. Единственный товар
+  # баронства, который нельзя вырастить, — соль.
+  - {id_prefix: hh_salt, settlement_id: salt_village, name: "Солеварный двор", count: 18, adults: 2, children: 2, legal_status: free_landless, starting_food_months: 3.0, starting_stocks: {peat: 3.0, firewood: 1.0}}
+
+packs:
+  - id: pack_scout_hill
+    kind: party
+    origin: [46, 50]
+    destination: [45, 49]
+    owner_household_id: hh_hill_geneat_001
+    member_ids: [hh_hill_geneat_001_p2]
+    purpose: scout
+    profile_id: hunters
+    eta_hours: 0.65
 
 player:
   court_settlement_id: hill_court
@@ -409,11 +492,100 @@ marks:
 tribes:
   - {id: tribe_east, name: "Восточное племя", stance: independent, settlement_id: native_village}
 
-starting_stocks:
-  settlement:hill_court: {grain: 40.0, firewood: 10.0, cart: 1.0}
-  settlement:salt_village: {grain: 30.0, cart: 1.0}
-  settlement:river_port: {grain: 20.0, cart: 1.0}
+rights:
+  # Право без доли: общий доступ (ADR 0060) — не индивидуальное держание ни для
+  # кого, поэтому в книгу манора не входит и оброка не несёт.
+  - {id: right_native_common, kind: common, holder_settlement_id: native_village, at: [82, 63]}
+  - {id: right_salt_common, kind: common, holder_settlement_id: salt_village, at: [81, 82]}
+  # УНАСЛЕДОВАННАЯ КНИГА ЗЕМЛИ: 20 наделов из 150 дворов. Надел с `rent_share > 0`
+  # выдаётся приказом `grant_tenure` — тем же, что и приказ игрока, — поэтому у
+  # таких записей нет ключа `id:` и `regime:` (ADR 0207). По книге:
+  #   * лесная деревня: 6 коттеров и 6 вилланов на всех 12 пашнях
+  #     пашен; коттер получает режим `cotter_plot`, виллан — `villein_tenement`;
+  #   * замок: 5 бургессов на пяти `holding_tiles` поселения, генеат и 2 сокмена
+  #     на трёх доменных. Сокмены платят НЕ долей: их повинность `sokeman_rent`
+  #     объявляет `fixed_rent_grain_or_pence`, и `grant_tenure` при положительной
+  #     доле оброчную повинность для них не заводит (ADR 0196) — это проверяется
+  #     тестом, а не считается на глаз;
+  #   * солеварня и племенная деревня в книгу НЕ входят: первая — наёмное
+  #     предприятие, второе — чужая община по договору (ADR 0060).
+  # Остальные 130 дворов намеренно без надела: это домен сеньора и фронтир, который
+  # игрок завоёвывает приказом `grant_tenure` — там и живёт его решение.
+  - {kind: tenure, holder_household_id: hh_village_forest_cotter_001, at: [36, 65], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_village_forest_cotter_002, at: [37, 65], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_village_forest_cotter_003, at: [38, 65], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_village_forest_cotter_004, at: [39, 65], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_village_forest_cotter_005, at: [40, 65], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_village_forest_cotter_006, at: [41, 65], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_village_forest_001, at: [36, 66], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_village_forest_002, at: [37, 66], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_village_forest_003, at: [38, 66], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_village_forest_004, at: [39, 66], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_village_forest_005, at: [40, 66], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_village_forest_006, at: [39, 66], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_city_001, at: [47, 52], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_city_002, at: [47, 53], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_city_003, at: [47, 54], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_city_004, at: [47, 55], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_city_005, at: [47, 56], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_hill_geneat_001, at: [41, 52], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_hill_sokeman_001, at: [42, 52], rent_share: 0.1}
+  - {kind: tenure, holder_household_id: hh_hill_sokeman_002, at: [43, 52], rent_share: 0.1}
 
+starting_stocks:
+  "tile:t_72_15": {log: 12.0, stone: 12.0}  # пни и камень под выкорчёвку
+  # Амбар КОРНЕВОГО манора — это `settlement:hill_court` (`Manor.stock_id`), тот же
+  # склад, что читают `grant_grain`, `grant_tool` и `engine/roadworks.py::start_work`.
+  # `log` и `iron` положены сюда НАЧАЛЬНЫМ СОСТОЯНИЕМ (ADR 0215 §Дыра 1), и это
+  # названо прямо, а не спрятано: **механического пути бревна и железа в амбар лорда
+  # в мире нет**. Замер 24 мес, сид 4242, ДО правки: `log` в амбаре 0.0, `iron` 0.0,
+  # `iron_bloom` 0.0, `iron_share` 0.0 — при том, что бревна в мире есть (1 151.6
+  # `log` в стоках клеток, спавн `grow_log`) и железо есть (17.1 `iron`, рецепт
+  # `mine_iron` на топях). Между ними нет провода: `economy/labor.py::apply_recipe`
+  # пишет выход в сток ИСПОЛНЯЮЩЕГО ДВОРА, и в амбар манора выход идёт только из
+  # `economy/manor.py::_work_demesne` для `harvest_grain`. Правка этого — зона
+  # Economist (ADR 0195 §1, долг открыт), здесь она не делается и не имитируется.
+  #
+  # Числа — по цене приказа, а не «сколько не жалко»:
+  #   `log 18.0` = четыре дороги (4 × 3.0) и по одному броду и мосту (2.0 + 4.0)
+  #     при ценах `MATERIAL_AMOUNT` (ADR 0039);
+  #   `iron 3.6` = ровно три железных лемеха по 1.2 (`smith_iron_share`).
+  # `iron_bloom` и `iron_share` сюда НЕ кладутся: в мире их ровно 0.0 (замер выше),
+  # и класть начальное состояние для товара, который нигде не производится, значит
+  # выдумать рецепт. Это зафиксированный долг (ADR 0215 §Долг), а не починка.
+  settlement:hill_court: {grain: 40.0, firewood: 10.0, cart: 1.0, log: 18.0, iron: 3.6}
+  # Амбар солеварни — запас сеньора. 50 работников харча `monthly_food_need`
+  # (2 взрослых + ребёнок) = 2.7 зерна на двор = 135.0 в месяц, значит 3960.0 —
+  # 29 месяцев полного харча. Запас КОНЕЧЕН и добрать его нечем: приказа «наполнить
+  # склад поселения» в `PlayerAction` нет (заявка в отчёт Implementer, ADR 0207).
+  # Прежние 30.0 зерна — это ровно один месяц харча, после чего `_saltworks_job`
+  # возвращал None, выварка не шла, и обоз соли был мёртв (соль 0.0).
+  # Амбар солеварни — харч наёмных рук. 10 работников по 3.4 зерна
+  # (needs.yml: 2 взрослых + 2 ребёнка) = 34.0 в месяц, значит 1020.0 —
+  # 30 месяцев полного харча. Запас КОНЕЧЕН и добрать его нечем: приказа
+  # «наполнить склад поселения» в `PlayerAction` нет (заявка в отчёт, ADR 0207).
+  # Прежние 30.0 зерна — это меньше месяца харча, после чего `_saltworks_job`
+  # возвращал None, выварка не шла, и обоз соли был мёртв: соль в замке 0.0.
+  # Амбар солеварни — харч наёмных рук. 18 работников по 3.4 зерна
+  # (needs.yml: 2 взрослых + 2 ребёнка) = 61.2 в месяц, значит 2203.2 —
+  # 36 месяцев полного харча. Запас КОНЕЧЕН и добрать его нечем: приказа
+  # «наполнить склад поселения» в `PlayerAction` нет (заявка в отчёт, ADR 0207).
+  # Прежние 30.0 зерна — это меньше месяца харча на 18 ртов, после чего
+  # `_saltworks_job` возвращал None, выварка не шла, и обоз соли был мёртв:
+  # соль в замке 0.0.
+  settlement:salt_village: {grain: 2203.2, cart: 1.0}
+
+script:
+  - {at_month: 1, action: set_tile_regime, tile: t_72_15, regime: demesne}  # расчистка исполнима: право clear_forest даёт только demesne (ADR 0182)
+  # Пожалование шестого месяца: генеат свиты получает доменную пашню t_41_56 и
+  # одного горожана в пожалованные дворы. Это единственный приказ сценария,
+  # меняющий книгу земли по ходу тика, и он показывает рычаг, который потом
+  # крутит игрок: `revoke_thegn` возвращает и клетку, и двор в корень (ADR 0197).
+  - {at_month: 6, action: grant_thegn, person: hh_hill_geneat_001_p1, tiles: [t_41_55], households: [hh_city_020]}
+  # Двенадцатый месяц: городской бургесс получает в держание доменную пашню.
+  # Ровно этот приказ — проверка приёмки §1a на действие игрока: с долей 0.1
+  # счёт вырастает, с долей 0.0 повинности оброка не будет вовсе (ADR 0206).
+  - {at_month: 12, action: grant_tenure, household: hh_city_006, tile: t_46_56, kind: tenure, rent_share: 0.1}
 catalogs:
   goods: design/catalogs/goods.yml
   recipes: design/catalogs/recipes.yml

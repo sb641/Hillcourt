@@ -4,7 +4,16 @@
 #   requires_labor_days — домен: работа требует трудодней (пул домена)
 #   feeds_household     — надел: кормит двор
 # Домен и надел не смешивают стоки. Словарь действий един:
-#   plough | gather_brushwood | take_game | build_hut | leave
+#   plough | take_game | leave | clear_forest
+# Расчистку леса выдаёт ТОЛЬКО домен (ADR 0182): расширение деревни —
+# дело лорда и общины (ADR 0173, ADR 0156). Частный держатель и виллан
+# своего леса не перестраивают: они берут бревно существующим `cut_wood`,
+# а второе имя на ту же работу заводить нельзя (ADR 0161).
+# Сбор хвороста снят из объявления (ADR 0161 п. 2): рецепта у него не было ни
+# одного, а лес убирается существующим действием двора `cut_wood_if_allowed` —
+# право было одно, а не два. Постройка снята раньше тем же основанием
+# (ADR 0150 п. 1). Право, которому нечем исполниться, — не право, а объявление,
+# которое вводит юриста в заблуждение.
 # `foreign` не хранится на клетке: выводится правом (legal/regimes.py).
 # Земля манора: demesne | villein_tenement | cotter_plot | free_holding |
 # waste | reserved_wood. `tenement` оставлен как общий синоним надела.
@@ -12,32 +21,32 @@ version: 1
 land_regimes:
   - id: demesne
     name: Домен держателя
-    allowed_actions: [plough, gather_brushwood, take_game, build_hut]
+    allowed_actions: [plough, take_game, clear_forest]
     requires_labor_days: true
     feeds_household: false
   - id: villein_tenement
     name: Вилланский надел
-    allowed_actions: [plough, gather_brushwood, take_game, build_hut, leave]
+    allowed_actions: [plough, take_game, leave]
     requires_labor_days: false
     feeds_household: true
   - id: cotter_plot
     name: Коттерский клочок
-    allowed_actions: [plough, gather_brushwood, build_hut, leave]
+    allowed_actions: [plough, leave]
     requires_labor_days: false
     feeds_household: true
   - id: free_holding
     name: Свободное держание
-    allowed_actions: [plough, gather_brushwood, take_game, build_hut, leave]
+    allowed_actions: [plough, take_game, leave]
     requires_labor_days: false
     feeds_household: true
   - id: tenement
     name: Держание (общий надел)
-    allowed_actions: [plough, gather_brushwood, take_game, build_hut, leave]
+    allowed_actions: [plough, take_game, leave]
     requires_labor_days: false
     feeds_household: true
   - id: waste
     name: Пустошь
-    allowed_actions: [gather_brushwood, take_game, leave]
+    allowed_actions: [take_game, leave]
     requires_labor_days: false
     feeds_household: false
   - id: reserved_wood

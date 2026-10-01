@@ -1,0 +1,115 @@
+# Site plates. Written by hand - keep the inline style, do not round-trip this
+# through yaml.safe_dump.
+#
+# A site is a TILE FORM, not an entity: `tile_view.tile_form()` (tile_view.py:730)
+# returns ONE form per tile and that form REPLACES the terrain plate, so these are
+# the same kind of thing as buildings and camps, not an overlay on them.
+#
+# `carrier_kind` says how the runtime actually reads the carrier, and it matters:
+#   tile_mark        - a named mark read through has_mark() -> getattr(tile, mark,
+#                     False). These are NOT dataclass fields on Tile; they come
+#                     from the vision scenario LAND_MARKS and default to False, so
+#                     without the mark the view is byte-identical to the old one.
+#   tile_field       - a real field on the Tile dataclass
+#   settlement_kind  - Settlement.kind matched against carrier_value
+#
+# I first wrote nine of these as declared Tile fields. They are not fields: only
+# `ruin_id` is. The verifier caught the claim because no such field exists.
+version: 0
+id: sites_v0
+name: Sites, one plate per tile_view site form
+sprite_selector: none
+reachable_forms_source: sim/src/hillcourt/engine/tile_view.py::tile_form
+carrier_kinds_read:
+- tile_mark
+- tile_field
+- settlement_kind
+cells:
+- id: site_pier
+  name: Pier
+  game_form: pier
+  carrier_kind: tile_mark
+  carrier_field: Tile.mooring
+  carrier_read: has_mark(world, tile_id, 'mooring') and (tile.terrain == 'water' or is_crossing(...))
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/site_pier.png
+- id: site_waystation
+  name: Waystation
+  game_form: waystation
+  carrier_kind: tile_mark
+  carrier_field: Tile.waystation
+  carrier_read: has_mark(world, tile_id, 'waystation')
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/site_waystation.png
+- id: site_tavern
+  name: Tavern site
+  game_form: tavern_site
+  carrier_kind: tile_mark
+  carrier_field: Tile.tavern
+  carrier_read: has_mark(world, tile_id, 'tavern')
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/site_tavern.png
+- id: site_iron_mine
+  name: Iron mine
+  game_form: iron_mine
+  carrier_kind: tile_mark
+  carrier_field: Tile.mine
+  carrier_read: has_mark(world, tile_id, 'mine')
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/site_iron_mine.png
+- id: site_hermitage
+  name: Hermitage
+  game_form: hermitage
+  carrier_kind: tile_mark
+  carrier_field: Tile.hermitage
+  carrier_read: has_mark(world, tile_id, 'hermitage')
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/site_hermitage.png
+- id: site_smoke
+  name: Smoke
+  game_form: smoke_site
+  carrier_kind: tile_mark
+  carrier_field: Tile.smoke
+  carrier_read: has_mark(world, tile_id, 'smoke')
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/site_smoke.png
+- id: site_baron_castle
+  name: Baron's castle
+  game_form: baron_castle
+  carrier_kind: tile_mark
+  carrier_field: Tile.castle
+  carrier_read: has_mark(world, tile_id, 'castle')
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/site_baron_castle.png
+- id: site_city_quarter
+  name: City quarter
+  game_form: city_quarter
+  carrier_kind: tile_mark
+  carrier_field: Tile.urban
+  carrier_read: has_mark(world, tile_id, 'urban')
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/site_city_quarter.png
+- id: site_ruin
+  name: Ruin
+  game_form: ruin_site
+  carrier_kind: tile_field
+  carrier_field: Tile.ruin_id
+  carrier_read: tile.terrain == 'ruin' or getattr(tile, 'ruin_id', None)
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/site_ruin.png
+- id: site_salt_works
+  name: Salt works
+  game_form: salt_settlement
+  carrier_kind: settlement_kind
+  carrier_field: Settlement.kind
+  carrier_read: settlement.kind == 'salt_village'
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/site_salt_works.png
+- id: site_tribal_village
+  name: Tribal village
+  game_form: tribal_village
+  carrier_kind: settlement_kind
+  carrier_field: Settlement.kind
+  carrier_read: settlement.kind == 'native_village'
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/site_tribal_village.png

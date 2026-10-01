@@ -43,7 +43,14 @@ class TestNewsNoOmniscience(unittest.TestCase):
             )
 
     def test_source_vocabulary_is_v0_set(self) -> None:
-        allowed = {"eye_from_hill", "adjacent_daily", "messenger", "caravan", "silence"}
+        allowed = {
+            "eye_from_hill",
+            "adjacent_daily",
+            "messenger",
+            "caravan",
+            "scout",
+            "silence",
+        }
         sources = {r.source for r in self.world.reports}
         self.assertTrue(sources.issubset(allowed), f"Лишние источники: {sources - allowed}")
 

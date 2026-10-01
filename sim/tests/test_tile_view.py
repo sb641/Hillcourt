@@ -19,6 +19,8 @@ from hillcourt.engine.tile_view import (
     dump_tile_views,
     format_tile_view,
     household_count,
+    household_form,
+    household_forms,
     is_root_seat,
     is_thegn_seat,
     settle_household,
@@ -105,6 +107,8 @@ class TestTileForms(unittest.TestCase):
             "village",
             "thegn_estate",
             "hall_on_hill",
+            "own_farm",
+            "corvee_labor",
         ):
             self.assertIn(fid, FORMS, f"Нет формы '{fid}'")
 
@@ -131,7 +135,19 @@ class TestTileForms(unittest.TestCase):
             tile_form(world_many, EMPTY_FOREST),
         )
 
-    def test_root_seat_is_hall(self) -> None:
+    def test_household_occupancy_forms(self) -> None:
+        world = load_scenario(SCENARIO)
+        own = world.households["hh_03"]
+        world.stocks[own.stock_id].amounts["ox_m"] = 1.0
+        self.assertEqual(household_form(world, own), "own_farm")
+        self.assertIn((own.id, "own_farm"), household_forms(world, own.current_tile_id))
+        corvee = world.households["hh_02"]
+        self.assertEqual(household_form(world, corvee), "corvee_labor")
+        self.assertIn(
+            (corvee.id, "corvee_labor"),
+            household_forms(world, corvee.current_tile_id),
+        )
+
         world = load_scenario(SCENARIO)
         view = tile_view(world, ROOT_TILE)
         self.assertTrue(view.has_seat)
@@ -186,6 +202,7 @@ class TestTileDump(unittest.TestCase):
                 "household_count",
                 "has_seat",
                 "has_thegn_hall",
+                "household_forms",
             ):
                 self.assertIn(key, row, f"В дампе {tid} нет '{key}'")
         self.assertEqual(dump[EMPTY_HEATH]["form"], "waste")

@@ -1,6 +1,6 @@
 """Сборка мира из сценария: карта, дворы, склады, повинности.
 
-Секции YAML: карта/поселения/дворы/склады/опасности/`rights`/`tribes`/`marks`/
+Секции YAML: карта/поселения/дворы/склады/опасности/`rights`/`tribes`/`marks`/`packs`/
 скрипт. Вид поселения (`Settlement.kind`, в т.ч. `native_village` — ADR 0060) и
 права (`Right`, в т.ч. `kind=common` — общий доступ) берутся из данных сценария,
 без ручных атрибутов в коде. Маркеры вида (`marks:`) — только данные (ADR 0065):
@@ -25,12 +25,14 @@ from .catalogs import load_catalogs
 from .economy.actions import load_actions
 from .economy.decisions import plan_next_month
 from .economy.manor import load_manor
-from .economy.needs import load_needs, monthly_food_need
+from .economy.needs import load_needs, member_counts, monthly_food_need
 from .economy.seasons import load_seasons
 from .engine.clock import Clock
 from .engine.growth import index_growth_tiles
 from .engine.hexgrid import axial_is_neighbor, offset_to_axial
+from .engine.path import find_path, travel_days
 from .engine.rng import RngStreams
+from .engine.terrain import DAYS_PER_MONTH
 from .ledger import Ledger
 from .legal.bundles import materialize_obligations
 from .legal.calendar import load_calendar
@@ -40,6 +42,7 @@ from .ontology import (
     Household,
     Manor,
     Obligation,
+    Pack,
     Person,
     Right,
     Settlement,
@@ -55,7 +58,7 @@ class Player:
     """Игрок как держатель права: без прямых приказов людям (И-2)."""
 
     court_settlement_id: str
-    household_id: str
+    household_id: str | None = None
     rent_share: float = 0.1
 
 
@@ -74,6 +77,31 @@ def _find_repo_root(scenario_path: Path) -> Path:
 
 def _tile_id(x: int, y: int) -> str:
     return f"t_{x:02d}_{y:02d}"
+
+
+def _set_tile_regime(tiles: dict[str, Tile], tile_id: str, regime_id: str) -> None:
+    """Записать режим клетки в ОБЕ копии: клетку и книгу манора.
+
+    Два хранилища одного факта — `Tile.regime_id` и `Manor.tile_regimes` — и
+    эталон двуххранилищной записи `engine/manor.py::set_tile_regime`: сначала
+    клетка, потом книга, где клетка числится.
+
+    Прежде пять мест загрузчика писали только `Tile.regime_id`, и расхождение
+    было не гипотетическим: книга корневого манора (`manor_hill`) набиралась
+    снимком ниже по коду, то есть читать её можно было раньше, чем она описала
+    действительность. Клетки книги и клетки мира — два разных места, где живёт
+    один факт, и место записи у них было одно.
+
+    Книги манора на этапе загрузки ещё нет (`manor_hill` собирается последним),
+    поэтому здесь пишется клетка, а книга рождается снимком из неё же: разойтись
+    при загрузке они не могут, потому что вторая выводится из первой. После
+    загрузки писать режим напрямую в `Tile.regime_id` запрещено — только
+    `set_tile_regime`, который пишет обе копии.
+    """
+    tile = tiles.get(tile_id)
+    if tile is None:
+        raise ValueError(f"Нет клетки '{tile_id}'")
+    tile.regime_id = regime_id
 
 
 _TERRAINS = frozenset(
@@ -159,6 +187,49 @@ def _map_cells(map_data: dict) -> list[list[str]]:
     return cells
 
 
+def _map_resource_productivity(map_data: dict) -> dict[str, float]:
+    """Собрать коэффициенты продуктивности клеток из сценарной карты."""
+    out: dict[str, float] = {}
+
+    def put(point: object, value: object) -> None:
+        x, y = _point(point, "Карта: resource_productivity.at")
+        out[_tile_id(x, y)] = float(value)
+
+    for entry in map_data.get("tiles") or []:
+        if "resource_productivity" in entry:
+            put(entry.get("at"), entry["resource_productivity"])
+
+    section = map_data.get("resource_productivity")
+    if isinstance(section, dict):
+        for key, value in section.items():
+            if isinstance(value, dict):
+                point = value.get("at")
+                coefficient = value.get(
+                    "resource_productivity", value.get("value")
+                )
+                if point is not None and coefficient is not None:
+                    put(point, coefficient)
+                continue
+            if str(key).startswith("t_"):
+                out[str(key)] = float(value)
+                continue
+            text = str(key).replace(":", ",").replace(" ", ",")
+            parts = text.split(",")
+            if len(parts) == 2:
+                put([int(parts[0]), int(parts[1])], value)
+    elif isinstance(section, list):
+        for entry in section:
+            if not isinstance(entry, dict):
+                raise ValueError("Карта: resource_productivity должен быть списком словарей")
+            point = entry.get("at")
+            coefficient = entry.get(
+                "resource_productivity", entry.get("value")
+            )
+            if point is not None and coefficient is not None:
+                put(point, coefficient)
+    return out
+
+
 def load_river_network(data: dict, tiles: dict[str, Tile]) -> set[str]:
     """Проверить ``rivers`` и превратить её ``flow_order`` в terrain ``water``.
 
@@ -237,8 +308,12 @@ def _expand_household_groups(data: dict) -> list[dict]:
         "slaves",
         "legal_status",
         "starting_food_months",
+        "starting_firewood_months",
+        "starting_stocks",
         "livestock_every",
         "livestock",
+        "labor_productivity",
+        "talent",
     }
     for group in data.get("household_groups") or []:
         unknown = sorted(set(group) - group_known)
@@ -252,11 +327,13 @@ def _expand_household_groups(data: dict) -> list[dict]:
             entry = {
                 key: value
                 for key, value in group.items()
-                if key not in {"id_prefix", "count", "name", "starting_food_months", "livestock_every", "livestock"}
+                if key not in {"id_prefix", "count", "name", "starting_food_months", "starting_firewood_months", "starting_stocks", "livestock_every", "livestock"}
             }
             entry["id"] = f"{prefix}_{index:03d}"
             entry["name"] = f"{group.get('name', 'Двор')} {index:03d}"
             entry["_starting_food_months"] = float(group.get("starting_food_months", 0.0))
+            entry["_starting_firewood_months"] = float(group.get("starting_firewood_months", 0.0))
+            entry["_starting_stocks"] = dict(group.get("starting_stocks") or {})
             entry["_livestock_every"] = int(group.get("livestock_every", 0))
             entry["_livestock"] = dict(group.get("livestock") or {})
             entries.append(entry)
@@ -280,34 +357,55 @@ def _household_tile_ids(settlements: list[dict]) -> dict[str, list[str]]:
     return layouts
 
 
+def _household_cap(kind: str) -> int:
+    """Кап жилых дворов на один гекс по виду поселения (ADR 0083, ADR 0132)."""
+    return _CITY_HOUSEHOLD_CAP if kind == "hill_court" else _RURAL_HOUSEHOLD_CAP
+
+
 def _household_placements(
     settlements: list[dict], household_entries: list[dict]
 ) -> dict[str, str]:
-    """Распределить дворы по ``household_tiles`` с проверкой городского и сельского капа."""
+    """Распределить дворы по гексам поселений и проверить кап на каждом гексе.
+
+    Кап считается **по гексу**, а не суммой по поселению, и проверяется **всегда**:
+    пустой ``household_tiles`` означает «все дворы поселения на гексе ``at``», а не
+    «проверку пропустить». Пятый двор садится, шестой — нет (ADR 0132 п. 3).
+
+    Raises:
+        ValueError: гекс заселён сверх капа (5, либо 20 для ``hill_court``).
+    """
     layouts = _household_tile_ids(settlements)
-    kinds = {str(entry["id"]): str(entry["kind"]) for entry in settlements}
-    counts: dict[str, int] = {sid: 0 for sid in kinds}
+    by_id = {str(entry["id"]): entry for entry in settlements}
+    targets: dict[str, list[str]] = {}
+    for sid, entry in by_id.items():
+        tile_ids = layouts[sid]
+        if not tile_ids:
+            at = _point(entry["at"], f"Поселение '{sid}': at")
+            tile_ids = [_tile_id(*at)]
+        targets[sid] = tile_ids
+    caps = {sid: _household_cap(str(entry["kind"])) for sid, entry in by_id.items()}
+    tile_settlements: dict[str, set[str]] = {}
+    for sid, tile_ids in targets.items():
+        for tile_id in tile_ids:
+            tile_settlements.setdefault(tile_id, set()).add(sid)
+    cursor: dict[str, int] = {sid: 0 for sid in targets}
+    per_tile: dict[str, int] = {}
     placements: dict[str, str] = {}
     for entry in household_entries:
         sid = str(entry["settlement_id"])
-        if sid not in kinds:
+        if sid not in targets:
             raise ValueError(f"Двор '{entry['id']}': нет поселения '{sid}'")
-        tile_ids = layouts[sid]
-        if not tile_ids:
-            at = _point(next(s for s in settlements if str(s["id"]) == sid)["at"], f"Поселение '{sid}': at")
-            tile_ids = [_tile_id(*at)]
-        placements[str(entry["id"])] = tile_ids[counts[sid] % len(tile_ids)]
-        counts[sid] += 1
-    for entry in settlements:
-        sid = str(entry["id"])
-        tile_ids = layouts[sid]
-        if not tile_ids:
-            continue
-        cap = _CITY_HOUSEHOLD_CAP if kinds[sid] == "hill_court" else _RURAL_HOUSEHOLD_CAP
-        if counts[sid] > cap * len(tile_ids):
+        tile_ids = targets[sid]
+        tile_id = tile_ids[cursor[sid] % len(tile_ids)]
+        placements[str(entry["id"])] = tile_id
+        cursor[sid] += 1
+        per_tile[tile_id] = per_tile.get(tile_id, 0) + 1
+    for tile_id in sorted(per_tile):
+        cap = max(caps[sid] for sid in tile_settlements[tile_id])
+        if per_tile[tile_id] > cap:
             raise ValueError(
-                f"Поселение '{sid}': {counts[sid]} дворов не помещаются в "
-                f"{len(tile_ids)} гексов по капу {cap}"
+                f"Гекс '{tile_id}': {per_tile[tile_id]} дворов при капе {cap} "
+                f"(поселения {sorted(tile_settlements[tile_id])})"
             )
     return placements
 
@@ -358,6 +456,227 @@ def _load_tribes(data: dict, settlements: dict[str, Settlement]) -> dict[str, Tr
     if missing:
         raise ValueError(f"Деревня native_village без племени: {missing}")
     return tribes
+
+
+def _validate_household_land_basis(
+    world: World,
+    initially_unemployed: set[str],
+) -> None:
+    """Проверить землю, общинную основу и нанимателя каждого двора."""
+    from .economy.labor import own_tiles
+
+    for hid in sorted(world.households):
+        household = world.households[hid]
+        if household.land_relation in ("secure_holding", "tenement"):
+            has_feeding_tile = any(
+                (regime := world.catalogs.land_regimes.get(tile.regime_id)) is not None
+                and regime.feeds_household
+                for tile in own_tiles(world, household)
+            )
+            if not has_feeding_tile:
+                raise ValueError(
+                    f"Двор '{household.id}' ('{household.name}', "
+                    f"{household.legal_status_id}): нет клетки с "
+                    "feeds_household=true для secure_holding/tenement"
+                )
+            continue
+        if household.land_relation != "landless" or hid in initially_unemployed:
+            continue
+        settlement = world.settlements.get(household.settlement_id or "")
+        communal = bool(
+            settlement
+            and settlement.works_tiles
+            and any(
+                right.kind == "common"
+                and right.holder_household_id == settlement.id
+                for right in world.rights.values()
+            )
+        )
+        employer = bool(
+            settlement
+            and settlement.kind == "salt_village"
+            and world.stocks[settlement.stores_stock_id].total() > 0.0
+        )
+        if not communal and not employer:
+            raise ValueError(
+                f"Двор '{household.id}' ('{household.name}', "
+                f"{household.legal_status_id}): landless без основания; "
+                "нет Right.common вместе с works_tiles, нанимателя "
+                "salt_village с непустым складом или initially_unemployed"
+            )
+
+
+def _pack_tile_id(value: object, label: str, tiles: dict[str, Tile]) -> str:
+    """Преобразовать сценарную точку пака в существующий id клетки."""
+    if isinstance(value, list):
+        tile_id = _tile_id(*_point(value, label))
+    else:
+        tile_id = str(value)
+    if tile_id not in tiles:
+        raise ValueError(f"{label}: нет клетки '{tile_id}'")
+    return tile_id
+
+
+def _load_packs(world: World, data: dict) -> None:
+    """Загрузить стартовые Pack из одноимённой секции сценария."""
+    packs: dict[str, Pack] = {}
+    assigned_people: set[str] = set()
+    for entry in data.get("packs") or []:
+        if not isinstance(entry, dict):
+            raise ValueError("Секция 'packs': запись должна быть словарём")
+        pack_id = str(entry["id"])
+        if pack_id in packs:
+            raise ValueError(f"Pack '{pack_id}' объявлен дважды")
+        kind = str(entry.get("kind", "party"))
+        origin = _pack_tile_id(entry.get("origin"), f"Pack '{pack_id}': origin", world.tiles)
+        destination = _pack_tile_id(
+            entry.get("destination"), f"Pack '{pack_id}': destination", world.tiles
+        )
+        purpose = str(entry.get("purpose", "party"))
+        profile_id = str(entry.get("profile_id", "party"))
+        if purpose == "scout" and not entry.get("profile_id"):
+            raise ValueError(f"Pack '{pack_id}': scout требует profile_id")
+        member_values = entry.get("member_ids")
+        if member_values is None and kind == "caravan":
+            member_values = []
+        if not isinstance(member_values, list):
+            raise ValueError(f"Pack '{pack_id}': member_ids должен быть списком")
+        if kind != "caravan" and not member_values:
+            raise ValueError(f"Pack '{pack_id}': member_ids должен быть непустым списком")
+        member_ids = [str(value) for value in member_values]
+        if len(member_ids) != len(set(member_ids)):
+            raise ValueError(f"Pack '{pack_id}': member_ids содержит повтор")
+        owner_id = entry.get("owner_household_id")
+        owner_id = str(owner_id) if owner_id is not None else None
+        owner = world.households.get(owner_id or "")
+        if owner_id is not None and owner is None:
+            raise ValueError(f"Pack '{pack_id}': нет двора-владельца '{owner_id}'")
+        for person_id in member_ids:
+            if person_id in assigned_people:
+                raise ValueError(f"Pack '{pack_id}': человек '{person_id}' уже в паке")
+            person = world.persons.get(person_id)
+            if person is None:
+                raise ValueError(f"Pack '{pack_id}': нет человека '{person_id}'")
+            if person.age_class != "adult" or person.health <= 0.0:
+                raise ValueError(f"Pack '{pack_id}': '{person_id}' не может идти в поход")
+            if owner is not None and person_id not in owner.member_ids:
+                raise ValueError(
+                    f"Pack '{pack_id}': '{person_id}' не состоит в '{owner_id}'"
+                )
+        travel_profile = "caravan" if kind == "caravan" else (
+            "hunters" if profile_id == "hunters" else "foot"
+        )
+        found = find_path(world, origin, destination, travel_profile)
+        if found is None:
+            raise ValueError(f"Pack '{pack_id}': нет пути '{origin}' → '{destination}'")
+        route, hours = found
+        eta_hours = float(entry.get("eta_hours", hours))
+        if eta_hours <= 0.0:
+            raise ValueError(f"Pack '{pack_id}': eta_hours должен быть положительным")
+        if "eta_hours" in entry and abs(eta_hours - hours) > 1e-9:
+            raise ValueError(
+                f"Pack '{pack_id}': eta_hours={eta_hours} не совпадает с маршрутом {hours}"
+            )
+        if kind == "caravan" and "eta_hours" not in entry:
+            from .economy.caravan import caravan_days
+            from .engine.terrain import HOURS_PER_DAY
+
+            source_tile = world.tiles[origin]
+            source_settlement = source_tile.settlement_id
+            source_stock = world.stocks.get(
+                f"settlement:{source_settlement}" if source_settlement else ""
+            )
+            has_cart = bool(source_stock and source_stock.amounts.get("cart", 0.0) > 0.0)
+            eta_days = caravan_days(hours / float(HOURS_PER_DAY), has_cart)
+        else:
+            eta_days = float(travel_days(eta_hours))
+        eta_date = world.clock.date.advance_days(
+            eta_days, DAYS_PER_MONTH, world.clock.months_per_year
+        )
+        cargo = Stock(id=f"pack:{pack_id}", owner_kind="pack", owner_id=pack_id)
+        world.add_stock(cargo)
+        cargo_values = entry.get("cargo") or {}
+        if not isinstance(cargo_values, dict):
+            raise ValueError(f"Pack '{pack_id}': cargo должен быть словарём")
+        if cargo_values:
+            if kind != "caravan":
+                raise ValueError(f"Pack '{pack_id}': cargo разрешён только обозу")
+            source_tile = world.tiles[origin]
+            source_settlement = source_tile.settlement_id
+            if source_settlement is None:
+                raise ValueError(f"Pack '{pack_id}': origin без поселения")
+            source = world.get_stock(f"settlement:{source_settlement}")
+            for good, raw_amount in sorted(cargo_values.items()):
+                amount = float(raw_amount)
+                if amount <= 0.0:
+                    raise ValueError(f"Pack '{pack_id}': cargo '{good}' должен быть положительным")
+                world.ledger.transfer(
+                    source, cargo, str(good), amount, "caravan_load", world.clock.date
+                )
+        obligation_id = entry.get("obligation_id")
+        if obligation_id is not None and str(obligation_id) not in world.obligations:
+            raise ValueError(f"Pack '{pack_id}': нет повинности '{obligation_id}'")
+        status = str(entry.get("status", "in_transit"))
+        pack = Pack(
+            id=pack_id,
+            kind=kind,
+            origin_tile_id=origin,
+            destination_tile_id=destination,
+            route=list(route),
+            member_ids=member_ids,
+            cargo=cargo,
+            departed_date=world.clock.date,
+            eta_date=eta_date,
+            status=status,
+            owner_household_id=owner_id,
+            obligation_id=str(obligation_id) if obligation_id is not None else None,
+            purpose=purpose,
+            profile_id=profile_id,
+        )
+        packs[pack_id] = pack
+        assigned_people.update(member_ids)
+        if owner is not None and status == "in_transit":
+            for person_id in member_ids:
+                owner.member_ids.remove(person_id)
+                world.persons[person_id].location_tile_id = destination
+            owner.labor_days = max(0.0, owner.labor_days - 20.0 * len(member_ids))
+    world.packs = packs
+
+
+def _apply_declared_holdings(
+    world: World, entries: list[dict], tiles: dict[str, Tile]
+) -> None:
+    """Выдать наделы, объявленные сценой с долей оброка, приказом игрока.
+
+    Право с `rent_share > 0` — это **оброчное** право, и оброчное право не
+    собирается из одних данных: у него есть пресет двора, режим клетки, запись в
+    книге манора и повинность `rent` со ставкой права (ADR 0206/0192). Собрать
+    это в загрузчике значило бы завести вторую правду о том, из чего состоит
+    надел, и она разошлась бы с приказом `grant_tenure` при первой же правке
+    закона. Поэтому сцена идёт тем же ходом, каким игрок пошёл бы в первом месяце:
+    `grant_tenure` — единственный исполнитель, и он возвращает право, которое
+    сцена уже не строит сама.
+
+    Порядок — по id двора, а не по порядку в YAML: книга земли должна читаться
+    одинаково при любом переставлении строк сцены (И-6).
+    """
+    from .legal.actions import grant_tenure
+
+    ordered = sorted(entries, key=lambda entry: str(entry["holder_household_id"]))
+    for entry in ordered:
+        holder_id = str(entry["holder_household_id"])
+        if holder_id not in world.households:
+            raise ValueError(f"Надел '{holder_id}': нет такого двора в мире")
+        tile_id = _tile_id(int(entry["at"][0]), int(entry["at"][1]))
+        if tile_id not in tiles:
+            raise ValueError(f"Надел '{holder_id}': нет клетки '{tile_id}'")
+        grant_tenure(
+            world,
+            holder_id,
+            tile_id,
+            kind=str(entry.get("kind", "tenure")),
+            rent_share=float(entry["rent_share"]),
+        )
 
 
 def load_scenario(path: str | Path, seed: int | None = None) -> World:
@@ -420,6 +739,11 @@ def load_scenario(path: str | Path, seed: int | None = None) -> World:
                 regime_id=regime,
             )
 
+    for tid, value in _map_resource_productivity(map_data).items():
+        if tid not in tiles:
+            raise ValueError(f"Карта: resource_productivity для отсутствующей клетки '{tid}'")
+        tiles[tid].resource_productivity = value
+
     load_river_network(data, tiles)
 
     # Переправы и дороги поверх карты (зона ВОДА): `fords`/`bridges`/`roads` —
@@ -476,6 +800,11 @@ def load_scenario(path: str | Path, seed: int | None = None) -> World:
             _tile_id(*_point(point, f"Поселение '{sid}': works_tiles"))
             for point in (entry.get("works_tiles") or [])
         ]
+        holding_tiles = [
+            _tile_id(*_point(point, f"Поселение '{sid}': holding_tiles"))
+            for point in (entry.get("holding_tiles") or [])
+        ]
+        works_tiles = list(dict.fromkeys([*works_tiles, *holding_tiles]))
         if len(works_tiles) != len(set(works_tiles)):
             raise ValueError(f"Поселение '{sid}': works_tiles содержит повтор")
         missing = [tid for tid in works_tiles if tid not in tiles]
@@ -506,17 +835,25 @@ def load_scenario(path: str | Path, seed: int | None = None) -> World:
             stores_stock_id=stock.id,
             works_tiles=works_tiles,
         )
+        home_regime = "demesne" if entry["kind"] == "hill_court" else "tenement"
         for tid in [home_tile, *layout_tiles]:
             tiles[tid].settlement_id = sid
-            tiles[tid].regime_id = (
-                "demesne" if entry["kind"] == "hill_court" else "tenement"
-            )
+            _set_tile_regime(tiles, tid, home_regime)
         for works_tile in works_tiles:
-            tiles[works_tile].regime_id = (
-                "demesne" if entry["kind"] == "hill_court" else "tenement"
-            )
+            _set_tile_regime(tiles, works_tile, home_regime)
+        holding_regime = str(entry.get("holding_regime", "free_holding"))
+        if holding_regime not in catalogs.land_regimes:
+            raise ValueError(f"Поселение '{sid}': неизвестный holding_regime '{holding_regime}'")
+        for holding_tile in holding_tiles:
+            tiles[holding_tile].settlement_id = sid
+            _set_tile_regime(tiles, holding_tile, holding_regime)
 
     household_entries = _expand_household_groups(data)
+    initially_unemployed = {
+        str(entry["id"])
+        for entry in household_entries
+        if bool(entry.get("initially_unemployed", False))
+    }
     household_placements = _household_placements(data["settlements"], household_entries)
     seed = effective_seed
     persons: dict[str, Person] = {}
@@ -559,6 +896,8 @@ def load_scenario(path: str | Path, seed: int | None = None) -> World:
                 health=1.0,
                 location_tile_id=tile_id,
                 age_months=age_months,
+                labor_productivity=float(entry.get("labor_productivity", 1.0)),
+                talent=float(entry.get("talent", 1.0)),
             )
             member_ids.append(pid)
 
@@ -578,6 +917,8 @@ def load_scenario(path: str | Path, seed: int | None = None) -> World:
                 land_relation="landless",
                 obligation_bundle="slave_ration",
                 age_months=240,
+                labor_productivity=float(entry.get("labor_productivity", 1.0)),
+                talent=float(entry.get("talent", 1.0)),
             )
             member_ids.append(pid)
 
@@ -605,7 +946,7 @@ def load_scenario(path: str | Path, seed: int | None = None) -> World:
             ),
         )
         if settlement.kind != "hill_court" and preset is not None:
-            tiles[tile_id].regime_id = preset.land_kind
+            _set_tile_regime(tiles, tile_id, preset.land_kind)
         settlement.household_ids.append(hid)
 
     for key, amounts in (data.get("starting_stocks") or {}).items():
@@ -636,9 +977,20 @@ def load_scenario(path: str | Path, seed: int | None = None) -> World:
         tiles[tid].hazard_ids.append(hazard_id)
 
     player_data = data.get("player") or {}
+    player_household_id = player_data.get("household_id")
+    if player_household_id is not None and player_household_id != "":
+        player_household_id = str(player_household_id)
+        if player_household_id not in households:
+            if households:
+                raise ValueError(
+                    f"Игрок ссылается на несуществующий двор '{player_household_id}'"
+                )
+            player_household_id = None
+    else:
+        player_household_id = None
     player = Player(
         court_settlement_id=player_data.get("court_settlement_id", "hill_court"),
-        household_id=player_data.get("household_id", "hh_court"),
+        household_id=player_household_id,
         rent_share=float(player_data.get("rent_share", 0.1)),
     )
 
@@ -659,13 +1011,72 @@ def load_scenario(path: str | Path, seed: int | None = None) -> World:
     # индивидуальным держанием ни для кого). Вид права (`kind`) любой из
     # каталога: `common` — общий доступ, `tenure`/`grazing` — индивидуальные.
     rights: dict[str, Right] = {}
-    for entry in data.get("rights") or []:
+    right_entries = [dict(entry) for entry in (data.get("rights") or [])]
+    for entry in household_entries:
+        for n, point in enumerate(entry.get("holding_tiles") or [], start=1):
+            right_entries.append(
+                {
+                    "id": f"right_{entry['id']}_holding_{n:02d}",
+                    "kind": "tenure",
+                    "holder_household_id": entry["id"],
+                    "at": point,
+                    "regime": entry.get("holding_regime", "free_holding"),
+                }
+            )
+    # Надел, объявленный сценой ДОЛЖЕН платить оброк, иначе книга земли — ровно
+    # тот случай, из-за которого в мире 600 дворов и ноль ренты (ADR 0207).
+    # Право с `rent_share > 0` не собирается вручную: его выдаёт тот же приказ
+    # `legal.actions.grant_tenure`, что и приказ игрока, потому что иначе в
+    # загрузчике появилась бы вторая правда о том, из чего состоит надел
+    # (право + пресет + книга + повинность оброка). Отсюда две обязанные вещи:
+    #   * id такого права — `right_{двор}_{клетка}` (его даёт `grant_tenure`),
+    #     поэтому объявленный `id:` в YAML для них запрещён: молча проигнорированное
+    #     имя писателя вводит в заблуждение;
+    #   * режим клетки тоже не объявляется — `grant_tenure` ставит режим по
+    #     `land_kind` пресета, и объявленный `regime:` был бы второй правдой.
+    # Остальные права (доля 0.0 = «оброк не заводится», ADR 0206; общинный доступ)
+    # собираются здесь же, как раньше: приказа на них нет и нет нужды.
+    deferred_holdings: list[dict] = []
+    for entry in right_entries:
+        holder_id = entry.get("holder_household_id")
+        if (
+            str(entry.get("kind", "")) == "tenure"
+            and holder_id
+            and float(entry.get("rent_share", 0.0) or 0.0) > 0.0
+        ):
+            if entry.get("id") is not None:
+                raise ValueError(
+                    f"Право '{entry['id']}': надел с долей оброка `rent_share > 0` "
+                    "выдаётся приказом `grant_tenure` и сам получает имя "
+                    f"`right_{holder_id}_{_tile_id(*_point(entry['at'], 'at'))}`. "
+                    "Ключ `id:` в сцене для таких прав запрещён: он был бы "
+                    "проигнорирован, а читатель считал бы, что право названо."
+                )
+            if entry.get("regime") is not None:
+                raise ValueError(
+                    f"Надел двора '{holder_id}': ключ `regime:` запрещён. Режим "
+                    "клетки ставит `grant_tenure` по `land_kind` пресета "
+                    "(ADR 0207), и объявленный режим был бы второй правдой о налеле."
+                )
+            deferred_holdings.append(entry)
+            continue
+        if entry.get("id") is None:
+            raise ValueError("Право без `id:` не называется и не ищется")
+    deferred_ids = {id(entry) for entry in deferred_holdings}
+    for entry in right_entries:
+        if id(entry) in deferred_ids:
+            continue
         rid = str(entry["id"])
         if rid in rights:
             raise ValueError(f"Право '{rid}' объявлено дважды")
         tile_id = _tile_id(int(entry["at"][0]), int(entry["at"][1]))
         if tile_id not in tiles:
             raise ValueError(f"Право '{rid}': нет клетки '{tile_id}'")
+        if entry.get("regime") is not None:
+            regime = str(entry["regime"])
+            if regime not in catalogs.land_regimes:
+                raise ValueError(f"Право '{rid}': неизвестный regime '{regime}'")
+            _set_tile_regime(tiles, tile_id, regime)
         holder = entry.get("holder_household_id") or entry.get("holder_settlement_id")
         if not holder:
             raise ValueError(
@@ -708,32 +1119,45 @@ def load_scenario(path: str | Path, seed: int | None = None) -> World:
         rights=rights,
         tribes=_load_tribes(data, settlements),
     )
-    world.growth_tile_ids = index_growth_tiles(world)
     for entry in household_entries:
         household = world.households[str(entry["id"])]
         food_months = float(entry.get("_starting_food_months", 0.0))
+        stock = world.get_stock(household.stock_id)
         if food_months > 0.0:
-            world.get_stock(household.stock_id).add(
-                "grain", monthly_food_need(world, household) * food_months
+            stock.add("grain", monthly_food_need(world, household) * food_months)
+        firewood_months = float(entry.get("_starting_firewood_months", 0.0))
+        if firewood_months > 0.0:
+            adults, _, _ = member_counts(world, household)
+            stock.add(
+                "firewood",
+                adults * needs.firewood_per_adult_winter_month * firewood_months,
             )
+        for good, amount in (entry.get("_starting_stocks") or {}).items():
+            stock.add(str(good), float(amount))
         every = int(entry.get("_livestock_every", 0))
         if every > 0 and int(str(entry["id"]).rsplit("_", 1)[-1]) % every == 0:
             stock = world.get_stock(household.stock_id)
             for good, amount in (entry.get("_livestock") or {}).items():
                 stock.add(str(good), float(amount))
+    _validate_household_land_basis(world, initially_unemployed)
+
     # Корневой манор игрока: книга земли. Соль — клетки того же манора, не фьеф;
     # соляные держатели — равные, в число тяглых дворов книги не входят.
     # Племенная деревня (`Settlement.kind=native_village`, ADR 0060) — не книга
     # лорда: её дворы `free_landless`, `manor_id` остаётся None.
     non_root_settlements = {"salt_village", "native_village"}
-    court_household = world.households.get(player.household_id)
+    court_household = (
+        world.households.get(player.household_id)
+        if player.household_id is not None
+        else None
+    )
     holder_person_id = next(
         (
             pid
             for pid in (court_household.member_ids if court_household else [])
             if world.persons[pid].age_class == "adult"
         ),
-        player.household_id,
+        "",
     )
     root_manor = Manor(
         id="manor_hill",
@@ -742,6 +1166,10 @@ def load_scenario(path: str | Path, seed: int | None = None) -> World:
         parent_manor_id=None,
         upward_bundle="crown_stub",
         tile_ids=sorted(world.tiles),
+        # Книга корня рождается ИЗ клеток, а не отдельно: обе копии режима
+        # приходят из одного источника, поэтому разойтись при загрузке не могут
+        # (см. `_set_tile_regime`). Дальше режим меняет только
+        # `engine/manor.py::set_tile_regime`, и он пишет обе копии.
         tile_regimes={tid: world.tiles[tid].regime_id for tid in sorted(world.tiles)},
         household_ids=sorted(
             hid
@@ -767,8 +1195,24 @@ def load_scenario(path: str | Path, seed: int | None = None) -> World:
     world.stats["thegn_limit_households"] = float(limits.get("households", 3))
     world.stats["thegn_limit_grants"] = float(limits.get("grants", 1))
 
+    # Унаследованная книга земли: наделы, объявленные сценой с долей оброка.
+    # Здесь, а не в блоке `rights:` выше, потому что приказ `grant_tenure` работает
+    # с готовым миром: он меняет пресет двора, ставит режим клетки, вносит двор в
+    # книгу манора и открывает повинность оброка. Порядок тот же, что у игрока в
+    # первом месяце тика, — иначе сцена и приказ давали бы разные миры.
+    _apply_declared_holdings(world, deferred_holdings, tiles)
+
     for hid in sorted(world.households):
         materialize_obligations(world, world.households[hid])
+    _load_packs(world, data)
+    # Индекс роста строится ПОСЛЕ того, как в мире появились маноры: основание
+    # «домен» читает `Manor.tile_ids` и режимы клеток, а книга корневого манора
+    # собирается ниже по коду. На старом месте (сразу после `World(...)`) манора
+    # ещё не было, основание молча давало пустое множество, и клетки домена
+    # в индекс не попадали: на `v0_barony_100` — 35 клеток, на `start_stand` —
+    # `t_01_00`. Теперь загрузка и месячная фаза считают индекс одним и тем же
+    # выводом из данных, и «считает по-разному» уже невозможно.
+    world.growth_tile_ids = index_growth_tiles(world)
     world.ledger.capture_initial(world.total_matter())
     world.initial_matter = world.total_matter()
     plan_next_month(world)

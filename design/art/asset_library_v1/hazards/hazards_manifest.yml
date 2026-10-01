@@ -1,0 +1,56 @@
+# Hazard plates. Written by hand: keep the inline style, do not round-trip
+# this through yaml.safe_dump.
+version: 0
+id: hazards_v0
+name: Hazards, one plate per Hazard.kind
+carrier_field: Hazard.kind
+sprite_selector: none
+note: 'One plate per `kind` in design/catalogs/hazards.yml. `Hazard.kind` is a declared field
+  (ontology.py:314) and the runtime reads it - the travel risk is `base_risk_for(world, hazard.kind)`
+  and the report says `{"hazard": {"kind": hazard.kind, ...}}` - so it carries a plate the
+  way `legal_status_id` carries a garment.
+
+  A hazard is a thing ON the ground, not a state of it, so these are drawn and anchored like
+  props, and they do not go inside the hex plate the way terrain does.
+
+  hazel_band is a CAMP and deliberately carries no information about whether it is hostile.
+  The owner is explicit: a camp may be peaceful and need not be a hazard at all, but to a
+  traveller on this tile the two look the same. The truth arrives as a `Report`, which is
+  the constitution''s rule - the player is given news, not the cell''s contents.'
+atlas:
+  columns: 3
+  rows: 31
+  canvas_px:
+  - 448
+  - 4928
+cells:
+- id: hazard_band
+  name: Camp
+  catalog_id: band
+  form: camp
+  carrier_field: Hazard.kind
+  carrier_value: band
+  knowledge_cue: observed
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/hazard_band.png
+- id: hazard_bog
+  name: Bog
+  catalog_id: bog
+  form: mire
+  carrier_field: Hazard.kind
+  carrier_value: bog
+  knowledge_cue: observed
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/hazard_bog.png
+- id: hazard_wolves
+  name: Wolf den
+  catalog_id: wolves
+  form: den
+  carrier_field: Hazard.kind
+  carrier_value: wolves
+  knowledge_cue: observed
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/hazard_wolves.png
+flat_2d_proof:
+  sprite_selector: none
+  camera_frozen: false

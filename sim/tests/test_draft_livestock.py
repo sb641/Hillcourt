@@ -44,6 +44,112 @@ def _give(world, stock_id: str, good: str, amount: float) -> None:
     world.get_stock(stock_id).amounts[good] = float(amount)
 
 
+class TestHerdSumCache(unittest.TestCase):
+    """Кэш суммы стойловых голов поселения: быстро И равно перебору (ADR 0096 п. 1).
+
+    `soil.settlement_livestock_units` зовётся на каждую клетку-кандидат каждого
+    рецепта каждого двора: замер `v0_barony_100` — 26 769 вызовов на месяц. Без
+    кэша это 1 362 392 вызова `livestock_units`; с кэшем — 27 992. Кэш поэтому
+    ОБЯЗАН быть равен перебору, и инвалидация обязана ловить смену стада внутри
+    месяца — числом, а не флагом.
+
+    Места, где стадо меняется (все в `economy/`):
+      * `labor.apply_recipe` — `mature_*` переводит телёнка в корову/вола
+        (`ox_calf` 0.4 → `ox_m` 1.2, то есть **+0.8** к сумме);
+      * `livestock.livestock.py:329` — смерть от голода (`starved`), минус рацион;
+      * `livestock.livestock.py:441` — падёж (`died`), минус рацион.
+    Приход и уход двоя ловятся структурной частью ключа (длина
+    `household_ids` и число ушедших), потому что они происходят вне `economy/`.
+    """
+
+    def _herd_world(self, calf: float = 1.0):
+        world = load_scenario(HILL_SALT, seed=1729)
+        household = world.households["hh_02"]
+        world.households = {household.id: household}
+        stock = world.get_stock(household.stock_id)
+        stock.amounts.clear()
+        stock.amounts["ox_calf"] = calf
+        stock.amounts["hay"] = 10.0
+        return world, household, stock
+
+    def test_maturing_a_calf_changes_the_sum_by_number(self) -> None:
+        """Тёлка → вол внутри месяца: сумма обязана вырасти РОВНО на 0.8.
+
+        Это и есть главная проверка кэша. Без неё кэш тихо врал бы: год к году
+        одно и то же поголовье давало бы один и тот же множитель навоза, а
+        выросший вол не давал бы подстилки. Мутация «инвалидация выключена»
+        возвращает старое значение, и тест падает на `0.8 != 0.0`.
+        """
+        from hillcourt.economy import soil
+        from hillcourt.economy.labor import apply_recipe
+
+        world, household, stock = self._herd_world()
+        settlement_id = household.settlement_id
+        before = soil.settlement_livestock_units(world, settlement_id)
+        self.assertAlmostEqual(before, 0.4, places=9, msg="стенд: не телёнка")
+        recipe = world.catalogs.recipes["mature_ox_calf_m"]
+        apply_recipe(world, household, world.tiles[household.current_tile_id], recipe, 1.0,
+                     world.clock.date)
+        after = soil.settlement_livestock_units(world, settlement_id)
+        self.assertAlmostEqual(
+            after - before, 0.8, places=9,
+            msg=(
+                "стадо изменилось в этом же месяце, а сумма поселения — нет: "
+                f"было {before:.6f}, стало {after:.6f}"
+            ),
+        )
+        self.assertAlmostEqual(after, 1.2, places=9)
+        self.assertEqual(stock.amounts.get("ox_calf", 0.0), 0.0)
+
+    def test_death_inside_a_month_changes_the_sum_by_number(self) -> None:
+        """Смерть от голода в этом же месяце: минус рацион, а не ноль."""
+        from hillcourt.economy import livestock, soil
+
+        world, household, stock = self._herd_world(calf=0.0)
+        stock.amounts["ox_m"] = 1.0
+        settlement_id = household.settlement_id
+        before = soil.settlement_livestock_units(world, settlement_id)
+        self.assertAlmostEqual(before, 1.2, places=9, msg="стенд: не вол")
+        livestock._die_stock(
+            world, stock, world.clock.date, die_adult=1.0, die_young=1.0,
+        )
+        after = soil.settlement_livestock_units(world, settlement_id)
+        self.assertAlmostEqual(
+            after, 0.0, places=9,
+            msg=f"палёж вола не увиден кэшем: было {before:.6f}, стало {after:.6f}",
+        )
+
+    def test_cache_equals_the_scan_on_every_scenario(self) -> None:
+        """Кэш == перебор на всех семи сценариях, месяц за месяцем.
+
+        Расхождение хотя бы в одной единице означало бы, что кэш неверен, и
+        месяц тихо поехал бы. Здесь сверка идёт с ЭТАЛОНА
+        (`settlement_livestock_units_uncached`, без кэша) по каждому двору после
+        каждого месяца — на тех же мирах, где сценарий грузится.
+        """
+        from pathlib import Path
+
+        from hillcourt.economy import soil
+        from hillcourt.engine.tick import run_month
+
+        for path in sorted((ROOT / "design" / "scenarios").glob("*.yml")):
+            if path.name.startswith("tmp"):
+                continue
+            world = load_scenario(path, seed=1729)
+            months = 2 if "barony" in path.name else 6
+            for month in range(1, months + 1):
+                for hid in sorted(world.households):
+                    settlement_id = world.households[hid].settlement_id
+                    with self.subTest(scenario=path.name, month=month, household=hid):
+                        self.assertAlmostEqual(
+                            soil.settlement_livestock_units(world, settlement_id),
+                            soil.settlement_livestock_units_uncached(world, settlement_id),
+                            places=9,
+                            msg=f"{path.name} M{month} {hid}: кэш разошёлся с перебором",
+                        )
+                run_month(world)
+
+
 class TestDraftCatalog(unittest.TestCase):
     """Каталог: виды, пол, корм, рецепты приплода и взросления."""
 
@@ -73,17 +179,40 @@ class TestDraftCatalog(unittest.TestCase):
         self.assertEqual(self.world.needs.feed_good, "hay")
 
     def test_breed_and_mature_recipes_balance(self) -> None:
-        for rid in sorted(self.world.catalogs.recipes):
-            if not (rid.startswith("breed_") or rid.startswith("mature_")):
-                continue
-            recipe = self.world.catalogs.recipes[rid]
-            left = sum(recipe.inputs.values()) + sum(recipe.draws_standing.values())
-            right = sum(recipe.outputs.values()) + sum(recipe.loss.values())
-            self.assertAlmostEqual(left, right, places=6, msg=f"{rid}: нет баланса")
-            self.assertTrue(recipe.transform, f"{rid}: нет transform")
-            self.assertGreater(recipe.labor_days, 0.0)
-            for good in list(recipe.outputs) + list(recipe.loss):
-                self.assertIn(good, self.world.catalogs.goods)
+        recipes = self.world.catalogs.recipes
+        breeding = sorted(
+            rid
+            for rid in recipes
+            if rid.startswith("breed_") or rid.startswith("mature_")
+        )
+        # Обход по префиксу без проверки непустоты — тест, который ничего не
+        # проверяет: убери из каталога все `breed_*`/`mature_*`, и он останется
+        # зелёным (ADR 0155). Поэтому список сначала сверяется с **данными модуля**:
+        # каждое животное из MALES/FEMALES должно иметь рецепт размножения, каждое
+        # из YOUNG — рецепт взросления. Проверка выведена из вида скота, а не из
+        # выдуманного числа.
+        for good in MALES + FEMALES:
+            with self.subTest(species=good, need="breed"):
+                self.assertTrue(
+                    [rid for rid in breeding if good.split("_")[0] in rid],
+                    f"{good}: в каталоге нет рецепта размножения",
+                )
+        for good in YOUNG:
+            with self.subTest(species=good, need="mature"):
+                self.assertTrue(
+                    [rid for rid in breeding if good.split("_")[0] in rid],
+                    f"{good}: в каталоге нет рецепта взросления",
+                )
+        for rid in breeding:
+            with self.subTest(recipe=rid):
+                recipe = recipes[rid]
+                left = sum(recipe.inputs.values()) + sum(recipe.draws_standing.values())
+                right = sum(recipe.outputs.values()) + sum(recipe.loss.values())
+                self.assertAlmostEqual(left, right, places=6, msg=f"{rid}: нет баланса")
+                self.assertTrue(recipe.transform, f"{rid}: нет transform")
+                self.assertGreater(recipe.labor_days, 0.0)
+                for good in list(recipe.outputs) + list(recipe.loss):
+                    self.assertIn(good, self.world.catalogs.goods)
 
 
 class TestPloughDraft(unittest.TestCase):
@@ -240,7 +369,10 @@ class TestBreeding(unittest.TestCase):
         self.assertAlmostEqual(stock.amounts.get("horse_m", 0.0), 1.0, places=6)
         self.assertAlmostEqual(stock.amounts.get("horse_foal", 0.0), 1.0, places=6,
                                msg="Молодняк не появился")
-        self.assertAlmostEqual(stock.amounts.get("hay", 0.0), 6.0, places=6)
+        # 10.0 − 4.0 (приплод `breed_horse`: 1.0 вход + 3.0 потери) − 1.0 (подстилка
+        # `make_manure`, хлев с двумя кобылами) = 5.0. Подстилка законна при тягле
+        # (`soil.livestock_units`, закон без тягла — `test_soil_improvements`).
+        self.assertAlmostEqual(stock.amounts.get("hay", 0.0), 5.0, places=6)
         self.assertAlmostEqual(world.ledger.delta(world.total_matter()), 0.0, places=6)
 
     def test_no_pair_no_offspring_no_rng_spend(self) -> None:
@@ -258,7 +390,9 @@ class TestBreeding(unittest.TestCase):
         )
         self.assertAlmostEqual(stock.amounts.get("horse_foal", 0.0), 0.0, places=6,
                                msg="Приплод без пары")
-        self.assertAlmostEqual(stock.amounts.get("hay", 0.0), 10.0, places=6)
+        # 10.0 − 1.0 (подстилка `make_manure`: кобыла — тягло, хлев даёт навоз) = 9.0.
+        # Приплода нет — значит и нечего кормить; подстилка от пары не зависит.
+        self.assertAlmostEqual(stock.amounts.get("hay", 0.0), 9.0, places=6)
         self.assertAlmostEqual(world.ledger.delta(world.total_matter()), 0.0, places=6)
 
     def test_maturation_grows_foal_to_adult(self) -> None:
@@ -277,7 +411,9 @@ class TestBreeding(unittest.TestCase):
         self.assertAlmostEqual(stock.amounts.get("horse_foal", 0.0), 0.0, places=6)
         adults = stock.amounts.get("horse_m", 0.0) + stock.amounts.get("horse_f", 0.0)
         self.assertAlmostEqual(adults, 2.0, places=6, msg="Взрослые не выросли")
-        self.assertAlmostEqual(stock.amounts.get("hay", 0.0), 6.0, places=6)
+        # 10.0 − 4.0 (взросление двух жеребят: по 2.0 сена на голову) − 1.0
+        # (подстилка `make_manure`) = 5.0.
+        self.assertAlmostEqual(stock.amounts.get("hay", 0.0), 5.0, places=6)
         self.assertAlmostEqual(world.ledger.delta(world.total_matter()), 0.0, places=6)
 
 
@@ -307,7 +443,9 @@ class TestFeed(unittest.TestCase):
         phase_consume(world)
         self.assertAlmostEqual(stock.amounts.get("ox_m", 0.0), 1.0, places=6,
                                msg="Сытый вол пал")
-        self.assertAlmostEqual(stock.amounts.get("hay", 0.0), 5.0 - 1.2, places=6)
+        # 5.0 − 1.2 (корм волу, `feed`) − 1.0 (подстилка `make_manure`, хлев с волом)
+        # = 2.8. Подстилка законна при тягле: `soil.livestock_units` считает вола.
+        self.assertAlmostEqual(stock.amounts.get("hay", 0.0), 5.0 - 1.2 - 1.0, places=6)
         self.assertAlmostEqual(world.ledger.delta(world.total_matter()), 0.0, places=6)
 
     def test_manor_barn_feeds_too(self) -> None:
@@ -465,7 +603,7 @@ class TestSeasonalGraze(unittest.TestCase):
             die_adult=0.0, die_young=0.0,
         )
         self.assertAlmostEqual(
-            barn.amounts.get("hay", 0.0), 10.0 - 1.2, places=6,
+            barn.amounts.get("hay", 0.0), 10.0 - 1.2 - 1.0, places=6,
             msg="Амбар зимой скормил не полную норму",
         )
         self.assertAlmostEqual(
@@ -531,7 +669,7 @@ class TestSeasonalGraze(unittest.TestCase):
         grazed = [e for e in world.ledger.entries if e.reason == "graze"]
         self.assertEqual(grazed, [], "Выпас из ничего при пустых пастбищах")
         self.assertAlmostEqual(
-            barn.amounts.get("hay", 0.0), 10.0 - 1.2, places=6,
+            barn.amounts.get("hay", 0.0), 10.0 - 1.2 - 1.0, places=6,
             msg="Недобор выпаса не покрыт сеном",
         )
         self.assertAlmostEqual(

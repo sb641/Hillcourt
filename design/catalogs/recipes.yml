@@ -8,6 +8,27 @@
 # Рецепт без выхода товара, которого не было на входе, обязан иметь transform: true.
 # Труд: labor_days — трудодни на одну партию при масштабе 1.
 # Единицы: см. design/catalogs/README.md («Единицы»).
+#
+# ===== РЕЕСТР СТАТУСА ПОЛЕЙ recipes.yml (ADR 0192) =====
+# Пять значений, смысл и приборы — в шапке `goods.yml` (реестр один на каталог,
+# читается одинаково). Коротко: `live` — читает расчёт; `checked` — защищено
+# загрузчиком или тестом; `witness` — доказательство происхождения; `reserved` —
+# объявлено как намерение, исполнения нет; `superseded` — вытеснено поздним
+# законом. Проверяет `test_catalog_rules` (pass 2, вместе с парсером).
+# Пока `reserved` не погашен, поле обязано остаться необязательным у загрузчика.
+#
+# поле | статус | прибор | основание
+# id | live | сортировка/журнал: идентификация, не механика | —
+# name | live | подписи в отчётах и вестях | —
+# place | live | economy/labor::_tiles_for_recipe, apply_recipe | ADR 0106
+# requires_terrain | live | economy/labor::_tiles_for_recipe | ADR 0106
+# inputs | live | economy/labor::apply_recipe → Ledger.transfer | ADR 0106
+# draws_standing | live | economy/labor::apply_recipe → Ledger.transfer | ADR 0106
+# outputs | live | economy/labor::apply_recipe → Ledger.emit | ADR 0106
+# loss | live | economy/labor::apply_recipe → Ledger.emit → sink:waste | ADR 0106
+# labor_days | live | economy/labor::_apply_set, сезонный бюджет двора | ADR 0106
+# transform | checked | test_catalog_rules::test_recipes (запрет) | ADR 0001:68
+# tool_multiplier | reserved | цитата есть, чтений 0, значений 0 из рецептов | ADR 0106:20-21
 version: 1
 recipes:
   - id: harvest_grain
@@ -15,8 +36,8 @@ recipes:
     place: tile
     requires_terrain: [field]
     inputs: {}
-    draws_standing: {grain: 6.0}
-    outputs: {grain: 5.0, straw: 0.8}
+    draws_standing: {grain: 6.2}
+    outputs: {grain: 5.0, straw: 1.0}
     loss: {grain: 0.2}
     labor_days: 20
     transform: true
@@ -56,6 +77,57 @@ recipes:
     loss: {log: 0.05}
     labor_days: 4
     transform: true
+  # ЛЕСТНИЦА МАТЕРИАЛА (ADR 0106 п. 3, ADR 0157): бревно → доска → планка, ниже не
+  # спускаемся — гвозди, рукояти, скобы остаются `concept_only`. Числа перенесены
+  # из кода без изменения: `log 1.05 → board 1.0`, `board 1.05 → plank 1.0`, потери
+  # 5 % входа. `transform: true`, потому что выход (board/plank) на входе не
+  # объявлен. Имена — по образцу соседей: работа-существительное без цели
+  # («Колка брёвен», «Резка торфа»). Потребителя планки в v0 нет (ADR 0150) — это
+  # не дыра: место хранения `barn`, рецепт и производство есть (И-7), планка лежит.
+  - id: make_board
+    name: Распил бревна
+    place: settlement
+    requires_terrain: []
+    inputs: {log: 1.05}
+    draws_standing: {}
+    outputs: {board: 1.0}
+    loss: {log: 0.05}
+    labor_days: 4
+    transform: true
+  - id: make_plank
+    name: Распил доски
+    place: settlement
+    requires_terrain: []
+    inputs: {board: 1.05}
+    draws_standing: {}
+    outputs: {plank: 1.0}
+    loss: {board: 0.05}
+    labor_days: 3
+    transform: true
+  # РАСЧИСТКА ЛЕСА (ADR 0175). Операция ВЫКОРЧЁВКИ: с клетки снимается стоячая
+  # древесина (пни, корни) и выбирается камень из земли. Лес остаётся лесом —
+  # `terrain` не меняется (граница v0 из design/review/clearing_and_yards_design.md).
+  # Бревно двор берёт отдельно, рецептом `cut_wood`; здесь всё снятое бревно
+  # уходит в потери — пни, корни, опилки и негодная древесина товаром не
+  # становятся. Потери читаются из УЧТЁННОЙ стоячей материи клетки, а не из
+  # воздуха: 12.0 + 12.0 = 9.6 + 12.0 + 2.4 = 24.0. `transform: true`, потому
+  # что камень на входе не объявлен.
+  #
+  # ТРУД 60 ТРУДОДНЕЙ = 3 МЕСЯЦА ВЗРОСЛОГО (норма 20 трудодней в месяц), и это
+  # не украшение: `goods.yml::stone.price_*` выведены ИЗ ЭТОГО ЧИСЛА
+  # (`60 / 9.6 × 0.02 = 0.125000`). Смена `labor_days` без пересчёта
+  # `goods.yml::stone.price_*` разрывает каталог сам с собой и роняет тест
+  # `test_catalog_rules::TestClearingGivesLogsAndStone`.
+  - id: uproot_stumps
+    name: Выкорчёвка пней
+    place: tile
+    requires_terrain: [forest]
+    inputs: {}
+    draws_standing: {log: 12.0, stone: 12.0}
+    outputs: {stone: 9.6}
+    loss: {log: 12.0, stone: 2.4}
+    labor_days: 60
+    transform: true
   - id: cut_peat
     name: Резка торфа
     place: tile
@@ -74,6 +146,19 @@ recipes:
     outputs: {hay: 3.0}
     loss: {hay: 0.15}
     labor_days: 8
+  # Навоз — материала по лестнице: подстилка из хлева идёт в поле. Пассивная
+  # стойловая работа (`economy/livestock.py::livestock_month`, как `mature_*`),
+  # труд не списывается; труд-двор берёт на разбрасывание (`economy/soil.py`).
+  - id: make_manure
+    name: Уборка навоза
+    place: settlement
+    requires_terrain: []
+    inputs: {hay: 1.0}
+    draws_standing: {}
+    outputs: {manure: 0.8}
+    loss: {hay: 0.2}
+    labor_days: 2
+    transform: true
   - id: mine_iron
     name: Добыча болотного железа
     place: tile
@@ -110,6 +195,45 @@ recipes:
     loss: {pig: 0.15}
     labor_days: 3
     transform: true
+  # Добыча дичи (ADR 0128): действие `take_game`, один рецепт на вид, без цепочек
+  # «туша → шкура → разделанное». Стоячая материя клетки — дичь на гексе
+  # (`spawn_rules.yml game_*`); труд — единственный вход (ADR 0106/0108).
+  - id: take_game_squirrel
+    name: Добыча белки
+    place: tile
+    requires_terrain: [forest, heath]
+    inputs: {}
+    draws_standing: {squirrel: 0.11}
+    outputs: {squirrel: 0.1}
+    loss: {squirrel: 0.01}
+    labor_days: 0.5
+  - id: take_game_rabbit
+    name: Добыча кролика
+    place: tile
+    requires_terrain: [forest, heath]
+    inputs: {}
+    draws_standing: {rabbit: 0.165}
+    outputs: {rabbit: 0.15}
+    loss: {rabbit: 0.015}
+    labor_days: 1
+  - id: take_game_deer
+    name: Добыча оленя
+    place: tile
+    requires_terrain: [forest]
+    inputs: {}
+    draws_standing: {deer: 1.43}
+    outputs: {deer: 1.3}
+    loss: {deer: 0.13}
+    labor_days: 12
+  - id: take_game_boar
+    name: Добыча кабана
+    place: tile
+    requires_terrain: [forest]
+    inputs: {}
+    draws_standing: {boar: 2.2}
+    outputs: {boar: 2.0}
+    loss: {boar: 0.2}
+    labor_days: 15
   - id: smith_axe
     name: Ковка топора
     place: settlement
@@ -219,6 +343,42 @@ recipes:
     outputs: {firewood: 1.4, grain: 0.18}
     loss: {firewood: 0.1, grain: 0.02}
     labor_days: 6
+  - id: gather_roots
+    name: Сбор корней и клубней
+    place: tile
+    requires_terrain: [field]
+    inputs: {}
+    draws_standing: {roots: 1.2}
+    outputs: {roots: 1.0}
+    loss: {roots: 0.2}
+    labor_days: 4
+  - id: pick_greens
+    name: Сбор зелени
+    place: tile
+    requires_terrain: [field, pasture]
+    inputs: {}
+    draws_standing: {greens: 1.2}
+    outputs: {greens: 0.9}
+    loss: {greens: 0.3}
+    labor_days: 3
+  - id: gather_mushrooms
+    name: Сбор грибов
+    place: tile
+    requires_terrain: [forest]
+    inputs: {}
+    draws_standing: {mushrooms: 1.1}
+    outputs: {mushrooms: 0.8}
+    loss: {mushrooms: 0.3}
+    labor_days: 5
+  - id: pick_berries
+    name: Сбор ягод
+    place: tile
+    requires_terrain: [forest, heath, marsh]
+    inputs: {}
+    draws_standing: {berries: 1.1}
+    outputs: {berries: 0.8}
+    loss: {berries: 0.3}
+    labor_days: 4
   # Скот и тягло (ADR 0025). Приплод: самец + самка одного вида в одном стоке
   # (двор или амбар) и сено дают редкий молодняк в тике — не ферма-кликер.
   # Родители — условие, а не вход: кобыла не исчезает, телёнок рождается из сена
@@ -314,4 +474,157 @@ recipes:
     outputs: {horse_f: 1.0}
     loss: {hay: 2.0}
     labor_days: 2
+    transform: true
+  - id: milk_cow
+    name: Дойка коров
+    place: settlement
+    inputs: {hay: 1.6}
+    draws_standing: {}
+    outputs: {milk: 1.0}
+    loss: {milk: 0.6}
+    labor_days: 0.6
+    transform: true
+  - id: milk_goat
+    name: Дойка коз
+    place: settlement
+    inputs: {hay: 0.7}
+    draws_standing: {}
+    outputs: {milk: 0.35}
+    loss: {milk: 0.35}
+    labor_days: 0.25
+    transform: true
+  - id: milk_sheep
+    name: Дойка овец
+    place: settlement
+    inputs: {hay: 0.9}
+    draws_standing: {}
+    outputs: {milk: 0.45}
+    loss: {milk: 0.45}
+    labor_days: 0.3
+    transform: true
+  - id: make_cheese
+    name: Сыроварение
+    place: settlement
+    inputs: {milk: 4.0}
+    draws_standing: {}
+    outputs: {cheese: 2.2}
+    loss: {milk: 1.8}
+    labor_days: 8.0
+    transform: true
+  - id: make_butter
+    name: Сбивание масла
+    place: settlement
+    inputs: {milk: 4.0}
+    draws_standing: {}
+    outputs: {butter: 1.2}
+    loss: {milk: 2.8}
+    labor_days: 5.0
+    transform: true
+  - id: craft_butter_churn
+    name: Сборка маслобойки
+    place: settlement
+    inputs: {log: 3.0}
+    draws_standing: {}
+    outputs: {butter_churn: 1.0}
+    loss: {log: 2.0}
+    labor_days: 8.0
+    transform: true
+  - id: collect_hen_eggs
+    name: Сбор куриных яиц
+    place: settlement
+    inputs: {grain: 0.7}
+    draws_standing: {}
+    outputs: {eggs: 0.45}
+    loss: {grain: 0.2, eggs: 0.05}
+    labor_days: 0.3
+    transform: true
+  - id: collect_duck_eggs
+    name: Сбор утиных яиц
+    place: settlement
+    inputs: {grain: 0.6}
+    draws_standing: {}
+    outputs: {eggs: 0.3}
+    loss: {grain: 0.25, eggs: 0.05}
+    labor_days: 0.3
+    transform: true
+  - id: collect_goose_eggs
+    name: Сбор гусиных яиц
+    place: settlement
+    inputs: {grain: 0.8}
+    draws_standing: {}
+    outputs: {eggs: 0.4}
+    loss: {grain: 0.35, eggs: 0.05}
+    labor_days: 0.35
+    transform: true
+  - id: butcher_hen
+    name: Убой курицы
+    place: settlement
+    inputs: {hen: 1.0}
+    draws_standing: {}
+    outputs: {meat: 0.6}
+    loss: {hen: 0.25, meat: 0.15}
+    labor_days: 2.0
+    transform: true
+  - id: butcher_duck
+    name: Убой утки
+    place: settlement
+    inputs: {duck: 1.0}
+    draws_standing: {}
+    outputs: {meat: 0.6}
+    loss: {duck: 0.25, meat: 0.15}
+    labor_days: 2.0
+    transform: true
+  - id: butcher_goose
+    name: Убой гуся
+    place: settlement
+    inputs: {goose: 1.0}
+    draws_standing: {}
+    outputs: {meat: 0.6}
+    loss: {goose: 0.25, meat: 0.15}
+    labor_days: 2.0
+    transform: true
+  - id: breed_goat
+    name: Приплод коз
+    place: settlement
+    inputs: {hay: 5.0}
+    draws_standing: {}
+    outputs: {goat: 1.0}
+    loss: {hay: 4.0}
+    labor_days: 3.0
+    transform: true
+  - id: breed_sheep
+    name: Приплод овец
+    place: settlement
+    inputs: {hay: 6.0}
+    draws_standing: {}
+    outputs: {sheep: 1.0}
+    loss: {hay: 5.0}
+    labor_days: 3.0
+    transform: true
+  - id: breed_hen
+    name: Приплод кур
+    place: settlement
+    inputs: {grain: 5.0, hay: 3.0}
+    draws_standing: {}
+    outputs: {hen: 1.0}
+    loss: {grain: 4.0, hay: 3.0}
+    labor_days: 3.0
+    transform: true
+  - id: breed_duck
+    name: Приплод уток
+    place: settlement
+    inputs: {grain: 6.0, hay: 4.0}
+    draws_standing: {}
+    outputs: {duck: 1.0}
+    loss: {grain: 5.0, hay: 4.0}
+    labor_days: 3.0
+    transform: true
+  - id: breed_goose
+    name: Приплод гусей
+    place: settlement
+    inputs: {grain: 8.0, hay: 5.0}
+    draws_standing: {}
+    outputs: {goose: 1.0}
+    loss: {grain: 7.0, hay: 5.0}
+    labor_days: 3.0
     transform: true

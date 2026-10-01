@@ -19,24 +19,41 @@
 
 ## 2. Карта репозитория и владельцы
 
+Правило: **у пути есть владелец.** Нет строки — агент не имеет права писать, даже если
+задача его явно касается. Это блокирующий дефект (ADR 0166), а не формальность: за день
+три агента работали в бесхозных файлах, пока таблица молчала.
+
 | Путь | Владелец | Кто ещё может писать |
 |---|---|---|
 | `docs/00_constitution.md` | Scribe | никто без ADR |
-| `docs/01`–`docs/06` | Scribe | профильная роль через предложку |
+| `docs/0*.md` | Scribe | профильная роль через предложку |
 | `docs/decisions/*.md` | любой агент | только добавление новых ADR, старые не редактируются |
-| `design/catalogs/goods.yml`, `recipes.yml`, `spawn_rules.yml`, `hazards.yml` | Economist | никто |
-| `design/catalogs/obligations.yml`, `rights.yml` | Legal | никто |
-| `design/scenarios/*.yml` | Implementer | Economist (только секции `stocks`/`recipes`) |
-| `sim/src/hillcourt/engine/`, `world/` | Implementer | никто |
+| `docs/fiction/` | Scribe | Orchestrator (продуктовое видение) |
+| `sim/README.md`, `sim/SEAT_PLACE.md` | Scribe | профильная роль через предложку |
+| `design/catalogs/goods.yml`, `design/catalogs/recipes.yml`, `design/catalogs/spawn_rules.yml`, `design/catalogs/hazards.yml`, `design/catalogs/seasons.yml` | Economist | никто |
+| `design/catalogs/manor.yml`, `design/catalogs/needs.yml`, `design/catalogs/actions_household.yml` | Economist | никто |
+| `design/catalogs/obligations.yml`, `design/catalogs/rights.yml` | Legal | никто |
+| `design/catalogs/calendar_v0.yml`, `design/catalogs/legal_statuses.yml`, `design/catalogs/offices.yml`, `design/catalogs/land_regimes.yml` | Legal | никто |
+| `design/catalogs/README.md` | Scribe | Economist, Legal (только свои разделы) |
+| `design/scenarios/*.yml`, `design/scenarios/*.md` | Implementer | Economist (только секции `stocks`/`recipes`) |
+| `design/review/` | системный дизайнер | Critic (только `critic_canon_*.md`), Scribe (только `manor_accounts_v0.md`, `backlog_v0.md`) |
+| `design/art/` | Illustrator | World (только вид), системный дизайнер (только спека и манифесты) |
+| `sim/src/hillcourt/engine/`, `sim/src/hillcourt/world.py` | Implementer | никто |
+| `sim/src/hillcourt/ontology.py`, `sim/src/hillcourt/catalogs.py`, `sim/src/hillcourt/ledger.py`, `sim/src/hillcourt/scenario.py`, `sim/src/hillcourt/runner.py`, `sim/src/hillcourt/__init__.py` | Implementer | никто |
 | `sim/src/hillcourt/economy/` | Economist | никто |
 | `sim/src/hillcourt/legal/` | Legal | Economist (только чтение) |
-| `sim/src/hillcourt/news/` | Info | никто |
+| `sim/src/hillcourt/news/`, `sim/src/hillcourt/info/` | Info | никто |
 | `sim/src/hillcourt/hazards/` | Implementer | Info (только тексты вестей через предложку) |
 | `sim/src/hillcourt/engine/tile_view.py` (только вид/данные, без механики) | World | никто без приказа хозяина |
-| `sim/tests/` | Implementer | профильная роль добавляет тест своего модуля |
+| `sim/tests/` | Implementer (каркас и общие обвинители) | **профильная роль пишет тест своей зоны**; Scribe — `sim/tests/test_docs_claims.py` (проверка `docs/`, `AGENTS.md`, реестра) |
 | `tools/prompts/` | Orchestrator | никто |
+| `tools/generate_illustration.py` | Illustrator | никто |
 | `client/` | — | **заморожено в фазе 0** |
-| `README.md` | Orchestrator | никто |
+| `README.md`, `STATUS.md`, `HANDOFF.md`, `CHANGELOG.md`, `.gitignore` | Orchestrator | никто |
+
+Проверку «у пути есть владелец» держит `sim/tests/test_docs_claims.py`
+(`TestEveryTrackedPathHasAnOwner`): путь из репозитория, которого нет в этой таблице,
+роняет тест. Список исключений — `KNOWN_OWNERLESS`.
 
 Правило одной правки: агент меняет только те файлы, что нужны для его задачи,
 и не «причёсывает» соседние.
@@ -109,6 +126,15 @@
 - Документ без критерия проверки — брак.
 - Не ломать чужие папки: Economist не переписывает каталоги Legal и наоборот.
 - Не притаскивать чужие движки/ассеты стратегий как основу.
+- **Ключом словаря нельзя ставить датакласс.** `@dataclass` обнуляет `__hash__`
+  (`type(world).__hash__ is None`), поэтому `World` и остальные 24 датакласса
+  `ontology.py` непригодны как ключ `dict`/`set`/`WeakKeyDictionary`/`WeakSet` —
+  `WeakKeyDictionary()[world]` падает с `TypeError`. Кэш уровня мира — только
+  `id(obj)` рядом с `weakref.ref`, как в `economy/soil.py:249`.
+- **Объект ушёл в `weakref.ref` ⇒ в дереве обязан быть обход, который чистит запись**
+  (сверка `ref() is obj` либо явный сброс по событию). Иначе запись висит на висящем
+  `id()`: новый объект получит тот же адрес, прочитает чужой кэш, и тик создаст материю
+  из ничего. Нарушение = откат, как и вечный двигатель.
 - Не коммитить секреты. Репо должен открываться без секретов и без обязательного Godot.
 
 ## 7. Проверка

@@ -1,0 +1,135 @@
+id: start_stand
+title: "Стенд начала: холм"
+seed: 1729
+
+clock:
+  start_year: 1
+  start_month: 1
+  months_per_year: 12
+
+map:
+  legend:
+    H: hill
+    f: field
+    p: pasture
+    F: forest
+    s: salt_flat
+  rows:
+    - "HffF"
+    - "fffp"
+    - "ffsf"
+
+settlements:
+  - {id: hill_court, name: "Усадьба на холме", kind: hill_court, at: [0, 0], holding_tiles: [[0, 0]], works_tiles: [[1, 0]]}
+  - {id: farm, name: "Выпас Ольхи", kind: farmstead, at: [3, 1], household_tiles: [[3, 1], [3, 0]], works_tiles: [[3, 1], [3, 0]]}
+  - {id: salt_village, name: "Соляная деревня", kind: salt_village, at: [2, 2], works_tiles: [[2, 2]]}
+  - {id: ash_village, name: "Деревня у ясеня", kind: village, at: [3, 2], works_tiles: [[3, 2]]}
+
+initial_hazards: []
+
+marks:
+  - {at: [0, 0], mark: dwelling, value: tent_earth}
+  - {at: [3, 1], mark: dwelling, value: tent_earth}
+
+player:
+  court_settlement_id: hill_court
+  household_id: hh_player
+  rent_share: 0.1
+  thegn_grant_limit: {tiles: 3, households: 3}
+
+households:
+  - {id: hh_player, name: "Держатель", settlement_id: hill_court, adults: 2, children: 0, slaves: 10, legal_status: holder}
+  - {id: hh_retinue, name: "Личная свита", settlement_id: hill_court, adults: 6, children: 0, legal_status: thegn, initially_unemployed: true}
+  - {id: hh_family_01, name: "Ольхи", settlement_id: farm, adults: 3, children: 2, legal_status: villein}
+  - {id: hh_family_02, name: "Ключа", settlement_id: farm, adults: 3, children: 2, legal_status: villein}
+  - {id: hh_family_03, name: "Ключи", settlement_id: farm, adults: 3, children: 2, legal_status: cotter}
+  - {id: hh_family_04, name: "Выпасники", settlement_id: farm, adults: 3, children: 2, legal_status: villein}
+  - {id: hh_family_05, name: "Пни", settlement_id: farm, adults: 3, children: 2, legal_status: cotter}
+
+packs:
+  - id: retinue_hunt
+    kind: party
+    origin: [0, 0]
+    destination: [3, 0]
+    owner_household_id: hh_retinue
+    member_ids: [hh_retinue_p1, hh_retinue_p2, hh_retinue_p3, hh_retinue_p4, hh_retinue_p5, hh_retinue_p6]
+    purpose: scout
+    profile_id: hunters
+  - id: start_caravan
+    kind: caravan
+    origin: [0, 0]
+    destination: [3, 1]
+    cargo: {grain: 20.0, hay: 10.0, cloth: 5.0}
+
+starting_stocks:
+  # КЛЮЧ `tile:t_03_00` БЫЛ ДВАЖДЫ — строки 65 и 90. `yaml.safe_load` берёт
+  # ПОСЛЕДНЮЮ, и `stone: 12.0` из первой строки исчезал молча: ни ошибки, ни
+  # предупреждения. Замер (`start_stand`, сид 1729): клетка стартовала с
+  # `{log 30.0, meat 8.0}` и к 48-му месяцу имела `stone 2.57`, а рецепт
+  # `uproot_stumps` требует `draws_standing {log 12.0, stone 12.0}` — 0 партий
+  # за 48 месяцев при любом труде. `grow_stone` даёт 0.6 × сумма сезонных
+  # множителей = 0.6 × 4.28 = 2.568 в год, то есть 12.0 камня копится 4.67
+  # года; сценарий и клал под расчистку 12.0, чтобы клетка была готова с
+  # первого месяца. Теперь запись одна, и камень на месте.
+  "tile:t_03_00": {log: 30.0, meat: 8.0, stone: 12.0}  # пни, дичь и камень под выкорчёвку
+  # `log: 6.0` в амбаре лорда — НАЧАЛЬНОЕ СОСТОЯНИЕ, а не починка материального
+  # контура. Обоснование числом: `work_road` стоит `log 3.0` (ADR 0039), то есть
+  # 6.0 — это ровно две дороги, и стенд показывает и цену, и результат.
+  #
+  # Почему это стартовое условие, а не «чинилка»: пути бревна в амбар манора в v0
+  # НЕТ ВООБЩЕ, и это дыра не стенда, а экономики (замер: `log` в амбаре корневого
+  # манора равен 0.0 во всех семи сценариях, а `cut_wood` в `v0_barony_100` даёт
+  # 24.0 — и все 24.0 уходят в стоки ВИЛЛАНОВ, потому что
+  # `economy/labor.py::apply_recipe` пишет выход в сток ИСПОЛНЯЮЩЕГО двора, а
+  # `output_stock` передаёт только `_work_demesne` и только для `harvest_grain`).
+  # Сам лорд срубить не может: пресет `holder` не пашет, значит
+  # `decisions.allowed_action_ids` даёт ему одно дело `oversee` (ADR 0150-указ
+  # «лорд сам не пашет»), а его пул труда уходит в доменное поле
+  # (`economy/manor.py::_manor_demesne_fields` отбирает только `terrain == "field"`).
+  # Значит лес `t_03_00` — право `clear_forest` без исполнителя. Это файл
+  # экономиста; пока его правят, стенд обязан быть нажимаемым.
+  "settlement:hill_court": {grain: 600.0, log: 6.0, flour: 40.0, firewood: 250.0, hay: 300.0, salt: 20.0, cloth: 30.0, cheese: 20.0, cart: 1.0, hen: 2.0, duck: 2.0, goat: 2.0, sheep: 2.0}
+  "settlement:salt_village": {salt: 20.0}
+  "tile:t_01_00": {grain: 30.0}
+  "tile:t_02_00": {grain: 8.0}
+  "tile:t_00_01": {grain: 8.0}
+  "tile:t_01_01": {grain: 8.0}
+  "tile:t_02_01": {grain: 8.0}
+  "tile:t_00_02": {grain: 8.0}
+  "tile:t_01_02": {grain: 8.0}
+  # Второй записи `tile:t_03_00` здесь больше НЕТ: она молча съедала
+  # `stone: 12.0` из строки 74 (см. комментарий там).
+  "household:hh_player": {grain: 40.0, firewood: 40.0, hay: 80.0, salt: 8.0, cloth: 10.0, cheese: 8.0}
+  "household:hh_retinue": {grain: 100.0, firewood: 60.0, hay: 80.0, war_kit: 2.0}
+  "household:hh_family_01": {firewood: 2.0, hay: 160.0, hen: 1.0, duck: 1.0, goat: 1.0, sheep: 1.0}
+  "household:hh_family_02": {firewood: 2.0, hay: 160.0, hen: 1.0, duck: 1.0, goat: 1.0, sheep: 1.0}
+  "household:hh_family_03": {firewood: 2.0, hay: 160.0, hen: 1.0, duck: 1.0, goat: 1.0, sheep: 1.0}
+  "household:hh_family_04": {firewood: 2.0, hay: 160.0, hen: 1.0, duck: 1.0, goat: 1.0, sheep: 1.0}
+  "household:hh_family_05": {firewood: 2.0, hay: 160.0, hen: 1.0, duck: 1.0, goat: 1.0, sheep: 1.0}
+
+script:
+  - {at_month: 1, action: set_tile_regime, tile: t_03_00, regime: demesne}  # расчистка исполнима: право clear_forest даёт только demesne (ADR 0182)
+  - {at_month: 1, action: set_tile_regime, tile: t_01_00, regime: demesne}
+  - {at_month: 1, action: grant_tenure, household: hh_family_01, tile: t_02_00, kind: grazing, rent_share: 0.1}
+  - {at_month: 1, action: grant_tenure, household: hh_family_02, tile: t_00_01, kind: grazing, rent_share: 0.1}
+  - {at_month: 1, action: grant_tenure, household: hh_family_03, tile: t_01_01, kind: grazing, rent_share: 0.1}
+  - {at_month: 1, action: grant_tenure, household: hh_family_04, tile: t_02_01, kind: grazing, rent_share: 0.1}
+  - {at_month: 1, action: grant_tenure, household: hh_family_05, tile: t_00_02, kind: grazing, rent_share: 0.1}
+  - {at_month: 7, action: grant_tenement, household: hh_wave_01, tiles: [t_01_02], name: "Волна переселенцев", settlement_id: farm, adults: 3, children: 2, legal_status: villein, starting_stocks: {grain: 180.0, firewood: 2.0, hay: 160.0, hen: 1.0, duck: 1.0, goat: 1.0, sheep: 1.0}}
+  - {at_month: 7, action: grant_tenure, household: hh_wave_01, tile: t_01_02, kind: grazing, rent_share: 0.1}
+
+catalogs:
+  goods: design/catalogs/goods.yml
+  recipes: design/catalogs/recipes.yml
+  spawn_rules: design/catalogs/spawn_rules.yml
+  hazards: design/catalogs/hazards.yml
+  obligations: design/catalogs/obligations.yml
+  rights: design/catalogs/rights.yml
+  land_regimes: design/catalogs/land_regimes.yml
+  legal_statuses: design/catalogs/legal_statuses.yml
+  offices: design/catalogs/offices.yml
+  needs: design/catalogs/needs.yml
+  actions_household: design/catalogs/actions_household.yml
+  manor: design/catalogs/manor.yml
+  seasons: design/catalogs/seasons.yml
+  calendar: design/catalogs/calendar_v0.yml

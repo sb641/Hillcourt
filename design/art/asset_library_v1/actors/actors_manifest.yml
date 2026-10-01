@@ -1,0 +1,578 @@
+version: 0
+id: hillcourt_actor_library_v1
+name: Actor library v1
+
+atlas:
+  file: asset_library_v1/actors/actors_atlas_v1.png
+  guide: asset_library_v1/actors/guides/actors_guide_v1.png
+  plate_dir: asset_library_v1/actors/plates
+  columns: 5
+  cell_canvas_px: [128, 128]
+  anchor_px: [64, 80]
+  background: transparent
+  status: mixed_reference_and_drawn
+  animation_claim: false
+  previous_status: clean_pose_reference
+
+# The three drawn figures are identified by `Person.age_class`, which docs/03
+# fixes as exactly {child, adult, elder} and which the simulation reads in
+# demography, needs, decisions, manor, seat and thegn. That is a data carrier -
+# it says what the plate depicts. It is not a sprite selector: nothing in sim/
+# picks a plate from it. See ADR 0180.
+#
+# The five reference cells below have no carrier: there is no `pose`, `stance`,
+# `occupation` or carried-item field anywhere in the ontology, and
+# `Household.main_action` is a household decision, not a per-person pose. A
+# plate nobody can select is a picture, so they stay references and are listed
+# as excluded in the proof manifest.
+drawn_figures:
+  manifest: flat2d_proof/flat2d_proof_manifest.yml
+  verifier: flat2d_proof/verify_proof.py
+  anchor_px: [64, 64]
+  data_carrier: Person.age_class
+  data_carrier_kind: declared_field
+  sprite_selector: none
+  data_carrier_note: >-
+    Person.age_class is a data carrier: it identifies the depicted entity and
+    the simulation reads it. It is NOT a sprite selector. No code in sim/ picks
+    a plate from it, because client/ is frozen; see
+    docs/decisions/0180_data_carrier_is_not_a_sprite_selector.md.
+
+cells:
+  - id: actor_child
+    name: Child figure
+    game_entities: [Person]
+    data_carrier: Person.age_class
+    data_carrier_kind: declared_field
+    carrier_value: child
+    flat_2d_plate: flat2d_proof/plates/actor_child.png
+    status: drawn_flat_2d
+  - id: actor_adult
+    name: Adult figure
+    game_entities: [Person]
+    data_carrier: Person.age_class
+    data_carrier_kind: declared_field
+    carrier_value: adult
+    flat_2d_plate: flat2d_proof/plates/actor_adult.png
+    status: drawn_flat_2d
+  - id: actor_elder
+    name: Elder figure
+    game_entities: [Person]
+    data_carrier: Person.age_class
+    data_carrier_kind: declared_field
+    carrier_value: elder
+    flat_2d_plate: flat2d_proof/plates/actor_elder.png
+    status: drawn_flat_2d
+  - id: pose_reference_01
+    name: Actor pose reference 01
+    game_entities: [Person, Household]
+    source_plate: actor_villager_a
+    status: reference_no_carrier
+    data_carrier: null
+    sprite_selector: none
+    carrier_note: >-
+      No pose, stance or occupation field exists in the
+      ontology, so no field identifies this plate.
+  - id: pose_reference_02
+    name: Actor pose reference 02
+    game_entities: [Person, Household]
+    source_plate: actor_villager_b
+    status: reference_no_carrier
+    data_carrier: null
+    sprite_selector: none
+    carrier_note: >-
+      No pose, stance or occupation field exists in the
+      ontology, so no field identifies this plate.
+  - id: pose_reference_03
+    name: Actor pose reference 03
+    game_entities: [Person, Household]
+    source_plate: actor_villager_c
+    status: reference_no_carrier
+    data_carrier: null
+    sprite_selector: none
+    carrier_note: >-
+      No pose, stance or occupation field exists in the
+      ontology, so no field identifies this plate.
+  - id: pose_reference_04
+    name: Actor pose reference 04
+    game_entities: [Person, Household]
+    source_plate: actor_villager_d
+    status: reference_no_carrier
+    data_carrier: null
+    sprite_selector: none
+    carrier_note: >-
+      No pose, stance or occupation field exists in the
+      ontology, so no field identifies this plate.
+  - id: actor_retainer_equipment
+    name: Retainer equipment reference
+    game_entities: [Person, Pack]
+    source_plate: actor_retainer_equipment
+    status: reference_no_carrier
+    data_carrier: null
+    sprite_selector: none
+    carrier_note: >-
+      Pack.profile_id carries hunters/forester/party, but no
+      field anywhere carries a shield, a spear or any other
+      carried item, so retainer equipment has no selector.
+# Clothing, seven layers, drawn on the same body landmarks as the figures so
+# a layer is an overlay and not a second person. `Household.legal_status_id` is
+# the carrier: a declared field, read by the simulation. No field was added.
+# The wealth steps order that same field. See ADR 0187.
+clothing:
+  carrier_field: Household.legal_status_id
+  sprite_selector: none
+  layers: [armour, feet, head, legs, outer, rank, tunic]
+  status_to_armour_step:
+    cotter: 0
+    free_landless: 0
+    geneat: 1
+    holder: 2
+    slave: 0
+    sokeman: 1
+    thegn: 2
+    villein: 0
+  note: >-
+    The armour steps are three, not eight: no armour, leather byrnie, mail
+    byrnie. All eight legal statuses are placed on the three explicitly, so
+    none is left to guesswork. Plate armour is deliberately absent - it is the
+    fourteenth century and MOODBOARD.md forbids it.
+  age_classes: [child, adult, elder]
+  age_note: >-
+    A layer is drawn once per body. `Person.age_class` is a real carrier, so the
+    body is part of the key and `body_id` says which figure each plate overlays.
+    Sixteen adult-only plates would have left a child of a thegn drawn in the
+    thegn's silk, cut to the thegn's hem, on a body two thirds of the height: a
+    garment that fitted nobody, with every plate in the file individually correct.
+  plates:
+    - id: garment_armour_leather_adult
+      name: Leather byrnie (adult)
+      status: drawn_flat_2d
+      material_layer: armour
+      material_wealth_step: 1
+      material_age_class: adult
+      body_id: actor_adult
+      form: armour_byrnie
+      flat_2d_plate: flat2d_proof/plates/garment_armour_leather_adult.png
+    - id: garment_armour_leather_child
+      name: Leather byrnie (child)
+      status: drawn_flat_2d
+      material_layer: armour
+      material_wealth_step: 1
+      material_age_class: child
+      body_id: actor_child
+      form: armour_byrnie
+      flat_2d_plate: flat2d_proof/plates/garment_armour_leather_child.png
+    - id: garment_armour_leather_elder
+      name: Leather byrnie (elder)
+      status: drawn_flat_2d
+      material_layer: armour
+      material_wealth_step: 1
+      material_age_class: elder
+      body_id: actor_elder
+      form: armour_byrnie
+      flat_2d_plate: flat2d_proof/plates/garment_armour_leather_elder.png
+    - id: garment_armour_mail_adult
+      name: Mail byrnie (adult)
+      status: drawn_flat_2d
+      material_layer: armour
+      material_wealth_step: 2
+      material_age_class: adult
+      body_id: actor_adult
+      form: armour_byrnie
+      flat_2d_plate: flat2d_proof/plates/garment_armour_mail_adult.png
+    - id: garment_armour_mail_child
+      name: Mail byrnie (child)
+      status: drawn_flat_2d
+      material_layer: armour
+      material_wealth_step: 2
+      material_age_class: child
+      body_id: actor_child
+      form: armour_byrnie
+      flat_2d_plate: flat2d_proof/plates/garment_armour_mail_child.png
+    - id: garment_armour_mail_elder
+      name: Mail byrnie (elder)
+      status: drawn_flat_2d
+      material_layer: armour
+      material_wealth_step: 2
+      material_age_class: elder
+      body_id: actor_elder
+      form: armour_byrnie
+      flat_2d_plate: flat2d_proof/plates/garment_armour_mail_elder.png
+    - id: garment_feet_boot_adult
+      name: Good leather boots (adult)
+      status: drawn_flat_2d
+      material_layer: feet
+      material_wealth_step: 2
+      material_age_class: adult
+      body_id: actor_adult
+      form: feet_high
+      flat_2d_plate: flat2d_proof/plates/garment_feet_boot_adult.png
+    - id: garment_feet_boot_child
+      name: Good leather boots (child)
+      status: drawn_flat_2d
+      material_layer: feet
+      material_wealth_step: 2
+      material_age_class: child
+      body_id: actor_child
+      form: feet_high
+      flat_2d_plate: flat2d_proof/plates/garment_feet_boot_child.png
+    - id: garment_feet_boot_elder
+      name: Good leather boots (elder)
+      status: drawn_flat_2d
+      material_layer: feet
+      material_wealth_step: 2
+      material_age_class: elder
+      body_id: actor_elder
+      form: feet_high
+      flat_2d_plate: flat2d_proof/plates/garment_feet_boot_elder.png
+    - id: garment_feet_hide_adult
+      name: Crude hide shoes (adult)
+      status: drawn_flat_2d
+      material_layer: feet
+      material_wealth_step: 1
+      material_age_class: adult
+      body_id: actor_adult
+      form: feet_low
+      flat_2d_plate: flat2d_proof/plates/garment_feet_hide_adult.png
+    - id: garment_feet_hide_child
+      name: Crude hide shoes (child)
+      status: drawn_flat_2d
+      material_layer: feet
+      material_wealth_step: 1
+      material_age_class: child
+      body_id: actor_child
+      form: feet_low
+      flat_2d_plate: flat2d_proof/plates/garment_feet_hide_child.png
+    - id: garment_feet_hide_elder
+      name: Crude hide shoes (elder)
+      status: drawn_flat_2d
+      material_layer: feet
+      material_wealth_step: 1
+      material_age_class: elder
+      body_id: actor_elder
+      form: feet_low
+      flat_2d_plate: flat2d_proof/plates/garment_feet_hide_elder.png
+    - id: garment_head_coif_adult
+      name: Linen coif or straw hat (adult)
+      status: drawn_flat_2d
+      material_layer: head
+      material_wealth_step: 0
+      material_age_class: adult
+      body_id: actor_adult
+      form: head_cover
+      flat_2d_plate: flat2d_proof/plates/garment_head_coif_adult.png
+    - id: garment_head_coif_child
+      name: Linen coif or straw hat (child)
+      status: drawn_flat_2d
+      material_layer: head
+      material_wealth_step: 0
+      material_age_class: child
+      body_id: actor_child
+      form: head_cover
+      flat_2d_plate: flat2d_proof/plates/garment_head_coif_child.png
+    - id: garment_head_coif_elder
+      name: Linen coif or straw hat (elder)
+      status: drawn_flat_2d
+      material_layer: head
+      material_wealth_step: 0
+      material_age_class: elder
+      body_id: actor_elder
+      form: head_cover
+      flat_2d_plate: flat2d_proof/plates/garment_head_coif_elder.png
+    - id: garment_head_helm_adult
+      name: Nasal helm (adult)
+      status: drawn_flat_2d
+      material_layer: head
+      material_wealth_step: 2
+      material_age_class: adult
+      body_id: actor_adult
+      form: head_helm
+      flat_2d_plate: flat2d_proof/plates/garment_head_helm_adult.png
+    - id: garment_head_helm_child
+      name: Nasal helm (child)
+      status: drawn_flat_2d
+      material_layer: head
+      material_wealth_step: 2
+      material_age_class: child
+      body_id: actor_child
+      form: head_helm
+      flat_2d_plate: flat2d_proof/plates/garment_head_helm_child.png
+    - id: garment_head_helm_elder
+      name: Nasal helm (elder)
+      status: drawn_flat_2d
+      material_layer: head
+      material_wealth_step: 2
+      material_age_class: elder
+      body_id: actor_elder
+      form: head_helm
+      flat_2d_plate: flat2d_proof/plates/garment_head_helm_elder.png
+    - id: garment_hose_wool_adult
+      name: Woollen hose (adult)
+      status: drawn_flat_2d
+      material_layer: legs
+      material_wealth_step: 2
+      material_age_class: adult
+      body_id: actor_adult
+      form: legs_hose
+      flat_2d_plate: flat2d_proof/plates/garment_hose_wool_adult.png
+    - id: garment_hose_wool_child
+      name: Woollen hose (child)
+      status: drawn_flat_2d
+      material_layer: legs
+      material_wealth_step: 2
+      material_age_class: child
+      body_id: actor_child
+      form: legs_hose
+      flat_2d_plate: flat2d_proof/plates/garment_hose_wool_child.png
+    - id: garment_hose_wool_elder
+      name: Woollen hose (elder)
+      status: drawn_flat_2d
+      material_layer: legs
+      material_wealth_step: 2
+      material_age_class: elder
+      body_id: actor_elder
+      form: legs_hose
+      flat_2d_plate: flat2d_proof/plates/garment_hose_wool_elder.png
+    - id: garment_legs_wrapped_adult
+      name: Cloth leg wrappings (adult)
+      status: drawn_flat_2d
+      material_layer: legs
+      material_wealth_step: 1
+      material_age_class: adult
+      body_id: actor_adult
+      form: legs_wraps
+      flat_2d_plate: flat2d_proof/plates/garment_legs_wrapped_adult.png
+    - id: garment_legs_wrapped_child
+      name: Cloth leg wrappings (child)
+      status: drawn_flat_2d
+      material_layer: legs
+      material_wealth_step: 1
+      material_age_class: child
+      body_id: actor_child
+      form: legs_wraps
+      flat_2d_plate: flat2d_proof/plates/garment_legs_wrapped_child.png
+    - id: garment_legs_wrapped_elder
+      name: Cloth leg wrappings (elder)
+      status: drawn_flat_2d
+      material_layer: legs
+      material_wealth_step: 1
+      material_age_class: elder
+      body_id: actor_elder
+      form: legs_wraps
+      flat_2d_plate: flat2d_proof/plates/garment_legs_wrapped_elder.png
+    - id: garment_outer_apron_adult
+      name: Work apron (adult)
+      status: drawn_flat_2d
+      material_layer: outer
+      material_wealth_step: 0
+      material_age_class: adult
+      body_id: actor_adult
+      form: outer_apron
+      flat_2d_plate: flat2d_proof/plates/garment_outer_apron_adult.png
+    - id: garment_outer_apron_child
+      name: Work apron (child)
+      status: drawn_flat_2d
+      material_layer: outer
+      material_wealth_step: 0
+      material_age_class: child
+      body_id: actor_child
+      form: outer_apron
+      flat_2d_plate: flat2d_proof/plates/garment_outer_apron_child.png
+    - id: garment_outer_apron_elder
+      name: Work apron (elder)
+      status: drawn_flat_2d
+      material_layer: outer
+      material_wealth_step: 0
+      material_age_class: elder
+      body_id: actor_elder
+      form: outer_apron
+      flat_2d_plate: flat2d_proof/plates/garment_outer_apron_elder.png
+    - id: garment_outer_cloak_adult
+      name: Wool cloak (adult)
+      status: drawn_flat_2d
+      material_layer: outer
+      material_wealth_step: 1
+      material_age_class: adult
+      body_id: actor_adult
+      form: outer_cloak
+      flat_2d_plate: flat2d_proof/plates/garment_outer_cloak_adult.png
+    - id: garment_outer_cloak_child
+      name: Wool cloak (child)
+      status: drawn_flat_2d
+      material_layer: outer
+      material_wealth_step: 1
+      material_age_class: child
+      body_id: actor_child
+      form: outer_cloak
+      flat_2d_plate: flat2d_proof/plates/garment_outer_cloak_child.png
+    - id: garment_outer_cloak_elder
+      name: Wool cloak (elder)
+      status: drawn_flat_2d
+      material_layer: outer
+      material_wealth_step: 1
+      material_age_class: elder
+      body_id: actor_elder
+      form: outer_cloak
+      flat_2d_plate: flat2d_proof/plates/garment_outer_cloak_elder.png
+    - id: garment_outer_fur_adult
+      name: Fur-lined cloak (adult)
+      status: drawn_flat_2d
+      material_layer: outer
+      material_wealth_step: 2
+      material_age_class: adult
+      body_id: actor_adult
+      form: outer_cloak
+      flat_2d_plate: flat2d_proof/plates/garment_outer_fur_adult.png
+    - id: garment_outer_fur_child
+      name: Fur-lined cloak (child)
+      status: drawn_flat_2d
+      material_layer: outer
+      material_wealth_step: 2
+      material_age_class: child
+      body_id: actor_child
+      form: outer_cloak
+      flat_2d_plate: flat2d_proof/plates/garment_outer_fur_child.png
+    - id: garment_outer_fur_elder
+      name: Fur-lined cloak (elder)
+      status: drawn_flat_2d
+      material_layer: outer
+      material_wealth_step: 2
+      material_age_class: elder
+      body_id: actor_elder
+      form: outer_cloak
+      flat_2d_plate: flat2d_proof/plates/garment_outer_fur_elder.png
+    - id: garment_rank_iron_adult
+      name: Iron brooch (adult)
+      status: drawn_flat_2d
+      material_layer: rank
+      material_wealth_step: 1
+      material_age_class: adult
+      body_id: actor_adult
+      form: rank_pin
+      flat_2d_plate: flat2d_proof/plates/garment_rank_iron_adult.png
+    - id: garment_rank_iron_child
+      name: Iron brooch (child)
+      status: drawn_flat_2d
+      material_layer: rank
+      material_wealth_step: 1
+      material_age_class: child
+      body_id: actor_child
+      form: rank_pin
+      flat_2d_plate: flat2d_proof/plates/garment_rank_iron_child.png
+    - id: garment_rank_iron_elder
+      name: Iron brooch (elder)
+      status: drawn_flat_2d
+      material_layer: rank
+      material_wealth_step: 1
+      material_age_class: elder
+      body_id: actor_elder
+      form: rank_pin
+      flat_2d_plate: flat2d_proof/plates/garment_rank_iron_elder.png
+    - id: garment_rank_silver_adult
+      name: Silver brooch and neck ring (adult)
+      status: drawn_flat_2d
+      material_layer: rank
+      material_wealth_step: 2
+      material_age_class: adult
+      body_id: actor_adult
+      form: rank_torc
+      flat_2d_plate: flat2d_proof/plates/garment_rank_silver_adult.png
+    - id: garment_rank_silver_child
+      name: Silver brooch and neck ring (child)
+      status: drawn_flat_2d
+      material_layer: rank
+      material_wealth_step: 2
+      material_age_class: child
+      body_id: actor_child
+      form: rank_torc
+      flat_2d_plate: flat2d_proof/plates/garment_rank_silver_child.png
+    - id: garment_rank_silver_elder
+      name: Silver brooch and neck ring (elder)
+      status: drawn_flat_2d
+      material_layer: rank
+      material_wealth_step: 2
+      material_age_class: elder
+      body_id: actor_elder
+      form: rank_torc
+      flat_2d_plate: flat2d_proof/plates/garment_rank_silver_elder.png
+    - id: garment_tunic_dyed_adult
+      name: Tunic, dyed wool (adult)
+      status: drawn_flat_2d
+      material_layer: tunic
+      material_wealth_step: 1
+      material_age_class: adult
+      body_id: actor_adult
+      form: tunic_body
+      flat_2d_plate: flat2d_proof/plates/garment_tunic_dyed_adult.png
+    - id: garment_tunic_dyed_child
+      name: Tunic, dyed wool (child)
+      status: drawn_flat_2d
+      material_layer: tunic
+      material_wealth_step: 1
+      material_age_class: child
+      body_id: actor_child
+      form: tunic_body
+      flat_2d_plate: flat2d_proof/plates/garment_tunic_dyed_child.png
+    - id: garment_tunic_dyed_elder
+      name: Tunic, dyed wool (elder)
+      status: drawn_flat_2d
+      material_layer: tunic
+      material_wealth_step: 1
+      material_age_class: elder
+      body_id: actor_elder
+      form: tunic_body
+      flat_2d_plate: flat2d_proof/plates/garment_tunic_dyed_elder.png
+    - id: garment_tunic_homespun_adult
+      name: Tunic, undyed homespun (adult)
+      status: drawn_flat_2d
+      material_layer: tunic
+      material_wealth_step: 0
+      material_age_class: adult
+      body_id: actor_adult
+      form: tunic_body
+      flat_2d_plate: flat2d_proof/plates/garment_tunic_homespun_adult.png
+    - id: garment_tunic_homespun_child
+      name: Tunic, undyed homespun (child)
+      status: drawn_flat_2d
+      material_layer: tunic
+      material_wealth_step: 0
+      material_age_class: child
+      body_id: actor_child
+      form: tunic_body
+      flat_2d_plate: flat2d_proof/plates/garment_tunic_homespun_child.png
+    - id: garment_tunic_homespun_elder
+      name: Tunic, undyed homespun (elder)
+      status: drawn_flat_2d
+      material_layer: tunic
+      material_wealth_step: 0
+      material_age_class: elder
+      body_id: actor_elder
+      form: tunic_body
+      flat_2d_plate: flat2d_proof/plates/garment_tunic_homespun_elder.png
+    - id: garment_tunic_silk_adult
+      name: Tunic, silk (adult)
+      status: drawn_flat_2d
+      material_layer: tunic
+      material_wealth_step: 2
+      material_age_class: adult
+      body_id: actor_adult
+      form: tunic_body
+      flat_2d_plate: flat2d_proof/plates/garment_tunic_silk_adult.png
+    - id: garment_tunic_silk_child
+      name: Tunic, silk (child)
+      status: drawn_flat_2d
+      material_layer: tunic
+      material_wealth_step: 2
+      material_age_class: child
+      body_id: actor_child
+      form: tunic_body
+      flat_2d_plate: flat2d_proof/plates/garment_tunic_silk_child.png
+    - id: garment_tunic_silk_elder
+      name: Tunic, silk (elder)
+      status: drawn_flat_2d
+      material_layer: tunic
+      material_wealth_step: 2
+      material_age_class: elder
+      body_id: actor_elder
+      form: tunic_body
+      flat_2d_plate: flat2d_proof/plates/garment_tunic_silk_elder.png

@@ -79,6 +79,8 @@ class Person:
     land_relation: str = "landless"
     obligation_bundle: Optional[str] = None
     age_months: int = 0
+    labor_productivity: float = 1.0
+    talent: float = 1.0
 
 
 @dataclass
@@ -147,6 +149,7 @@ class Tile:
     ford: bool = False
     bridge: bool = False
     trail_wear: float = 0.0
+    resource_productivity: float = 1.0
 
 
 @dataclass
@@ -266,9 +269,18 @@ class Report:
     noise: float = 0.0
 
 
+PACK_PURPOSES: tuple[str, ...] = ("party", "scout")
+PACK_SCOUT_PROFILES: tuple[str, ...] = ("hunters", "forester", "party")
+
+
 @dataclass
 class Pack:
-    """Обоз/посылка в пути; в v0 существует, но не задействован."""
+    """Обоз или партия в пути с целью и профилем разведки.
+
+    `purpose` ограничен `party` и `scout`: обычная партия и разведка.
+    `profile_id` ограничен `hunters`, `forester`, `party`; отдельного наблюдателя
+    нет — честный свидетель события разведки равен `Pack.id`.
+    """
 
     id: str
     kind: str
@@ -283,6 +295,15 @@ class Pack:
     owner_household_id: Optional[str] = None
     obligation_id: Optional[str] = None
     lost_date: Optional[SimDate] = None
+    purpose: str = "party"
+    profile_id: str = "party"
+
+    def __post_init__(self) -> None:
+        """Отклонить цель или профиль разведки вне закрытого списка v1."""
+        if self.purpose not in PACK_PURPOSES:
+            raise ValueError(f"Неизвестный purpose '{self.purpose}'")
+        if self.profile_id not in PACK_SCOUT_PROFILES:
+            raise ValueError(f"Неизвестный profile_id '{self.profile_id}'")
 
 
 @dataclass
@@ -310,6 +331,10 @@ class Good:
     spoil_per_month: float = 0.0
     edible: bool = False
     nutrition: float = 0.0
+    price_silver: float = 0.0
+    price_labor_silver: float = 0.0
+    price_materials_silver: float = 0.0
+    price_losses_silver: float = 0.0
 
 
 @dataclass
@@ -326,18 +351,25 @@ class Recipe:
     loss: dict[str, float]
     labor_days: float
     transform: bool = False
+    tool_multiplier: float = 1.0
 
 
 @dataclass
 class SpawnRule:
-    """Каталожное правило появления материи, угрозы, обоза или руины."""
+    """Каталожное правило появления материи, угрозы, обоза или руины.
+
+    Происхождение потока **не** хранится здесь: его несёт вид проводки
+    `LedgerEntry.kind` (приход/расход с внешним источником) и непустой
+    `LedgerEntry.rule_id`, а И-1 проверяется именно на `rule_id`
+    (`test_matter_conservation`). Ярлык происхождения был объявлен и грузился,
+    но не читался — снят (ADR 0164 п. 2).
+    """
 
     id: str
     name: str
     target: str
     kind: str
     params: dict[str, Any] = field(default_factory=dict)
-    external: Optional[str] = None
 
 
 @dataclass

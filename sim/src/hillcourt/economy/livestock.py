@@ -38,6 +38,8 @@ SPECIES: tuple[str, ...] = ("ox", "donkey", "horse")
 MALE: dict[str, str] = {"ox": "ox_m", "donkey": "donkey_m", "horse": "horse_m"}
 FEMALE: dict[str, str] = {"ox": "ox_f", "donkey": "donkey_f", "horse": "horse_f"}
 YOUNG: dict[str, str] = {"ox": "ox_calf", "donkey": "donkey_foal", "horse": "horse_foal"}
+# Навоз — товар лестницы (`goods.yml::manure`), производится рецептом `make_manure`.
+MANURE_GOOD = "manure"
 
 # Одно правило пахоты на вид: вол лучше всех, конь хуже вола, осёл не пашет.
 PLOUGH_FACTOR: dict[str, float] = {"ox": 0.7, "donkey": 1.0, "horse": 0.9}
@@ -67,6 +69,22 @@ DRAFT_GOODS: frozenset[str] = frozenset(list(ADULT_GOODS) + list(YOUNG_GOODS))
 HORSE_GOODS: frozenset[str] = frozenset(
     (MALE["horse"], FEMALE["horse"], YOUNG["horse"])
 )
+DAIRY_GOODS: dict[str, str] = {
+    "milk_cow": "ox_f",
+    "milk_goat": "goat",
+    "milk_sheep": "sheep",
+}
+EGG_GOODS: dict[str, str] = {
+    "collect_hen_eggs": "hen",
+    "collect_duck_eggs": "duck",
+    "collect_goose_eggs": "goose",
+}
+ANIMAL_PRODUCT_RECIPES: frozenset[str] = frozenset(DAIRY_GOODS | EGG_GOODS)
+SMALL_LIVESTOCK_GOODS: frozenset[str] = frozenset(
+    {"pig", "goat", "sheep", "hen", "duck", "goose"}
+)
+SMALL_LIVESTOCK_PER_HOLDING = 12
+SMALL_LIVESTOCK_PER_COMMUNAL_TILE = 4
 
 
 def _amount(stock: Stock, good: str) -> float:
@@ -312,6 +330,11 @@ def _feed_stock(world: World, stock: Stock, date: SimDate) -> None:
                 stock, world.get_stock(WASTE_STOCK_ID), animal, kill, "starved", date
             )
             world.bump("animals_starved", kill)
+            # Голос скота ушёл в отходы — сумма стойловых голов поселения
+            # изменилась, кэш обязан пересчитаться (см. `soil.herd_state`).
+            from .soil import invalidate_herd_cache
+
+            invalidate_herd_cache(world)
 
 
 def _hay_surplus_months(world: World, stock: Stock, month: int) -> float:
@@ -426,6 +449,9 @@ def _die_stock(
                 stock, world.get_stock(WASTE_STOCK_ID), good, 1.0, "died", date
             )
             world.bump("animals_died")
+            from .soil import invalidate_herd_cache
+
+            invalidate_herd_cache(world)
 
 
 def _manor_stocks(world: World) -> list[Stock]:
@@ -501,6 +527,82 @@ def hay_pastures(world: World, household) -> list:
                 out.append(neighbour)
                 seen.add(neighbour.id)
     return sorted(out, key=lambda tile: tile.id)
+
+
+def small_livestock_count(stock: Stock) -> float:
+    """Число голов мелкого скота в стоке."""
+    return sum(_amount(stock, good) for good in SMALL_LIVESTOCK_GOODS)
+
+
+def small_livestock_cap(world: World, household) -> int:
+    """Кап мелкого скота по кормящим клеткам и праву на общинный выгон."""
+    from ..legal.regimes import has_access_to_communal_tile
+    from .labor import own_tiles
+
+    own = own_tiles(world, household)
+    holding_ids = {
+        tile.id
+        for tile in own
+        if (regime := world.catalogs.land_regimes.get(tile.regime_id)) is not None
+        and regime.feeds_household
+    }
+    cap = len(holding_ids) * SMALL_LIVESTOCK_PER_HOLDING
+    common_ids: set[str] = set()
+    for right in world.rights.values():
+        if right.kind != "common" or right.tile_id not in world.tiles:
+            continue
+        tile = world.tiles[right.tile_id]
+        if tile.terrain == "pasture" and has_access_to_communal_tile(
+            world, household, tile
+        ):
+            common_ids.add(tile.id)
+    return cap + len(common_ids) * SMALL_LIVESTOCK_PER_COMMUNAL_TILE
+
+
+def has_animal_access(
+    world: World,
+    household,
+    stock: Stock,
+    cap: int | None = None,
+) -> bool:
+    """Есть ли у двора кормящий надел для скота и вписывается ли он в кап.
+
+    `cap` — уже посчитанный `small_livestock_cap(world, household)`. Он не зависит
+    ни от стока, ни от товара, ни от сделок, поэтому вызывающий, который
+    спрашивает про много товаров подряд, считает его ОДИН раз и передаёт готовым
+    (`economy/exchange.py::_trade_livestock`). `None` означает «посчитай сам».
+    """
+    if cap is None:
+        cap = small_livestock_cap(world, household)
+    return _access_by_cap(stock, cap)
+
+
+def _access_by_cap(stock: Stock, cap: int) -> bool:
+    """Проверка доступа по ГОТОВОМУ капу: сначала число голов, потом кап.
+
+    Порядок вычислений, а не логики: ответ равен
+    `(cap > 0 and count <= cap + EPSILON) or count > EPSILON`, и при
+    `count > EPSILON` он истинен ЛЮБЫМ капом. Поэтому двор, у которого мелкий
+    скот уже есть, не платит за расчёт капа (наполнение `works_tiles` и обход
+    `world.rights`) — а в мире, где скот есть, это и есть все покупатели.
+    """
+    count = small_livestock_count(stock)
+    if count > EPSILON:
+        return True
+    return cap > 0 and count <= cap + EPSILON
+
+
+def animal_product_scale(world: World, household, stock: Stock, recipe_id: str) -> float:
+    """Число голов, доступных одному месячному рецепту продукта."""
+    if recipe_id in DAIRY_GOODS:
+        if not has_animal_access(world, household, stock):
+            return 0.0
+        return _amount(stock, DAIRY_GOODS[recipe_id])
+    if recipe_id in EGG_GOODS:
+        if not has_animal_access(world, household, stock):
+            return 0.0
+        return _amount(stock, EGG_GOODS[recipe_id])
+    return 1.0
 
 
 def _draft_hay_need(world: World, household, stock: Stock, month: int) -> float:
@@ -590,6 +692,50 @@ def gather_draft_hay(world: World, date: SimDate) -> None:
                 break
 
 
+def _manure_stock(world: World, stock: Stock, date: SimDate) -> None:
+    """Навоз стойла за месяц: подстилка из сена уходит в навоз (`make_manure`).
+
+    Пассивная стойловая работа, как `mature_*`: труд не списывается, а навоз
+    копится в стоке двора/амбара. Дальше двор разбрасывает его по своему наделу
+    за трудодни (`economy/soil.py::spread_manure`) — там он уже множит выход
+    гекса.
+
+    Условие партии — **ТЯГЛО, а не любая живность** (`soil.livestock_units`: вол,
+    осёл, конь — те, что пашут и возят). Мелкий скот в счёт не идёт: его подстилка
+    пашню не удобряет, и `soil.manure_yield_factor` его тоже не считает — свиньи
+    давали бы навоз, который нигде не работает, выжигая по 1.0 сена на сток
+    (замерено: у `hh_06` 2 свиньи и у `hh_10` 1 свинья, скота тяглового нет, а
+    `make_manure` списывал сено в обоих). Закон тот же закреплён зелёным тестом
+    `test_soil_improvements.py::test_manure_recipe_is_matter_and_needs_draught`:
+    «без тягла хлев навоза не даёт». Прочие условия: в стоке уже есть навоза —
+    партия не повторяется (одна навозная куча на сток), и есть полная порция сена
+    на партию. Без тягла, без сена или при готовом навозе — ни проводки, ни RNG.
+    """
+    from . import soil
+
+    recipe = world.catalogs.recipes.get("make_manure")
+    if recipe is None or _amount(stock, MANURE_GOOD) > EPSILON:
+        return
+    if soil.livestock_units(world, stock) <= EPSILON:
+        return
+    if _amount(stock, "hay") + EPSILON < sum(recipe.inputs.values()):
+        return
+    if _cook(world, stock, "make_manure", date):
+        world.bump("manure_made")
+
+
+def _livestock_units(world: World, stock: Stock) -> float:
+    """Стойловые головы стока по норме `needs.yml.livestock` (вол 1.2, корова 1.0)."""
+    needs = world.needs
+    if needs is None:
+        return 0.0
+    return sum(
+        _amount(stock, good) * float(rate)
+        for good, rate in sorted(needs.feed_per_month.items())
+    )
+
+
+
 def livestock_month(
     world: World,
     date: SimDate,
@@ -606,11 +752,12 @@ def livestock_month(
     ранняя фаза `phase_hay` (`gather_draft_hay`, единственная, ADR 0050):
     поздний добор удалён (замер: за 60 мес шира накосил 0 — пастбища пусты,
     а резерв под него жал поле). Без скота — ни одной проводки и ни одного
-    броска RNG.
+    броска RNG. Навоз (`make_manure`) — тоже пассивная стойловая работа.
     """
     for stock in _manor_stocks(world):
         _feed_stock(world, stock, date)
     for stock in _herd_stocks(world):
         _breed_stock(world, stock, date, breed_prob)
         _mature_stock(world, stock, date, grow_prob)
+        _manure_stock(world, stock, date)
         _die_stock(world, stock, date, die_adult, die_young)

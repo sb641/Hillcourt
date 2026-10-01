@@ -1,0 +1,59 @@
+version: 0
+id: hillcourt_supported_goods_props_v0
+name: Supported goods and props atlas
+
+atlas:
+  file: asset_library_v0/supported_goods_props_atlas_v0.png
+  guide: asset_library_v0/guides/supported_goods_props_guide_v0.png
+  plate_dir: asset_library_v0/plates
+  columns: 3
+  cell_canvas_px: [128, 128]
+  background: transparent
+  status: filtered_from_crop_plates
+
+cells:
+  - id: good_salt_pile
+    name: Salt pile
+    plate: item_salt_pile.png
+    game_goods: [salt]
+    source_status: crop_reference
+  - id: good_peat_bricks
+    name: Peat bricks
+    plate: item_peat_bricks.png
+    game_goods: [peat]
+    source_status: crop_reference
+  - id: good_grain_sacks
+    name: Grain sacks
+    plate: item_grain_sacks.png
+    game_goods: [grain]
+    source_status: crop_reference
+  - id: good_wool_bale
+    name: Wool bale
+    plate: item_wool_bale.png
+    game_goods: [wool]
+    source_status: crop_reference
+  - id: good_log_stack
+    name: Log stack
+    plate: item_log_stack.png
+    game_goods: [log]
+    source_status: crop_reference
+  - id: good_boat
+    name: Boat and net
+    plate: item_boat_net.png
+    game_goods: [boat]
+    source_status: crop_reference
+  - id: good_cart
+    name: Loaded cart
+    plate: prop_cart_loaded.png
+    game_goods: [cart]
+    source_status: crop_reference
+  - id: good_iron_tools
+    name: Iron tools
+    plate: prop_tool_board.png
+    game_goods: [iron]
+    source_status: crop_reference
+  - id: good_boat_small
+    name: Small boat
+    plate: prop_boat_small.png
+    game_goods: [boat]
+    source_status: crop_reference

@@ -130,6 +130,16 @@ class TestNativeVillageScenario(unittest.TestCase):
 class TestLoaderGuards(unittest.TestCase):
     """Гейты загрузчика: прямоугольная карта, носитель и клетка права."""
 
+    def setUp(self) -> None:
+        import tempfile
+
+        # Фикстуры-сценарии живут во временном каталоге теста: `NamedTemporaryFile`
+        # без `dir=` ронял файл в текущий каталог, а прогон `sim/run_tests.sh`
+        # идёт из корня репозитория — там и копился мусор `tmp*.yml`.
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp_dir = Path(self._tmp.name)
+
     def _data(self) -> dict:
         import yaml
 
@@ -137,15 +147,15 @@ class TestLoaderGuards(unittest.TestCase):
             return yaml.safe_load(fh)
 
     def _write(self, data: dict) -> Path:
+        import os
         import tempfile
 
         import yaml
 
-        with tempfile.NamedTemporaryFile(
-            "w", suffix=".yml", delete=False, encoding="utf-8"
-        ) as fh:
+        handle, name = tempfile.mkstemp(suffix=".yml", dir=self.tmp_dir)
+        with os.fdopen(handle, "w", encoding="utf-8") as fh:
             yaml.safe_dump(data, fh, allow_unicode=True)
-            return Path(fh.name)
+        return Path(name)
 
     def test_ragged_map_rejected(self) -> None:
         data = self._data()

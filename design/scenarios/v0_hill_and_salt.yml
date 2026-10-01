@@ -33,7 +33,7 @@ map:
     - "FF.ppp.ms"
 
 settlements:
-  - {id: hill_court, name: "Двор на холме", kind: hill_court, at: [1, 1], works_tiles: [[5, 2], [6, 2]]}
+  - {id: hill_court, name: "Двор на холме", kind: hill_court, at: [1, 1], holding_tiles: [[0, 2]], works_tiles: [[5, 2], [6, 2]]}
   - {id: fs_01, name: "Двор Ольхи", kind: farmstead, at: [2, 1]}
   - {id: fs_02, name: "Двор Ключа", kind: farmstead, at: [3, 1]}
   - {id: fs_03, name: "Двор Пня", kind: farmstead, at: [5, 1]}
@@ -44,7 +44,7 @@ settlements:
   - {id: fs_08, name: "Двор Куста", kind: farmstead, at: [4, 2]}
   - {id: fs_09, name: "Двор Кремня", kind: farmstead, at: [6, 3]}
   - {id: fs_10, name: "Двор Смолы", kind: farmstead, at: [7, 3]}
-  - {id: salt_village, name: "Соляная деревня", kind: salt_village, at: [8, 5], works_tiles: [[6, 5], [6, 4], [7, 6]]}
+  - {id: salt_village, name: "Соляная деревня", kind: salt_village, at: [8, 5], works_tiles: [[6, 5], [6, 4], [7, 6], [8, 6]]}
 
 # Стартовые опасности. Лес у холма — волки; топь — заготовка под ватагу.
 initial_hazards:
@@ -68,7 +68,7 @@ households:
   - {id: hh_03, name: "Пни", settlement_id: fs_03, adults: 4, children: 1, legal_status: cotter}
   - {id: hh_04, name: "Грядичи", settlement_id: fs_04, adults: 2, children: 2, legal_status: geneat}
   - {id: hh_05, name: "Плетни", settlement_id: fs_05, adults: 3, children: 3, mood: 0.55, legal_status: villein}
-  - {id: hh_06, name: "Межинцы", settlement_id: fs_06, adults: 2, children: 1, legal_status: free_landless}
+  - {id: hh_06, name: "Межинцы", settlement_id: fs_06, adults: 2, children: 1, legal_status: free_landless, initially_unemployed: true}
   - {id: hh_07, name: "Бродники", settlement_id: fs_07, adults: 3, children: 2, curiosity: 0.9, fear: 0.1, legal_status: sokeman}
   - {id: hh_08, name: "Кусты", settlement_id: fs_08, adults: 2, children: 4, mood: 0.5, legal_status: villein}
   - {id: hh_09, name: "Кремни", settlement_id: fs_09, adults: 4, children: 2, legal_status: geneat}
@@ -78,10 +78,11 @@ households:
 
 # Стартовые склады. Ключ — "<owner_kind>:<owner_id>".
 starting_stocks:
+  "tile:t_00_01": {log: 12.0, stone: 12.0}  # пни и камень под выкорчёвку
   "household:hh_court": {grain: 120.0, firewood: 20.0, salt: 6.0, axe: 2.0, silver: 10.0}
   "household:hh_retinue": {grain: 20.0, firewood: 6.0, axe: 1.0}
   "settlement:hill_court": {grain: 60.0, salt: 4.0, firewood: 10.0, cart: 1.0}
-  "settlement:salt_village": {grain: 30.0, cart: 1.0}
+  "settlement:salt_village": {grain: 117.6, cart: 1.0}
   "household:hh_01": {grain: 34.0, firewood: 8.0, axe: 1.0}
   "household:hh_02": {grain: 40.0, firewood: 8.0, axe: 1.0}
   "household:hh_03": {grain: 26.0, firewood: 6.0, axe: 1.0}
@@ -95,6 +96,8 @@ starting_stocks:
   "household:hh_salt_01": {grain: 32.0, firewood: 4.0, peat: 12.0, axe: 1.0}
   "household:hh_salt_02": {grain: 30.0, firewood: 4.0, peat: 10.0, axe: 1.0}
 
+script:
+  - {at_month: 1, action: set_tile_regime, tile: t_00_01, regime: demesne}  # расчистка исполнима: право clear_forest даёт только demesne (ADR 0182)
 catalogs:
   goods: design/catalogs/goods.yml
   recipes: design/catalogs/recipes.yml

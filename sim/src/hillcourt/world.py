@@ -71,7 +71,36 @@ class World:
         return float(sum(self.stocks[sid].total() for sid in sorted(self.stocks)))
 
     def state_hash(self) -> str:
-        """Стабильный sha256 по дате, стокам и ключевым полям дворов."""
+        """Стабильный sha256 по дате, стокам и ключевым полям дворов.
+
+        **Хеш описывает МИР, а не журнал нажатий (ADR 0215 §Дыра 3).**
+        Раньше здесь стоял обход `self.player_actions`, и это ломало прибор: любой
+        приказ — исполненный или отказанный — двигал хеш одинаково, то есть
+        «мир изменился» и «игрок что-то нажал» были неразличимы. Обвинитель
+        «приказ что-то изменил?» на таком хеше написать нельзя: он всегда скажет
+        «да», и сказать «нет» он тоже не может, потому что хеш одинаковый.
+
+        Почему ничего не потеряно. Каждый приказ лорда меняет то, что в хеше
+        **уже есть**, поэтому снятие журнала не стирает его последствий:
+
+        | приказ | что меняет и это в хеше |
+        |---|---|
+        | `grant_grain`, `grant_tool` | стоки (`Ledger.transfer`) |
+        | `set_tile_regime` | `tile.regime_id` |
+        | `assign_work` | `main_action`/`minor_action` двора |
+        | `grant_tenure`, `grant_tenement` | `rights` |
+        | `grant_thegn`, `revoke_thegn` | `manors` |
+        | `grant_grain` на ушедшем, `send_*` | `households`/`packs` |
+        | `work_road`/`ford`/`bridge` | `roadworks` и `tile.road/ford/bridge` |
+        | `call_boon`, `ease_week_work` | `stats["boon_called_month"]`, `stats["eased_days_*"]` |
+        | **отказ приказа** | `stats["orders_refused"]` (ADR 0202 §3, ADR 0215) |
+
+        Последняя строка — и есть ответ на «а как же отказ как ход игры»:
+        отказ остаётся частью хода игры, но попадает в состояние **счётчиком**, а
+        не строкой журнала. Проверяется тестом `test_dead_levers_and_ruin_warning.py`
+        (§Дыра 3): две записи в лог приказов, не двигающие мир, дают один хеш, а
+        отказ приказа даёт хеш, отличный от мира, в котором приказа не было.
+        """
         parts = [str(self.clock.date)]
         for sid in sorted(self.stocks):
             amounts = sorted(self.stocks[sid].amounts.items())
@@ -97,7 +126,7 @@ class World:
             pack = self.packs[pack_id]
             parts.append(
                 f"pack|{pack_id}|{pack.status}|{sorted(pack.member_ids)}|{pack.eta_date}|"
-                f"{pack.lost_date}"
+                f"{pack.lost_date}|{pack.obligation_id}|{pack.purpose}|{pack.profile_id}"
             )
         for pid in sorted(self.persons):
             parts.append(
@@ -108,7 +137,7 @@ class World:
             ob = self.obligations[oid]
             parts.append(
                 f"obl|{oid}|{ob.paid_total:.6f}|{ob.arrears:.6f}|"
-                f"{ob.corvee_days:.6f}|{ob.duty_days:.6f}"
+                f"{ob.corvee_days:.6f}|{ob.duty_days:.6f}|{ob.call_status}"
             )
         for hid in sorted(self.hazards):
             hz = self.hazards[hid]
@@ -140,11 +169,9 @@ class World:
                 f"{getattr(manor, 'eye_range_tiles', 1)}|"
                 f"{getattr(manor, 'peace_range_tiles', 1)}"
             )
-        for action in self.player_actions:
-            parts.append(
-                f"act|{action.get('date')}|{action.get('action')}|"
-                f"{sorted((k, str(v)) for k, v in action.items())}"
-            )
+        # `player_actions` здесь НЕ читается намеренно (ADR 0215 §Дыра 3): хеш —
+        # состояние мира, а журнал нажатий им не является. Отказ приказа при этом
+        # не теряется — его считает `stats["orders_refused"]` ниже.
         for key in sorted(self.barter_memory):
             memory = self.barter_memory[key]
             parts.append(

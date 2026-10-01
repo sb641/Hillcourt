@@ -1,0 +1,62 @@
+# Camp plates. Written by hand - keep the inline style, do not round-trip
+# this through yaml.safe_dump.
+version: 0
+id: camps_v0
+name: Camps, one plate per tile_view camp form
+note: 'A camp is a DERIVED VIEW FORM, not an entity: `tile_view.camp_form()` (tile_view.py:643)
+  returns the form from `pack.kind`, the owner''s legal status and the head count, through
+  `inbound_packs()`. That is why the carrier here is the field the code branches on, and
+  why ADR 0190 was wrong to say a camp cannot be drawn - I judged from the ontology and
+  never opened tile_view.py.
+
+  `camp_lost_caravan` is not a Pack in transit at all: it is a named tile mark read through
+  `getattr(tile, mark, False)` (tile_view.py:764), so its carrier is `optional_attribute`,
+  not a declared dataclass field.'
+sprite_selector: none
+reachable_forms_source: sim/src/hillcourt/engine/tile_view.py::camp_form_for_pack
+cells:
+- id: camp_campfire
+  name: Campfire
+  game_form: campfire_camp
+  carrier_field: Pack.purpose
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/camp_campfire.png
+- id: camp_foot_pot
+  name: Watchman's pot
+  game_form: foot_pot_camp
+  carrier_field: Pack.purpose
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/camp_foot_pot.png
+- id: camp_fortified
+  name: Palisaded host camp
+  game_form: fortified_camp
+  carrier_field: Pack.purpose
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/camp_fortified.png
+- id: camp_lost_caravan
+  name: Lost caravan
+  game_form: lost_caravan
+  carrier_field: Tile.lost_caravan
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/camp_lost_caravan.png
+- id: camp_pavilion
+  name: Lord's pavilion
+  game_form: pavilion_camp
+  carrier_field: Household.legal_status_id
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/camp_pavilion.png
+- id: camp_tent
+  name: Tent camp
+  game_form: tent_camp
+  carrier_field: Pack.kind
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/camp_tent.png
+- id: camp_wagon
+  name: Wagon camp
+  game_form: wagon_camp
+  carrier_field: Pack.kind
+  status: drawn_flat_2d
+  flat_2d_plate: flat2d_proof/plates/camp_wagon.png
+flat_2d_proof:
+  sprite_selector: none
+  camera_frozen: false

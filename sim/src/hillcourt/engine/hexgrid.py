@@ -24,7 +24,23 @@
 - `neighbor_ids(world, tile)` — существующие клетки мира по этому списку
   (шесть, не шесть минус границы: край — это «нет клетки»);
 - `hex_distance(a, b)` — шаги по аксиальной сетке (замена манхэттена);
-- `is_neighbor(a, b)` — смежность как отношение координат.
+- `is_neighbor(a, b)` — смежность как отношение координат;
+- `tile_ids_are_neighbor(origin, destination)` — **единственная** истина о
+  смежности для клеток, названных id `t_<col>_<row>` (ADR 0203).
+
+## Почему вопрос задан по id, а не по объектам
+
+Клетки сравнивают между собой и приказы, и вести: `send_party` спрашивает
+«соседняя ли клетка», имея на руках только два id из записи сценария. Значит
+смежность обязана быть спрашиваема по id, иначе каждый вызывающий вынужден заново
+разбирать формат строки.
+
+`tile_ids_are_neighbor` — **единственное** определение такого вопроса во всём
+`sim/`. Локальный разбор `origin.split("_")` с проверкой
+`abs(ox-dx) + abs(oy-dy) == 1` — это смешанная 4/6 топология: она отвергает
+настоящих соседей и принимает не-соседей, потому что манхэттен по координатам
+карты (odd-r) не совпадает с аксиальной метрикой. Замер: `start_stand` — 12 из 46
+настоящих соседств отвергнуто (26 %), `v0_shire` — 160 из 516 (31 %).
 """
 
 from __future__ import annotations
@@ -102,6 +118,40 @@ def axial_distance(a: tuple[int, int], b: tuple[int, int]) -> int:
     dq = int(a[0]) - int(b[0])
     dr = int(a[1]) - int(b[1])
     return (abs(dq) + abs(dr) + abs(dq + dr)) // 2
+
+
+def parse_tile_id(tile_id: Any) -> tuple[int, int] | None:
+    """Аксиальные координаты клетки из id `t_<col>_<row>`; None — не наш формат.
+
+    Единственное место, где строка `t_XX_YY` разбирается в координаты: и
+    `tile_ids_are_neighbor`, и `engine/seat.py` берут разбор отсюда, поэтому
+    «как выглядит id клетки» не знает никто, кроме этого модуля.
+    """
+    if not isinstance(tile_id, str):
+        return None
+    parts = tile_id.split("_")
+    if len(parts) != 3 or parts[0] != "t":
+        return None
+    try:
+        col, row = int(parts[1]), int(parts[2])
+    except ValueError:
+        return None
+    return offset_to_axial(col, row)
+
+
+def tile_ids_are_neighbor(origin: Any, destination: Any) -> bool:
+    """Соседние ли клетки, названные id `t_<col>_<row>` (ADR 0203).
+
+    Единственная истина о смежности по id: шесть аксиальных направлений, без
+    манхэттена. Клетка не существует в мире — вопрос не решается в пользу
+    соседства (`False`): несуществующая клетка соседом быть не может, иначе
+    приказ отправит людей в пустоту.
+    """
+    a = parse_tile_id(origin)
+    b = parse_tile_id(destination)
+    if a is None or b is None:
+        return False
+    return axial_is_neighbor(a, b)
 
 
 def neighbor_ids(world: Any, tile: Any) -> list[str]:

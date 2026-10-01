@@ -33,16 +33,21 @@ def _data() -> dict:
         return yaml.safe_load(fh)
 
 
-def _write(data: dict) -> Path:
+def _write(data: dict, tmp_dir: Path) -> Path:
+    """Сценарий-фикстура — во временный каталог теста, а не в корень репозитория.
+
+    `NamedTemporaryFile(delete=False)` без `dir=` ронял файл в текущий каталог, а
+    прогон `sim/run_tests.sh` идёт из корня: там копился мусор `tmp*.yml`.
+    """
+    import os
     import tempfile
 
     import yaml
 
-    with tempfile.NamedTemporaryFile(
-        "w", suffix=".yml", delete=False, encoding="utf-8"
-    ) as fh:
+    handle, name = tempfile.mkstemp(suffix=".yml", dir=tmp_dir)
+    with os.fdopen(handle, "w", encoding="utf-8") as fh:
         yaml.safe_dump(data, fh, allow_unicode=True)
-        return Path(fh.name)
+    return Path(name)
 
 
 class TestTribeEntity(unittest.TestCase):
@@ -84,7 +89,12 @@ class TestTribeLoading(unittest.TestCase):
     """Биекция: одно племя на одну native_village, без племянных деревень без племени."""
 
     def setUp(self) -> None:
+        import tempfile
+
         self.world = load_scenario(SCENARIO, seed=1729)
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp_dir = Path(self._tmp.name)
 
     def test_one_tribe_per_native_village(self) -> None:
         self.assertEqual(sorted(self.world.tribes), [TRIBE])
@@ -115,25 +125,25 @@ class TestTribeLoading(unittest.TestCase):
             }
         )
         with self.assertRaises(ValueError):
-            load_scenario(_write(data), seed=1729)
+            load_scenario(_write(data, self.tmp_dir), seed=1729)
 
     def test_native_village_without_tribe_rejected(self) -> None:
         data = _data()
         data["tribes"] = []
         with self.assertRaises(ValueError):
-            load_scenario(_write(data), seed=1729)
+            load_scenario(_write(data, self.tmp_dir), seed=1729)
 
     def test_tribe_on_ordinary_settlement_rejected(self) -> None:
         data = _data()
         data["tribes"][0]["settlement_id"] = "fs_01"
         with self.assertRaises(ValueError):
-            load_scenario(_write(data), seed=1729)
+            load_scenario(_write(data, self.tmp_dir), seed=1729)
 
     def test_unknown_stance_rejected(self) -> None:
         data = _data()
         data["tribes"][0]["stance"] = "hostile"
         with self.assertRaises(ValueError):
-            load_scenario(_write(data), seed=1729)
+            load_scenario(_write(data, self.tmp_dir), seed=1729)
 
     def test_canon_scenarios_have_no_tribes(self) -> None:
         for name in ("v0_hill_and_salt.yml", "v0_two_settlements.yml", "v0_shire.yml"):

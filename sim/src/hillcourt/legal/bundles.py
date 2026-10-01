@@ -10,9 +10,37 @@ from __future__ import annotations
 
 from ..ontology import Obligation
 from ..world import World
+from .obligations import register_obligation
 from .regimes import preset_of
 
 SUPPORTED_TERMS = ("fixed_rent_grain_or_pence",)
+
+
+def _has_slaves(world: World, household) -> bool:
+    return any(
+        (person := world.persons.get(pid)) is not None
+        and person.personal_status == "slave"
+        for pid in household.member_ids
+    )
+
+
+def _is_in_manor_book(world: World, household) -> bool:
+    from .manor import is_in_manor_book
+
+    return is_in_manor_book(world, household)
+
+
+def _requires_corvee(world: World, household) -> bool:
+    bundle = bundle_of(world, household)
+    if bundle is not None and bundle.calendar_id is not None:
+        return True
+    if not _is_in_manor_book(world, household):
+        return False
+    status = preset_of(world, household)
+    return bool(
+        status is not None
+        and (status.land_relation == "landless" or _has_slaves(world, household))
+    )
 
 
 def bundle_of(world: World, household):
@@ -37,9 +65,7 @@ def _duty(world: World, household) -> Obligation:
         basis="duty",
         duty_days=0.0,
     )
-    world.obligations[obligation.id] = obligation
-    household.obligation_ids.append(obligation.id)
-    return obligation
+    return register_obligation(world, household, obligation)
 
 
 def _rent(world: World, household, amount: float, term: str) -> Obligation:
@@ -54,9 +80,7 @@ def _rent(world: World, household, amount: float, term: str) -> Obligation:
         arrears=0.0,
         basis="fixed",
     )
-    world.obligations[obligation.id] = obligation
-    household.obligation_ids.append(obligation.id)
-    return obligation
+    return register_obligation(world, household, obligation)
 
 
 def materialize_obligations(world: World, household) -> list[Obligation]:
@@ -66,7 +90,7 @@ def materialize_obligations(world: World, household) -> list[Obligation]:
         return []
     terms = bundle.terms
     out: list[Obligation] = []
-    if bundle.calendar_id is not None:
+    if _requires_corvee(world, household):
         out.append(_duty(world, household))
     if "fixed_rent_grain_or_pence" in terms:
         out.append(

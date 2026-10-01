@@ -9,10 +9,13 @@
 
 from __future__ import annotations
 
+import random
+
+from ..legal.actions import grant_tenure, revoke_tenure as _revoke_tenure
 from ..legal.calendar import monthly_labor_days
 from ..info.sources import CHANNELS, MESSENGER
 from ..news.propagation import make_report
-from ..ontology import Manor, Right, Stock
+from ..ontology import Household, Manor, Person, Right, Stock
 from ..world import World
 from .hexgrid import neighbor_ids
 
@@ -31,6 +34,34 @@ def _log(world: World, action: str, **fields) -> dict:
     record = {"date": str(world.clock.date), "month": world.clock.month, "action": action}
     record.update(fields)
     world.player_actions.append(record)
+    return record
+
+
+#: Счётчик отказов приказов в `World.stats`. ADR 0215 §3: отказ — факт СОСТОЯНИЯ,
+#: а не строка журнала, поэтому он обязан попадать в `state_hash` сам по себе.
+ORDERS_REFUSED_KEY = "orders_refused"
+
+
+def log_refused_order(world: World, action: str, reason: str, **fields) -> dict:
+    """Записать ОТКАЗ приказа в лог и посчитать его — тем же путём, что у runner.
+
+    Единая точка для обоих видов отказа, потому что отказов два вида и различать
+    их нечем (ADR 0215 §Дыра 2):
+
+    * приказ **бросил** `ValueError`/`PermissionError` — запись строит
+      `runner._log_refusal`, перехватив исключение;
+    * приказ **сам знает**, что не исполнился, и не может бросить исключение
+      (он уже записал что-то в лог или вернул значение) — запись строит эта
+      функция.
+
+    Оба пишут `refused=True` + `reason` и двигают `world.stats["orders_refused"]`.
+    Раньше второй вид отказа не помечался вовсе, и игрок читал в логе строку
+    вида `grant_thegn_rejected reason=grants_limit` — то есть отказ, который
+    выглядит как обычное действие. Хуже отсутствия записи: причина названа, но
+    не помечена, и ни один обвинитель её не считает.
+    """
+    record = _log(world, action, refused=True, reason=reason, **fields)
+    world.bump(ORDERS_REFUSED_KEY)
     return record
 
 
@@ -115,8 +146,136 @@ def manor_depth(world: World, manor: Manor) -> int:
     return depth
 
 
+def _may_hold_land(world: World, household: Household) -> bool:
+    """Вправе ли двор быть держателем клетки — те же два условия, что у найма.
+
+    Постоянное держание не может достаться `landless`, а без вергельда надел не
+    выдаётся вовсе (ADR 0193). Условия **не новые**: это ровно те, по которым
+    `legal/actions.py::grant_tenure` отказал бы тому же двору. Приказ назначает
+    держателем того, кому право выдать можно, и никого другого.
+    """
+    preset = world.catalogs.legal_statuses.get(household.legal_status_id)
+    if preset is None:
+        return False
+    if not preset.wergeld:
+        return False
+    return preset.land_relation != "landless"
+
+
+def _resident_holder(world: World, tile_id: str) -> Household | None:
+    """Двор, которому режим вправе отдать клетку: тот, кто на ней стоит.
+
+    Выбор детерминирован: дворы сортируются по id, порядок не зависит от порядка
+    словаря (И-6). Двор, которому право держать землю нельзя, пропускается —
+    приказ не назначает держателем того, кому `grant_tenure` отказал бы.
+    """
+    residents = sorted(
+        (
+            household
+            for household in world.households.values()
+            if household.current_tile_id == tile_id
+        ),
+        key=lambda household: household.id,
+    )
+    for household in residents:
+        if _may_hold_land(world, household):
+            return household
+    return None
+
+
+def _right_holder(world: World, tile_id: str) -> Right | None:
+    """Индивидуальное право на клетку, если держатель уже назначен.
+
+    `Right.kind == "common"` — общий доступ, а не держание (ADR 0060), поэтому
+    он и не держит клетку за кем-либо, и не отменяет назначения.
+    """
+    found = sorted(
+        (
+            right
+            for right in world.rights.values()
+            if right.tile_id == tile_id and right.kind != "common"
+        ),
+        key=lambda right: right.id,
+    )
+    return found[0] if found else None
+
+
+def appoint_regime_holder(world: World, tile_id: str) -> dict:
+    """Назначить держателя клетки по её режиму (ADR 0198).
+
+    «Кормит» в `land_regimes.yml` — это «кормит ДЕРЖАТЕЛЯ», а держателем клетки
+    является двор, у которого на неё есть индивидуальное право (`Right`).
+    Приказ, который меняет только `Tile.regime_id`, такого права не выдавал, и
+    клетка уходила из домена вместе с `demesne_base_yield`, не доставаясь ни
+    одному двору: все режимы на одной клетке давали одинаковый результат.
+
+    Назначение — функция режима, и порядок разрешения один:
+
+      * **режим не надел** (`demesne`/`waste`/`reserved_wood`/`foreign`) —
+        назначать некого, приказ только пишет режим (`not_a_holding`);
+      * **надел, а право уже есть** — держатель тот, кого игрок назначил
+        раньше; приказ его не отбирает молча (`kept`);
+      * **надел, права нет, на клетке стоит двор** — приказ выдаёт ему `Right`
+        (`granted`);
+      * **надел, права нет, двор никто не занимает** — клетка **ждёт** двора
+        (`awaited`): режим обещает кормление держателю, которого ещё нет, и
+        подменять его доменом или общиной значило бы выдумать третье состояние
+        земли, которого нет в каталоге. Правом остаётся игрок: `grant_tenure`
+        назначает двор, и клетка начинает кормить с той же клетки.
+
+    Право выдаётся **без повинности**: `rent_share = 0.0`, потому что приказ
+    меняет режим земли, а оброк оформляет `grant_tenure` вместе со сменой
+    пресета. Назначение книгой дворов манора не занимается — это делает тот же
+    `grant_tenure`.
+    """
+    tile = world.tiles.get(tile_id)
+    if tile is None:
+        return {"appointment": "not_a_holding", "holder": None, "right": None}
+    regime = world.catalogs.land_regimes.get(tile.regime_id)
+    if regime is None or not regime.feeds_household:
+        return {"appointment": "not_a_holding", "holder": None, "right": None}
+    existing = _right_holder(world, tile_id)
+    if existing is not None:
+        return {
+            "appointment": "kept",
+            "holder": existing.holder_household_id,
+            "right": existing.id,
+        }
+    holder = _resident_holder(world, tile_id)
+    if holder is None:
+        return {"appointment": "awaited", "holder": None, "right": None}
+    right = Right(
+        id=f"right_regime_{tile_id}_{holder.id}",
+        holder_household_id=holder.id,
+        tile_id=tile_id,
+        kind="tenure",
+        granted_date=world.clock.date,
+        rent_share=0.0,
+    )
+    world.rights[right.id] = right
+    return {"appointment": "granted", "holder": holder.id, "right": right.id}
+
+
 def set_tile_regime(world: World, tile_id: str, regime_id: str) -> bool:
-    """Сменить режим/надел клетки (действие игрока)."""
+    """Сменить режим/надел клетки (действие игрока) и назначить её держателя.
+
+    Рельеф клетки в приказ попадает **всегда**, а не только когда он совпал с
+    режимом. Причина — не вежливость, а отсутствие закона: `demesne` на лесу
+    разрешён и обязателен, потому что `clear_forest` даёт только домен
+    (ADR 0175 п. 5), поэтому «домен на лесу» — не ошибка приказа, а его
+    содержание. Но раньше приказ проходил молча: в книге оставалось
+    `demesne`, и нигде не было видно, что клетка под этим режимом остаётся
+    лесом и кормит не пашней, а расчисткой. Рельеф в записи — это и есть
+    разница между «пашня усадьбы» и «лес под расчистку»; без неё игрок читает
+    свою же книгу и не понимает, почему лес не засеяли.
+
+    **Режим и держатель — одна запись.** Надел без `Right` не кормит никого
+    (ADR 0198), поэтому смена режима на наделную обязана назначить и держателя,
+    иначе приказ выкидывал клетку из производства, никого не награждая. Само
+    назначение — `appoint_regime_holder`; в лог приказа идёт его исход
+    (`granted`/`kept`/`awaited`/`not_a_holding`), чтобы игрок видел, клетка ли
+    теперь под кем-то стоит или ждёт двора.
+    """
     if regime_id not in world.catalogs.land_regimes:
         raise ValueError(f"Неизвестный режим земли '{regime_id}'")
     tile = world.tiles.get(tile_id)
@@ -130,52 +289,185 @@ def set_tile_regime(world: World, tile_id: str, regime_id: str) -> bool:
     tile.regime_id = regime_id
     if manor is not None:
         manor.tile_regimes[tile_id] = regime_id
-    _log(world, "set_tile_regime", tile=tile_id, regime=regime_id)
+    _log(
+        world,
+        "set_tile_regime",
+        tile=tile_id,
+        regime=regime_id,
+        terrain=tile.terrain,
+        regime_on_other_terrain=tile.terrain != "field",
+        **appoint_regime_holder(world, tile_id),
+    )
     return True
 
 
-def grant_tenement(world: World, household_id: str, tile_ids: list[str]) -> list[Right]:
-    """Дать двору держание на клетки: режим надела, право, запись в книгу."""
+def _arrival_template(world: World, household_id: str) -> dict | None:
+    """Найти сценарные данные прибывающего двора в существующем списке script."""
+    required = ("name", "settlement_id", "adults", "children", "legal_status")
+    for entry in world.script:
+        if str(entry.get("action")) != "grant_tenement":
+            continue
+        if str(entry.get("household")) != household_id:
+            continue
+        if all(key in entry for key in required):
+            return entry
+    return None
+
+
+def arrive_household(world: World, household_id: str, tile_id: str) -> Household | None:
+    """Создать двор и его людей в момент сценарного прихода."""
+    if household_id in world.households:
+        return world.households[household_id]
+    template = _arrival_template(world, household_id)
+    if template is None:
+        return None
+    if tile_id not in world.tiles:
+        raise ValueError(f"Нет клетки прибытия '{tile_id}'")
+    settlement_id = str(template["settlement_id"])
+    settlement = world.settlements.get(settlement_id)
+    if settlement is None:
+        raise ValueError(f"Двор '{household_id}': нет поселения '{settlement_id}'")
+    status_id = str(template["legal_status"])
+    preset = world.catalogs.legal_statuses.get(status_id)
+    if preset is None:
+        raise ValueError(f"Двор '{household_id}': неизвестный пресет '{status_id}'")
+    adults = int(template.get("adults", 0))
+    children = int(template.get("children", 0))
+    elders = int(template.get("elders", 0))
+    if min(adults, children, elders) < 0:
+        raise ValueError(f"Двор '{household_id}': отрицательное число людей")
+    members: list[str] = []
+    prng = random.Random(f"{world.seed}:persons:{household_id}")
+    for number in range(1, adults + children + elders + 1):
+        person_id = f"{household_id}_p{number}"
+        if number <= adults:
+            age_class = "adult"
+            age_months = 240
+        elif number <= adults + children:
+            age_class = "child"
+            age_months = 12
+        else:
+            age_class = "elder"
+            age_months = 600
+        world.persons[person_id] = Person(
+            id=person_id,
+            name=person_id,
+            household_id=household_id,
+            age_class=age_class,
+            curiosity=prng.random(),
+            fear=prng.random(),
+            health=1.0,
+            location_tile_id=tile_id,
+            age_months=age_months,
+        )
+        members.append(person_id)
+    stock = Stock(id=f"household:{household_id}", owner_kind="household", owner_id=household_id)
+    world.add_stock(stock)
+    starting_stocks = template.get("starting_stocks") or {}
+    if not isinstance(starting_stocks, dict):
+        raise ValueError(f"Двор '{household_id}': starting_stocks должен быть словарём")
+    if starting_stocks:
+        source = world.get_stock("settlement:" + world.player.court_settlement_id)
+        for good, raw_amount in sorted(starting_stocks.items()):
+            amount = float(raw_amount)
+            if amount <= 0.0:
+                raise ValueError(f"Двор '{household_id}': стартовый товар должен быть положительным")
+            world.ledger.transfer(
+                source, stock, str(good), amount, "arrival_cargo", world.clock.date
+            )
+    household = Household(
+        id=household_id,
+        name=str(template["name"]),
+        settlement_id=settlement_id,
+        member_ids=members,
+        stock_id=stock.id,
+        labor_days=float(adults) * 20.0,
+        obligation_ids=[],
+        hunger_days=0,
+        arrears_days=0,
+        mood=0.7,
+        intent="stay",
+        current_tile_id=tile_id,
+        main_action="work_plot",
+        minor_action="idle_repair",
+        legal_status_id=status_id,
+        personal_status=preset.personal_status,
+        land_relation=preset.land_relation,
+        obligation_bundle=preset.obligation_bundle,
+        holding_scale=float(getattr(world.manor, "holding_tiles_by_land_kind", {}).get(preset.land_kind, 1.0)),
+    )
+    world.households[household_id] = household
+    if household_id not in settlement.household_ids:
+        settlement.household_ids.append(household_id)
+    make_report(
+        world,
+        MESSENGER,
+        "household",
+        household_id,
+        f"Семья {household_id} прибыла и ждёт надела.",
+        {
+            "event": "arrival",
+            "household_id": household_id,
+            "members": len(members),
+            "tile": tile_id,
+            "settlement_id": settlement_id,
+            "planned": True,
+        },
+        world.clock.date,
+        0,
+        0.8,
+        distorted=False,
+        noise=0.0,
+        observer_id=world.player.household_id or "player",
+    )
+    return household
+
+
+def grant_tenement(
+    world: World,
+    household_id: str,
+    tile_ids: list[str],
+    kind: str = "tenure",
+    rent_share: float = 0.1,
+    status_id: str | None = None,
+    temporary: bool = False,
+) -> list[Right]:
+    """Дать держание через единый переход права и повинностей."""
     household = world.households.get(household_id)
     if household is None:
+        if not tile_ids:
+            raise ValueError(f"Нет двора '{household_id}'")
+        household = arrive_household(world, household_id, tile_ids[0])
+    if household is None:
         raise ValueError(f"Нет двора '{household_id}'")
-    if household.land_relation == "landless":
-        raise PermissionError(f"Двор '{household_id}' не держит землю")
     manor = manor_of_household(world, household_id) or root_manor(world)
     if manor is None:
         raise ValueError("Нет манора для держания")
-    rights: list[Right] = []
-    preset = world.catalogs.legal_statuses.get(household.legal_status_id)
-    land_kind = preset.land_kind if preset is not None else "tenement"
-    if land_kind not in world.catalogs.land_regimes:
-        land_kind = "tenement"
     seen: set[str] = set()
     for tile_id in tile_ids:
         if tile_id in seen:
             raise ValueError(f"Клетка '{tile_id}' повторяется в держании")
         seen.add(tile_id)
-        tile = world.tiles.get(tile_id)
-        if tile is None:
+        if tile_id not in world.tiles:
             raise ValueError(f"Нет клетки '{tile_id}'")
         owner = manor_of_tile(world, tile_id)
         if owner is not None and owner.id != manor.id:
             raise PermissionError(
                 f"Клетка '{tile_id}' в книге '{owner.id}': нельзя отдать дважды"
             )
-        if tile_id not in manor.tile_ids:
-            manor.tile_ids.append(tile_id)
-        tile.regime_id = land_kind
-        manor.tile_regimes[tile_id] = land_kind
-        right = Right(
-            id=f"right_tenement_{household_id}_{tile_id}",
-            holder_household_id=household_id,
-            tile_id=tile_id,
-            kind="tenure",
-            granted_date=world.clock.date,
-            rent_share=0.0,
+    rights: list[Right] = []
+    for tile_id in tile_ids:
+        rights.append(
+            grant_tenure(
+                world,
+                household_id,
+                tile_id,
+                kind=kind,
+                rent_share=rent_share,
+                status_id=status_id,
+                temporary=temporary,
+            )
         )
-        world.rights[right.id] = right
-        rights.append(right)
     _log(
         world,
         "grant_tenement",
@@ -184,6 +476,15 @@ def grant_tenement(world: World, household_id: str, tile_ids: list[str]) -> list
         manor=manor.id,
     )
     return rights
+
+
+def revoke_tenure(
+    world: World,
+    household_id: str,
+    right_id: str | None = None,
+) -> list[str]:
+    """Отозвать держание через единый юридический переход."""
+    return _revoke_tenure(world, household_id, right_id)
 
 
 GRANT_TOOL_GOODS = ("iron_share", "iron", "iron_bloom")
@@ -223,12 +524,228 @@ def grant_tool(world: World, household_id: str, good: str, amount: float) -> Non
     _log(world, "grant_tool", household=household_id, good=good, amount=amount)
 
 
+GRAIN_GOOD = "grain"
+
+
+def grant_grain(world: World, household_id: str, amount: float) -> None:
+    """Выдать двору зерно из амбара лорда (действие игрока, приказ `grant_grain`).
+
+    Зерно — материя: это перевод `Ledger.transfer(..., "grant_grain")`, а не флаг.
+    Источник — амбар КОРНЕВОГО манора (`manor_stock(root_manor)`), тот же, что у
+    `grant_tool`: приказ отдаёт лорд, и хлеб берётся из его книги, а не из
+    общей кладовой поселения (подача по `relief_sources` бьёт по книге сеньора
+    двора, приказ бьёт по книге корня — два разных адресата, и путать их нельзя).
+    Получатель — сток ИМЕННО этого двора (`Household.stock_id`): зерно падает в
+    амбар напротив его рта, а не в общий амбар поселения.
+
+    Ручной разовой выдачи, а не подачи: повинность `relief_granted` не пишется и
+    `relief_given` не растёт — плательщик другой (И-2: приказ меняет стол двора,
+    а не приказывает человеку пахать). Если у лорда меньше запрошенного — отказ
+    ДО любого перевода: частичной выдачи не бывает и материя не создаётся.
+
+    **Почему всё-таки не в книгу подачи, хотя книга для этого и есть** (ADR 0169
+    держал бы выдачу «подачей»): закон на книге подачи — `paid_total <= due_amount`
+    по каждой записи, где `due_amount` есть **недобор** двора
+    (`sim/tests/test_relief_is_recorded.py`). Выдача по приказу больше недобора по
+    построению — в этом её смысл (плейтест выдал двору 60.0 зерна при недоборе
+    4.4). Хуже, чем несовпадение: `apply_relief` в том же месяце дописывает свою
+    долю в **ту же** запись (id — пара «сеньор, двор, месяц»), и тогда
+    `paid_total` разошёлся бы с `due_amount` дважды. Своя проводка и запись в
+    `player_actions` — цена лорда видна в книге учёта, а долг сеньора не растёт.
+
+    **Два гейта, которых у `grant_tool` нет, а здесь необходимы:** ушедший двор
+    кормить некому, а двор вне книги лорда (`manor_of_household` — None, соляной
+    держатель) получает хлеб из чужого амбара. Подача из
+    `economy/exchange.py::relief_sources` тот же отказ знает словом «источников
+    нет», и приказ не должен быть щедрее закона.
+    """
+    if amount <= 0:
+        raise ValueError("Количество зерна должно быть положительным")
+    household = world.households.get(household_id)
+    if household is None:
+        raise ValueError(f"Нет двора '{household_id}'")
+    if household.left_at is not None:
+        raise PermissionError(f"Двор '{household_id}' ушёл, кормить некого")
+    if manor_of_household(world, household_id) is None:
+        raise PermissionError(
+            f"Двор '{household_id}' не в книге лорда: из его амбара не кормят"
+        )
+    root = root_manor(world)
+    if root is None:
+        raise ValueError("Нет корневого манора игрока")
+    source = manor_stock(world, root)
+    if source is None:
+        raise ValueError("У корневого манора нет амбара")
+    available = source.amounts.get(GRAIN_GOOD, 0.0)
+    if available + EPSILON < amount:
+        raise ValueError(
+            f"У лорда нет зерна: в амбаре {available}, просят {amount}"
+        )
+    target = world.get_stock(household.stock_id)
+    world.ledger.transfer(
+        source, target, GRAIN_GOOD, amount, "grant_grain", world.clock.date
+    )
+    _log(
+        world,
+        "grant_grain",
+        household=household_id,
+        good=GRAIN_GOOD,
+        amount=amount,
+    )
+    # Двор узнаёт о хлебе с задержкой, как о любой вести: иначе зерно в его руках
+    # появляется без следа, и «почему у меня 60 зерна» — вопрос без ответа.
+    channel = CHANNELS[MESSENGER]
+    make_report(
+        world,
+        MESSENGER,
+        "household",
+        household_id,
+        f"Сеньор прислал двору '{household_id}' зерна: {amount:.1f}.",
+        {"event": "grain_granted", "household_id": household_id, "amount": amount},
+        world.clock.date,
+        channel.delay_months,
+        channel.confidence,
+        distorted=False,
+        noise=channel.noise,
+    )
+
+
+def assign_work(
+    world: World,
+    household_id: str,
+    action: str,
+    minor_action: str | None = None,
+) -> tuple[str, str]:
+    """Приказ лорда двору: какое дело главное (и какое мелкое) в этом месяце.
+
+    **Первое настоящее действие игрока, которого не было.** Замер стенда
+    (`start_stand`, сид 1729, 24 мес): пять дворов `INITIAL_FAMILIES` стояли в
+    `request_relief` месяцами, а пахали единицы, потому что `request_relief`
+    занимает **главный** слот, а минорный слот отдаётся пашне только когда на
+    кормящем гексе двора **стоит урожай** (`economy/decisions.py`, ADR 0113 п. 1).
+    У двора, который просит подачу и у которого на гексе ничего не выросло, оба
+    слота не пашня, а лорд не имел ни одного рычага это прекратить: приказа
+    назначить не было вообще. Двор без работы не собирает, двор без урожая
+    просит подачу, подача не пашня — круг, из которого выхода нет.
+
+    **Приказ месячный, как все приказы игрока.** `engine/tick.py::phase_decide` в
+    конце месяца переписывает выбор двора (`decisions.plan_next_month`), поэтому
+    приказ держит труд на текущий месяц, и чтобы держать двор на пашне, приказ
+    повторяют каждый месяц — ровно как `set_tile_regime` и `grant_tool`. Скрытого
+    «постоянного» состояния здесь нет намеренно: второе состояние без
+    потребителя (ADR 0175 §6) — тот же брак, что флаг «расчистано».
+
+    **Закон приказом не обходится.** Дело должно быть в `allowed_action_ids`
+    двора, то есть в наборе его правового пресета: у раба одно дело
+    (`demesne_labor`), лорд и тэн не пашут вовсе (`oversee` — их единственное
+    дело), а двору вне книги приказать и нельзя. Клетку приказ не выбирает:
+    `work_plot` безземельного двора — это его собственные кормящие гексы
+    (ADR 0113 п. 1), а не чужой надел, и подставить клетку в приказ нечем.
+    Приказ без закона — это читерство, а не власть.
+
+    Приказ известен двору **с задержкой** (`MESSENGER`): иначе он невидим, и
+    вопрос «лорд приказал, а двор не пашет» неразрешим. Материя не движется —
+    приказ меняет дело месяца, а не хлеб.
+    """
+    from ..economy.decisions import allowed_action_ids
+
+    household = world.households.get(household_id)
+    if household is None:
+        raise ValueError(f"Нет двора '{household_id}'")
+    if household.left_at is not None:
+        raise PermissionError(f"Двор '{household_id}' ушёл, приказывать ему некого")
+    if manor_of_household(world, household_id) is None:
+        raise PermissionError(
+            f"Двор '{household_id}' не в книге лорда: приказывать некому"
+        )
+    if action not in world.household_actions:
+        raise ValueError(f"Неизвестное дело двора '{action}'")
+    allowed = allowed_action_ids(world, household)
+    if action not in allowed:
+        raise PermissionError(
+            f"Двору '{household_id}' пресет '{household.legal_status_id}' не даёт "
+            f"дела '{action}' (можно: {sorted(allowed)})"
+        )
+    minor = minor_action if minor_action is not None else household.minor_action
+    if minor != "idle_repair":
+        if minor not in world.household_actions:
+            raise ValueError(f"Неизвестное мелкое дело двора '{minor}'")
+        if minor not in allowed:
+            raise PermissionError(
+                f"Двору '{household_id}' пресет '{household.legal_status_id}' не даёт "
+                f"мелкого дела '{minor}' (можно: {sorted(allowed)})"
+            )
+    household.main_action = action
+    household.minor_action = minor
+    _log(
+        world,
+        "assign_work",
+        household=household_id,
+        main=action,
+        minor=minor,
+        status=household.legal_status_id,
+    )
+    channel = CHANNELS[MESSENGER]
+    make_report(
+        world,
+        MESSENGER,
+        "household",
+        household_id,
+        f"Сеньор приказал двору '{household_id}': дело «{action}».",
+        {
+            "event": "work_assigned",
+            "household_id": household_id,
+            "main": action,
+            "minor": minor,
+        },
+        world.clock.date,
+        channel.delay_months,
+        channel.confidence,
+        distorted=False,
+        noise=channel.noise,
+    )
+    return action, minor
+
+
 def call_boon(world: World, month: int | None = None) -> bool:
-    """Крикнуть помочь (bene) в месяц с `boon_allowed`; иначе отказ."""
+    """Крикнуть помочь (bene) в месяц с `boon_allowed`; иначе **отказ закона**.
+
+    **Почему отказ бросается, а не возвращается `False` (ADR 0215 §Дыра 2).**
+    Раньше здесь стояло `return False`, и это был худший вид брака: приказ
+    возвращал «не исполнилось», но **никто его не спрашивал**. `runner.
+    _dispatch_call_boon` результат выбрасывал, `runner._apply_script_entry` видел,
+    что приказ не записал в лог ничего, и дописывал синтетическую запись
+    `{date, month, action}` — **без полей и без `refused`**. Игрок жал кнопку в
+    M1, получал в логе ту же строку, что при успехе в M7, и не получал ничего:
+    восемь месяцев из двенадцати кнопка «помочь» была мёртвой, а выглядела
+    живой.
+
+    Закон уже был — ADR 0202: отказ приказа есть ход игры, он логируется с
+    причиной и не обрывает прогон. `call_boon` его обходил, потому что отказывал
+    не исключением, а значением. Теперь отказ — `ValueError`, и он идёт **тем же**
+    путём, что «у лорда нет зерна»: `runner._log_refusal` пишет `refused=True` и
+    `reason`, сводка печатает `ОТКАЗ`, счётчик `orders_refused` растёт, прогон идёт
+    дальше.
+
+    Сообщение обязано называть **и месяц, и закон**: `boon_allowed` у месяца —
+    единственная причина отказа, а «помочь нельзя» без числа не объясняет
+    игроку, что делать дальше (ждать M6 или не ждать вовсе).
+    """
     number = month if month is not None else world.clock.month
     calendar_month = world.calendar.get(number)
-    if calendar_month is None or not calendar_month.boon_allowed:
-        return False
+    if calendar_month is None:
+        raise ValueError(
+            f"Крик помощи: месяца '{number}' нет в календаре смены (1..{len(world.calendar)})"
+        )
+    if not calendar_month.boon_allowed:
+        allowed = sorted(
+            key for key, value in world.calendar.items() if value.boon_allowed
+        )
+        raise ValueError(
+            f"Крик помочи (bene) в месяце M{number} законом не разрешён "
+            f"(boon_allowed: false). Помочь можно в месяцах "
+            f"{', '.join('M' + str(key) for key in allowed) or '—'}"
+        )
     world.stats["boon_called_month"] = float(number)
     _log(world, "call_boon", month=number)
     return True
@@ -392,10 +909,17 @@ def grant_thegn(
 
     Число пожалований за прогон ограничено `world.stats["thegn_limit_grants"]`
     (по умолчанию 1); при исчерпании лимита — отказ с записью
-    `grant_thegn_rejected reason=grants_limit`. Глубина вложенности — явный гейт:
+    `grant_thegn_rejected reason=grants_limit refused=True`. Глубина вложенности — явный гейт:
     новый манор был бы на `manor_depth(root) + 1`, глубже 1 не жалуют — отказ
-    с записью `grant_thegn_rejected reason=depth` (раньше то же держалось
+    с записью `grant_thegn_rejected reason=depth refused=True` (раньше то же держалось
     неявно: жаловать можно только клетки/дворы из корневой книги).
+
+    **Почему запись отказа помечена `refused=True` (ADR 0215 §Дыра 2).** Раньше
+    отказ писался в лог обычной строкой с полем `reason` и **не** помечался:
+    причина названа, но ни строка лога, ни счётчик `orders_refused`, ни будущий
+    обвинитель «приказ изменил мир?» её не видели — то есть это был отказ,
+    который выглядит как действие. Теперь отказ идёт через `log_refused_order`,
+    тем же путём, что и отказ, пойманный исключением в `runner._log_refusal`.
     Отозванное пожалование слот не
     освобождает: `root.grant_ids` хранит историю. Двор САМОГО держателя всегда
     входит в книгу тэна (его стол — амбар `manor:<id>`, а не замок холма) и в
@@ -410,11 +934,20 @@ def grant_thegn(
     if root is None:
         raise ValueError("Нет корневого манора игрока")
     if manor_depth(world, root) + 1 > 1:
-        _log(world, "grant_thegn_rejected", person=person_id, reason="depth")
+        log_refused_order(
+            world, "grant_thegn_rejected", "depth", person=person_id
+        )
         return None
     max_grants = int(world.stats.get("thegn_limit_grants", 1))
     if len(root.grant_ids) >= max_grants:
-        _log(world, "grant_thegn_rejected", person=person_id, reason="grants_limit")
+        log_refused_order(
+            world,
+            "grant_thegn_rejected",
+            "grants_limit",
+            person=person_id,
+            granted=len(root.grant_ids),
+            limit=max_grants,
+        )
         return None
     if not tile_ids or not household_ids:
         raise ValueError("Пожалование тэна требует хотя бы одну клетку и один двор")
@@ -519,13 +1052,30 @@ def revoke_thegn(world: World, manor_id: str) -> bool:
     через `Ledger.transfer`, затем мёртвый сток снимается. Войны нет.
     Бывший держатель не удаляется: он остаётся в книге корня как свободный
     без земли (`free_landless`) — рот, нанимающийся за еду, а не стол лорда.
+
+    **Отказ бросается, а не возвращается `False` (ADR 0215 §Дыра 2).** Раньше
+    оба отказа — «такого фьефа нет» и «это не фьеф, а корень» — были тихими:
+    приказ возвращал `False`, никто его не спрашивал, и `runner` дописывал
+    синтетическую запись без полей и без `refused`. Это ровно тот же брак, что у
+    `call_boon`, и он найден обходом всех приказов, а не догадкой: тихих нулей
+    у приказов ровно три, и все три переведены на путь отказа ADR 0202.
     """
     manor = world.manors.get(manor_id)
-    if manor is None or manor.parent_manor_id is None:
-        return False
+    if manor is None:
+        raise ValueError(
+            f"Отзыв вложенного манора: '{manor_id}' нет в книге. Живы: "
+            f"{sorted(world.manors)}"
+        )
+    if manor.parent_manor_id is None:
+        raise PermissionError(
+            f"Отозвать '{manor_id}' нельзя: это корень, а не фьеф. Корень не отзывается"
+        )
     parent = world.manors.get(manor.parent_manor_id)
     if parent is None:
-        return False
+        raise ValueError(
+            f"У вложенного манора '{manor_id}' нет родителя в книге "
+            f"(parent_manor_id='{manor.parent_manor_id}')"
+        )
 
     source = manor_stock(world, manor)
     target = manor_stock(world, parent)

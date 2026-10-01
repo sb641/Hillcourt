@@ -20,6 +20,7 @@ def make_report(
     confidence: float,
     distorted: bool = False,
     noise: float = 0.0,
+    observer_id: Optional[str] = None,
 ) -> Report:
     """Создать Report, присвоить детерминированный id и добавить в мир."""
     delivery = event_date
@@ -36,7 +37,7 @@ def make_report(
         delivery_date=delivery,
         confidence=confidence,
         distorted=distorted,
-        observer_id="player",
+        observer_id=observer_id or "player",
         noise=noise,
     )
     world.reports.append(report)

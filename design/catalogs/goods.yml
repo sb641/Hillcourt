@@ -5,6 +5,76 @@
 #   category ∈ {food, fuel, material, lux, livestock}
 #   storage  ∈ {granary, cellar, barn, pack, open}
 #   nutrition — сколько «ртов-единиц» кормит 1 unit товара (только для edible).
+#
+# ЦЕНЫ (ADR 0101). Поля price_labor_silver, price_materials_silver,
+# price_losses_silver, price_silver — серебро за ОДНУ единицу хранения (`unit`),
+# то есть ровно за 1.0 в складе. Пуд (16.38 кг) единицей хранения НЕ является: масса
+# unit закреплена паётом (`needs.yml food.adult_per_month: 1.0` = месячный рацион
+# взрослого, историческая норма ≈ 1 кг зерна в день → 30 кг), поэтому
+# цена за кг = цена за unit / 30, цена за пуд = цена за кг × 16.38. Единица и оба
+# перевода запинены тестом `sim/tests/test_price_table.py`.
+# Формула: цена = (трудозатраты + сырьё и потери) × коэффициент дефицита (1.1…1.3).
+#   price_labor_silver     = labor_days рецепта(ов) на 1 unit × wage_silver_per_day
+#                           (manor.yml hire) — по всем рецептам, выпускающим товар;
+#   price_materials_silver = входы на 1 unit по СЕБЕСТОИМОСТИ (труд+сырьё+потери
+#                           входа), не по рыночной цене: цена в цене запрещена;
+#   price_losses_silver    = потери рецепта на 1 unit по той же полной себестоимости
+#                           (потерянный товар стоил столько же, сколько выпущенный);
+#   price_silver           = сумма трёх полей × коэффициент (дефицит повышает).
+# Животные (pig, hen, duck, goose) цены не имеют: рецепты разведения замкнуты (вход —
+# взрослое животное), цена взрослого = годовой корм needs.yml livestock.feed_per_month.
+# Без полного пути (И-7) цены не имеют: brine, straw, cloth, iron_bloom, war_kit,
+# cart, raft, boat, wooden_plough, iron_share.
+# Уровень обоснован покупательной способностью: дневная ставка 0.02 серебра покупает
+# 4.7 кг зерна (Англия 1300–1400: заработок 1.5–2.5 пенса/день, пшеница 9.21 шил./квартал
+# ≈ 0.41 пенса/кг → 5–10 кг/день; Clark 2003, Farmer 1988/1991, LSE WP360/WP375).
+# Соль 4.0× зерна (историческая надбавка 3–10×), оброк сокемана 0.6 зерна = 0.077
+# серебра = 3.8 дневных ставок. Серебро — единица счёта, цена 1.0.
+#
+# ===== РЕЕСТР СТАТУСА ПОЛЕЙ goods.yml (ADR 0192) =====
+# Статус отвечает на ОДИН вопрос: **чем это поле защищено, если его не читает
+# расчёт.** Пять значений, и ни одного шестого:
+#   live        — читается расчётом в sim/src. Прибор: счёт чтений > 0.
+#   checked     — расчётом не читается, но защищено прибором: загрузчиком
+#                 (закрытый перечень) или тестом (правило/запрет).
+#   witness     — расчётом не читается by design: это доказательство происхождения,
+#                 которое читают человек и тест. Прибор: тест, сверяющий с формулой.
+#   reserved    — объявлено и **цитируется как намерение**, исполнения нет.
+#                 Прибор: цитата в реестре решений + отсутствие чтений.
+#   superseded  — вытеснено более поздним законом, осталось в данных. Прибор: номер
+#                 вытесняющего ADR.
+# Статус стоит у ПОЛЯ, а не у записи, поэтому живёт здесь, а не в каждой записи:
+# иначе это 55 новых мёртвых столбцов, ровно тот брак, который реестр лечит.
+# Читается реестр так: `test_catalog_rules` сверяет его с ключами `_parse_goods`
+# и со счётом чтений по AST, и ПАДАЕТ при несовпадении (pass 2, вместе с
+# парсером: до него статус — запись, после — прибор).
+# ГРАНЦИА ПРАВИЛ: **основание обязательно для `checked`, `witness`, `reserved`
+# и `superseded`** — это ссылка на закон, и без неё такая запись пустая. Для
+# `live` основание необязательно: там основание — сам код, и кто читает поле,
+# названо в графе «прибор»; настоящая ссылка на закон, если она есть, тоже
+# годится. Проверка за два прогона нашла эту нестыковку в обе стороны: сначала
+# потребовала цитату от `live`, где я законно написал «—», потом запретила цитату
+# там, где она настоящая. Оба раза неверным было правило, а не реестр — и это
+# ровно то, ради чего прибор нужен: он спорит не с данными, а с формулировкой.
+#
+# ЧТО ДЕЛАТЬ, ЕСЛИ КТО-ТО ПРОЧТЁТ ПОЛЕ `reserved`: ничего не запрещено, но
+# чтение **погашает заготовку** — в том же проходе статус меняется на `live`, и в
+# реестр вписывается основание (номер ADR). Пока не погашено, `reserved`-поле
+# обязано оставаться НЕобязательным у загрузчика: иначе отсутствие значения
+# уронит каждую загрузку, и это будет уже не заготовка, а брак.
+#
+# поле | статус | прибор | основание
+# id | live | сортировка/журнал: идентификация, не механика | —
+# name | live | подписи в отчётах и вестях | —
+# category | live | economy/labor: различает еду для стойла и для рта | —
+# storage | checked | И-7 требует НАЛИЧИЯ; test_catalog_rules::test_goods | 00_constitution.md:43
+# spoil_per_month | live | engine/tick::phase_spoil | —
+# edible | live | economy/needs: что идёт в рот | —
+# nutrition | live | economy/needs: рот-единицы на 1 unit | —
+# price_silver | live | economy/exchange::price_of (6 вызовов) | ADR 0101
+# price_labor_silver | witness | test_price_table::test_price_is_per_storage_unit_and_derived_from_recipes | ADR 0144:12
+# price_materials_silver | witness | test_price_table (тот же) | ADR 0144:12-13
+# price_losses_silver | witness | test_price_table (тот же) | ADR 0144:12-13
 version: 1
 goods:
   - id: grain
@@ -14,6 +84,10 @@ goods:
     spoil_per_month: 0.01
     edible: true
     nutrition: 1.0
+    price_labor_silver: 0.100386
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.006418
+    price_silver: 0.128165
   - id: flour
     name: Мука
     category: food
@@ -21,6 +95,54 @@ goods:
     spoil_per_month: 0.02
     edible: true
     nutrition: 1.2
+    price_labor_silver: 0.100000
+    price_materials_silver: 0.128165
+    price_losses_silver: 0.021361
+    price_silver: 0.299432
+  - id: milk
+    name: Молоко
+    category: food
+    storage: cellar
+    spoil_per_month: 0.10
+    edible: true
+    nutrition: 0.6
+    price_labor_silver: 0.012778
+    price_materials_silver: 0.099805
+    price_losses_silver: 0.394040
+    price_silver: 0.557285
+  - id: cheese
+    name: Сыр
+    category: food
+    storage: cellar
+    spoil_per_month: 0.04
+    edible: true
+    nutrition: 2.4
+    price_labor_silver: 0.072727
+    price_materials_silver: 0.921132
+    price_losses_silver: 0.414510
+    price_silver: 1.549206
+  - id: butter
+    name: Масло
+    category: food
+    storage: cellar
+    spoil_per_month: 0.04
+    edible: true
+    nutrition: 2.0
+    price_labor_silver: 0.083333
+    price_materials_silver: 1.688743
+    price_losses_silver: 1.182120
+    price_silver: 3.545035
+  - id: eggs
+    name: Яйца
+    category: food
+    storage: cellar
+    spoil_per_month: 0.08
+    edible: true
+    nutrition: 0.5
+    price_labor_silver: 0.016522
+    price_materials_silver: 0.195034
+    price_losses_silver: 0.117177
+    price_silver: 0.361606
   - id: meat
     name: Мясо
     category: food
@@ -28,10 +150,112 @@ goods:
     spoil_per_month: 0.08
     edible: true
     nutrition: 1.5
+    price_labor_silver: 0.075000
+    price_materials_silver: 0.308772
+    price_losses_silver: 0.166296
+    price_silver: 0.660081
+  - id: squirrel
+    name: Белка
+    category: food
+    storage: cellar
+    spoil_per_month: 0.22
+    edible: true
+    nutrition: 1.2
+    price_labor_silver: 0.100000
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.010000
+    price_silver: 0.121000
+  - id: rabbit
+    name: Кролик
+    category: food
+    storage: cellar
+    spoil_per_month: 0.20
+    edible: true
+    nutrition: 1.4
+    price_labor_silver: 0.133333
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.013333
+    price_silver: 0.161333
+  - id: deer
+    name: Олень
+    category: food
+    storage: cellar
+    spoil_per_month: 0.12
+    edible: true
+    nutrition: 1.7
+    price_labor_silver: 0.184615
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.018462
+    price_silver: 0.264000
+  - id: boar
+    name: Кабан
+    category: food
+    storage: cellar
+    spoil_per_month: 0.12
+    edible: true
+    nutrition: 1.8
+    price_labor_silver: 0.150000
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.015000
+    price_silver: 0.214500
+  - id: roots
+    name: Корни и клубни
+    category: food
+    storage: cellar
+    spoil_per_month: 0.03
+    edible: true
+    nutrition: 0.45
+    price_labor_silver: 0.080000
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.020000
+    price_silver: 0.110000
+  - id: greens
+    name: Зелень
+    category: food
+    storage: cellar
+    spoil_per_month: 0.12
+    edible: true
+    nutrition: 0.35
+    price_labor_silver: 0.066667
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.033333
+    price_silver: 0.110000
+  - id: mushrooms
+    name: Грибы
+    category: food
+    storage: cellar
+    spoil_per_month: 0.15
+    edible: true
+    nutrition: 0.30
+    price_labor_silver: 0.125000
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.075000
+    price_silver: 0.220000
+  - id: berries
+    name: Ягоды
+    category: food
+    storage: cellar
+    spoil_per_month: 0.10
+    edible: true
+    nutrition: 0.25
+    price_labor_silver: 0.100000
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.060000
+    price_silver: 0.208000
   - id: straw
     name: Солома
     category: material
     storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  # Навоз: материала по лестнице ( ADR 0106), а не «особый режим» клетки. Лежит
+  # на пашне стоячей материей (`standing`), оттуда его берёт жатва, и множит
+  # урожайность гекса (`grow_grain.params.manure_*`). Появляется рецептом
+  # `make_manure` из сена в хлеву — из воздуха не берётся.
+  - id: manure
+    name: Навоз
+    category: material
+    storage: open
     spoil_per_month: 0.0
     edible: false
   - id: firewood
@@ -40,30 +264,105 @@ goods:
     storage: barn
     spoil_per_month: 0.0
     edible: false
+    price_labor_silver: 0.078125
+    price_materials_silver: 0.013816
+    price_losses_silver: 0.005562
+    price_silver: 0.107253
   - id: log
     name: Брёвна
     category: material
     storage: barn
     spoil_per_month: 0.0
     edible: false
+    price_labor_silver: 0.080000
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.004211
+    price_silver: 0.092632
+  # ЛЕСТНИЦА МАТЕРИАЛА (ADR 0106 п. 3, ADR 0157): бревно → доска → планка, ниже не
+  # спускаемся. Обе ступени лежат в каталоге, а не дописываются кодом; обе
+  # производятся (`make_board`, `make_plank`) и обе лежат на складе `barn`.
+  # Цены выведены по формуле шапки этого файла из `log` (wage 0.02, дефицит 1.1 —
+  # как у `log`/`firewood`/`peat`, материал из местного изобилия):
+  #   board: 4.0 трудодня × 0.02 = 0.080000; вход 1.05 log × 0.084211 = 0.088422;
+  #          потери 0.05 log × 0.084211 = 0.004211; себестоимость 0.172633 × 1.1.
+  #   plank: 3.0 × 0.02 = 0.060000; вход 1.05 board × 0.172633 = 0.181265;
+  #          потери 0.05 board × 0.172633 = 0.008632; себестоимость 0.249897 × 1.1.
+  # Потребителя планки в v0 нет (ADR 0150: постройка не даёт игрового эффекта) —
+  # это не дыра: место хранения, рецепт и производство есть (И-7), планка лежит.
+  - id: board
+    name: Доска
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+    price_labor_silver: 0.080000
+    price_materials_silver: 0.088422
+    price_losses_silver: 0.004211
+    price_silver: 0.189896
+  - id: plank
+    name: Планка
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+    price_labor_silver: 0.060000
+    price_materials_silver: 0.181265
+    price_losses_silver: 0.008632
+    price_silver: 0.274887
+  # КАМЕНЬ (ADR 0175). Не растёт и не лежит на поверхности: лежит в земле, и
+  # появляется правилом `grow_stone` как медленное обнажение породы. Место
+  # хранения `barn` — тесаный камень кладут в амбар, на улице он не хранится
+  # (как бревно и доска, в отличие от навоза, который `open`).
+  # Цена выведена по формуле шапки этого файла из единственного производителя
+  # `uproot_stumps` (труд 60, выход камня 9.6, потери `log 12.0` + `stone 2.4`):
+  #   труд: 60 / 9.6 × 0.02 = 0.125000;
+  #   сырьё: входов нет (материя берётся из стоячей клетки), 0.000000;
+  #   потери: (12.0 × себестоимость log 0.084211 + 2.4 × себестоимость stone) / 9.6
+  #           = 0.182018; себестоимость = 0.307018.
+  # Коэффициент дефицита **1.1 — класс материала местного изобилия** (ADR 0161
+  # п. 5: `log`, `firewood`, `peat`, `hay`, `board`, `plank`): камень лежит под
+  # ногами, не требует переработки (у соли — ванна и выварка, у железа — крица и
+  # горн, поэтому те 1.3). Добыча дорога только трудом: 6.25 трудодня на единицу.
+  - id: stone
+    name: Камень
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+    price_labor_silver: 0.125000
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.182018
+    price_silver: 0.337720
   - id: peat
     name: Торф
     category: fuel
     storage: barn
     spoil_per_month: 0.0
     edible: false
+    price_labor_silver: 0.080000
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.004211
+    price_silver: 0.092632
   - id: hay
     name: Сено
     category: material
     storage: barn
     spoil_per_month: 0.01
     edible: false
+    price_labor_silver: 0.053333
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.002807
+    price_silver: 0.061754
   - id: salt
     name: Соль
     category: material
     storage: cellar
     spoil_per_month: 0.0
     edible: false
+    price_labor_silver: 0.150000
+    price_materials_silver: 0.126316
+    price_losses_silver: 0.126316
+    price_silver: 0.523421
   - id: brine
     name: Рапа
     category: material
@@ -76,6 +375,10 @@ goods:
     storage: barn
     spoil_per_month: 0.0
     edible: false
+    price_labor_silver: 0.333333
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.017544
+    price_silver: 0.456140
   - id: iron_bloom
     name: Железная крица
     category: material
@@ -88,6 +391,10 @@ goods:
     storage: barn
     spoil_per_month: 0.0
     edible: false
+    price_labor_silver: 0.120000
+    price_materials_silver: 0.000000
+    price_losses_silver: 0.006316
+    price_silver: 0.138947
   - id: cloth
     name: Ткань
     category: material
@@ -100,12 +407,20 @@ goods:
     storage: barn
     spoil_per_month: 0.01
     edible: false
+    price_labor_silver: 0.240000
+    price_materials_silver: 1.347368
+    price_losses_silver: 0.202105
+    price_silver: 1.968421
   - id: axe
     name: Топор
     category: material
     storage: barn
     spoil_per_month: 0.0
     edible: false
+    price_labor_silver: 0.200000
+    price_materials_silver: 0.259278
+    price_losses_silver: 0.035088
+    price_silver: 0.593239
   - id: cart
     name: Телега
     category: material
@@ -136,6 +451,16 @@ goods:
     storage: barn
     spoil_per_month: 0.0
     edible: false
+  - id: butter_churn
+    name: Маслобойка
+    category: material
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+    price_labor_silver: 0.160000
+    price_materials_silver: 0.252632
+    price_losses_silver: 0.168421
+    price_silver: 0.639158
   - id: war_kit
     name: Боевой комплект
     category: material
@@ -148,8 +473,39 @@ goods:
     storage: cellar
     spoil_per_month: 0.0
     edible: false
+    price_silver: 1.0
   - id: pig
     name: Свинья
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: goat
+    name: Коза
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: sheep
+    name: Овца
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: hen
+    name: Курица
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: duck
+    name: Утка
+    category: livestock
+    storage: barn
+    spoil_per_month: 0.0
+    edible: false
+  - id: goose
+    name: Гусь
     category: livestock
     storage: barn
     spoil_per_month: 0.0

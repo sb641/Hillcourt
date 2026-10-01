@@ -1,0 +1,99 @@
+id: salt_test_fixture
+title: "Соляная оснастка"
+seed: 4242
+
+clock:
+  start_year: 1
+  start_month: 1
+  months_per_year: 12
+
+map:
+  legend:
+    H: hill
+    f: field
+    F: forest
+    m: marsh
+    s: salt_flat
+    .: heath
+  rows:
+    - ".....F"
+    - ".f...."
+    - "......"
+    - "......"
+    - "..sss."
+    - "m....."
+
+settlements:
+  - id: hill_court
+    name: "Замок"
+    kind: hill_court
+    at: [0, 0]
+    home_terrain: hill
+    holding_tiles: [[1, 1]]
+  - id: salt_village
+    name: "Солеварня"
+    kind: salt_village
+    at: [5, 4]
+    home_terrain: salt_flat
+    household_tiles: [[5, 4], [4, 4], [3, 4], [2, 4]]
+    works_tiles: [[4, 4], [3, 4], [2, 4], [0, 5]]
+
+households:
+  - id: hh_court
+    name: "Двор замка"
+    settlement_id: hill_court
+    adults: 2
+    children: 1
+    legal_status: holder
+    # НАСТОЯЩИЙ НАДЕЛ, а не общинная клетка: `holding_tiles` у двора создают
+    # индивидуальное право `kind: tenure` и ставят клетке режим `free_holding`
+    # (`scenario.py`), а `works_tiles` поселения — это доступ, а не надел
+    # (ADR 0077/0128, `labor.own_holding_tiles`). Без индивидуального права
+    # `_has_feeding_land` ложно у всех, и «платить землевладельцу» некому:
+    # `test_farmer_with_own_land_is_not_paid` падал StopIteration.
+    holding_tiles: [[1, 1]]
+    starting_food_months: 3.0
+  - id: hh_landless
+    name: "Свободный безземельный"
+    settlement_id: hill_court
+    adults: 1
+    legal_status: free_landless
+    initially_unemployed: true
+    starting_food_months: 3.0
+
+household_groups:
+  - id_prefix: hh_salt
+    settlement_id: salt_village
+    name: "Солевар"
+    count: 6
+    adults: 2
+    legal_status: free_landless
+    starting_food_months: 3.0
+    starting_stocks: {peat: 6.0, firewood: 6.0}
+
+player:
+  court_settlement_id: hill_court
+  household_id: hh_court
+  rent_share: 0.1
+
+initial_hazards: []
+
+starting_stocks:
+  settlement:hill_court: {grain: 40.0, cart: 1.0}
+  settlement:salt_village: {grain: 200.0, cart: 1.0}
+
+catalogs:
+  goods: design/catalogs/goods.yml
+  recipes: design/catalogs/recipes.yml
+  spawn_rules: design/catalogs/spawn_rules.yml
+  hazards: design/catalogs/hazards.yml
+  obligations: design/catalogs/obligations.yml
+  rights: design/catalogs/rights.yml
+  land_regimes: design/catalogs/land_regimes.yml
+  legal_statuses: design/catalogs/legal_statuses.yml
+  offices: design/catalogs/offices.yml
+  needs: design/catalogs/needs.yml
+  actions_household: design/catalogs/actions_household.yml
+  manor: design/catalogs/manor.yml
+  seasons: design/catalogs/seasons.yml
+  calendar: design/catalogs/calendar_v0.yml

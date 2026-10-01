@@ -1,0 +1,369 @@
+version: 0
+id: hillcourt_asset_library_v0
+name: Библиотека игровых ассетов HILLCOURT
+
+atlas_contract:
+  cell_canvas_px: [128, 128]
+  anchor_px: [64, 80]
+  background: transparent
+  guide_background: "#10242a"
+  guide_cell_canvas_px: [192, 192]
+  status_values: [crop_reference, composition_reference, needs_isolation, needs_ontology_check, concept_only]
+  final_claims: false
+  client_frozen: true
+  camera_frozen: false
+  target_render_mode: flat_2d_plate
+  reference_projection: isometric_2to1
+  knowledge_states_frozen: true
+
+supporting_manifests:
+  - id: terrain_atlas_v0
+    name: Terrain source atlas
+    file: terrain_manifest.yml
+  - id: supported_goods_props_v0
+    name: Supported goods and props
+    file: supported_goods_props_manifest.yml
+  - id: actor_pose_reference_v0
+    name: Actor pose references
+    file: actor_pose_reference_manifest.yml
+  - id: architecture_v1
+    name: Clean architecture v1
+    file: ../asset_library_v1/architecture/architecture_manifest.yml
+  - id: goods_props_v1
+    name: Supported goods and props v1
+    file: ../asset_library_v1/items/goods_manifest.yml
+  - id: actors_v1
+    name: Actor library v1
+    file: ../asset_library_v1/actors/actors_manifest.yml
+  - id: terrain_edges_v1
+    name: Terrain edge and transition prototypes
+    file: ../asset_library_v1/terrain/terrain_edge_manifest.yml
+  - id: flat2d_proof_v0
+    name: Flat 2D production proof
+    file: ../flat2d_proof/flat2d_proof_manifest.yml
+
+atlases:
+  - id: architecture_atlas_v0
+    name: Архитектурные plates
+    file: architecture_atlas_v0.png
+    guide: guides/architecture_guide_v0.png
+    plate_dir: plates
+    columns: 4
+    cells:
+      - id: architecture_cottage_gable_a
+        name: Timber cottage A
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [0, 520, 140, 130]
+        asset_class: architecture
+        game_forms: [timber_house, village]
+        game_entities: [Tile, Settlement, Household]
+        status: crop_reference
+      - id: architecture_cottage_gable_b
+        name: Timber cottage B
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [150, 520, 100, 130]
+        asset_class: architecture
+        game_forms: [timber_house, village]
+        game_entities: [Tile, Settlement, Household]
+        status: crop_reference
+      - id: architecture_house_timber
+        name: Timber house
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [265, 515, 95, 140]
+        asset_class: architecture
+        game_forms: [timber_house, village]
+        game_entities: [Tile, Settlement, Household]
+        status: crop_reference
+      - id: architecture_shed_small
+        name: Small shed
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [380, 520, 75, 130]
+        asset_class: architecture
+        game_forms: [timber_house]
+        game_entities: [Tile, Settlement, Household]
+        status: crop_reference
+      - id: architecture_yard_shelter
+        name: Yard shelter
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [465, 520, 80, 130]
+        asset_class: architecture
+        game_forms: [village]
+        game_entities: [Tile, Settlement]
+        status: crop_reference
+      - id: architecture_supply_shed
+        name: Supply shed
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [575, 520, 90, 130]
+        asset_class: architecture
+        game_forms: [village]
+        game_entities: [Tile, Settlement]
+        status: crop_reference
+      - id: architecture_manor_compound
+        name: Manor compound reference
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [0, 0, 700, 520]
+        asset_class: architecture
+        game_forms: [hall_on_hill]
+        game_entities: [Settlement, Manor]
+        status: composition_reference
+      - id: architecture_palisade
+        name: Timber palisade
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [720, 30, 235, 280]
+        asset_class: architecture
+        game_forms: [hall_on_hill, thegn_estate]
+        game_entities: [Tile, Manor]
+        status: crop_reference
+      - id: architecture_watchtower
+        name: Timber watchtower
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [1000, 10, 270, 350]
+        asset_class: architecture
+        game_forms: []
+        game_entities: []
+        status: needs_ontology_check
+        note: Current runtime has no tower entity or renderer form.
+      - id: architecture_bridge
+        name: Timber bridge
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [720, 330, 540, 360]
+        asset_class: architecture
+        game_forms: [crossing]
+        game_entities: [Tile]
+        status: crop_reference
+      - id: architecture_gate
+        name: Gate and fence
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [200, 730, 95, 105]
+        asset_class: architecture
+        game_forms: [thegn_estate, hall_on_hill]
+        game_entities: [Tile, Manor]
+        status: crop_reference
+      - id: architecture_granary_context
+        name: Granary context
+        source_file: illustrations_detailed/07_thegn_frontier.png
+        source_crop_px: [800, 150, 280, 330]
+        asset_class: architecture
+        game_forms: [thegn_estate]
+        game_entities: [Settlement, Manor]
+        status: needs_isolation
+        note: Granary is an art candidate; current runtime has no Granary entity or form.
+
+  - id: items_atlas_v0
+    name: Товары и ресурсы
+    file: items_atlas_v0.png
+    guide: guides/items_guide_v0.png
+    plate_dir: plates
+    columns: 4
+    cells:
+      - id: item_salt_pile
+        name: Salt pile
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [0, 100, 330, 300]
+        asset_class: item
+        game_goods: [salt]
+        game_entities: [Stock]
+        status: crop_reference
+      - id: item_peat_bricks
+        name: Peat bricks
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [280, 90, 260, 300]
+        asset_class: item
+        game_goods: [peat]
+        game_entities: [Stock]
+        status: crop_reference
+      - id: item_grain_sacks
+        name: Grain sacks
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [440, 80, 320, 310]
+        asset_class: item
+        game_goods: [grain]
+        game_entities: [Stock]
+        status: crop_reference
+      - id: item_wool_bale
+        name: Wool bale
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [600, 170, 300, 250]
+        asset_class: item
+        game_goods: [wool]
+        game_entities: [Stock]
+        status: crop_reference
+      - id: item_fish_rack
+        name: Fish rack
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [640, 40, 250, 300]
+        asset_class: item
+        game_goods: []
+        game_entities: []
+        status: concept_only
+        note: No current fish Good exists in goods.yml.
+      - id: item_plank_stack
+        name: Plank stack
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [300, 300, 360, 250]
+        asset_class: item
+        game_goods: []
+        game_entities: []
+        status: concept_only
+        note: No current plank Good exists in goods.yml.
+      - id: item_log_stack
+        name: Log stack
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [0, 430, 400, 330]
+        asset_class: item
+        game_goods: [log]
+        game_entities: [Stock]
+        status: crop_reference
+      - id: item_ceramic_set
+        name: Ceramic set
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [650, 380, 260, 230]
+        asset_class: item
+        game_goods: []
+        game_entities: []
+        status: concept_only
+      - id: item_boat_net
+        name: Boat and net
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [800, 400, 464, 400]
+        asset_class: item
+        game_goods: [boat]
+        game_entities: [Stock, Pack]
+        status: crop_reference
+      - id: item_rope_coil
+        name: Rope coil
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [580, 600, 180, 140]
+        asset_class: item
+        game_goods: []
+        game_entities: []
+        status: concept_only
+
+  - id: props_atlas_v0
+    name: Реквизит и транспорт
+    file: props_atlas_v0.png
+    guide: guides/props_guide_v0.png
+    plate_dir: plates
+    columns: 4
+    cells:
+      - id: prop_cart_loaded
+        name: Loaded cart
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [800, 60, 430, 350]
+        asset_class: prop
+        game_goods: [cart]
+        game_entities: [Stock, Pack]
+        status: crop_reference
+      - id: prop_tool_board
+        name: Tool board
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [450, 480, 300, 230]
+        asset_class: prop
+        game_goods: [iron]
+        game_entities: [Stock]
+        status: crop_reference
+      - id: prop_rope_coil
+        name: Rope coil
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [580, 600, 180, 140]
+        asset_class: prop
+        game_goods: []
+        game_entities: []
+        status: concept_only
+      - id: prop_basket
+        name: Basket
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [600, 350, 100, 100]
+        asset_class: prop
+        game_goods: []
+        game_entities: []
+        status: concept_only
+      - id: prop_boat_small
+        name: Small boat
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [900, 420, 360, 350]
+        asset_class: prop
+        game_goods: [boat]
+        game_entities: [Stock, Pack]
+        status: crop_reference
+      - id: prop_fishing_net
+        name: Fishing net
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [1000, 600, 260, 180]
+        asset_class: prop
+        game_goods: []
+        game_entities: []
+        status: concept_only
+      - id: prop_barrel_cluster
+        name: Barrel cluster
+        source_file: illustrations_detailed/10_goods_crafts_board.png
+        source_crop_px: [930, 100, 150, 180]
+        asset_class: prop
+        game_goods: []
+        game_entities: []
+        status: concept_only
+      - id: prop_handcart_context
+        name: Handcart context
+        source_file: illustrations_detailed/04_village_fair_tavern.png
+        source_crop_px: [300, 530, 380, 300]
+        asset_class: prop
+        game_goods: [cart]
+        game_entities: [Pack]
+        status: composition_reference
+
+  - id: actors_atlas_v0
+    name: Фигуры и equipment cues
+    file: actors_atlas_v0.png
+    guide: guides/actors_guide_v0.png
+    plate_dir: plates
+    columns: 4
+    cells:
+      - id: actor_villager_a
+        name: Villager A
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [190, 645, 45, 95]
+        asset_class: actor
+        game_entities: [Person, Household]
+        status: crop_reference
+      - id: actor_villager_b
+        name: Villager B
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [240, 645, 45, 95]
+        asset_class: actor
+        game_entities: [Person, Household]
+        status: crop_reference
+      - id: actor_villager_c
+        name: Villager C
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [290, 645, 45, 95]
+        asset_class: actor
+        game_entities: [Person, Household]
+        status: crop_reference
+      - id: actor_villager_d
+        name: Villager D
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [340, 645, 45, 95]
+        asset_class: actor
+        game_entities: [Person, Household]
+        status: crop_reference
+      - id: actor_retainer_equipment
+        name: Retainer equipment
+        source_file: references/detail_style_anchor.png
+        source_crop_px: [0, 640, 180, 100]
+        asset_class: actor
+        game_entities: [Person, Pack]
+        status: crop_reference
+      - id: actor_horse_context
+        name: Horse and cart context
+        source_file: illustrations_detailed/04_village_fair_tavern.png
+        source_crop_px: [300, 530, 380, 300]
+        asset_class: actor
+        game_entities: [Person, Pack, Stock]
+        status: composition_reference
+      - id: actor_sheep_context
+        name: Sheep context
+        source_file: illustrations_detailed/04_village_fair_tavern.png
+        source_crop_px: [0, 120, 240, 220]
+        asset_class: actor
+        game_entities: [Stock, Household]
+        status: composition_reference

@@ -1,0 +1,4765 @@
+version: 0
+id: hillcourt_flat2d_proof_v0
+name: Flat 2D production proof v0
+
+target:
+  render_mode: flat_2d_plate
+  cell_canvas_px: [128, 128]
+  proof_anchor_px: [64, 64]
+  proof_hex_center_px: [64, 64]
+  proof_hex_circumradius_px: 48
+  proof_hex_half_width_px: 42
+  reference_projection: isometric_2to1
+  camera_frozen: false
+  sprite_selector: none
+  sprite_selector_reason: client_frozen_and_no_selection_code_in_sim
+  final_hex_mask: false
+  final_claims: false
+  revision: 10
+
+target_extras:
+  anchor_tolerance_px: 0.5
+  max_unique_rgb_per_plate: 32
+  contour_colour: "#181410"
+
+atlas:
+  file: flat2d_proof/flat2d_proof_atlas_v0.png
+  guide: flat2d_proof/guides/flat2d_proof_guide_v0.png
+  plate_dir: flat2d_proof/plates
+  columns: 3
+  rows: 44
+  cell_canvas_px: [128, 128]
+  canvas_px: [448, 7008]
+  layout:
+    - id: terrain_field_hex
+      offset_px: [0, 0]
+    - id: terrain_hill_hex
+      offset_px: [160, 0]
+    - id: terrain_pasture_hex
+      offset_px: [320, 0]
+    - id: terrain_forest_hex
+      offset_px: [0, 160]
+    - id: terrain_marsh_hex
+      offset_px: [160, 160]
+    - id: terrain_heath_hex
+      offset_px: [320, 160]
+    - id: terrain_salt_flat_hex
+      offset_px: [0, 320]
+    - id: terrain_ruin_hex
+      offset_px: [160, 320]
+    - id: terrain_water_hex
+      offset_px: [320, 320]
+    - id: architecture_cottage_plate
+      offset_px: [0, 480]
+    - id: prop_flat_cart_empty
+      offset_px: [160, 480]
+    - id: actor_villager_plate
+      offset_px: [320, 480]
+    - id: architecture_cottage_gable_a
+      offset_px: [0, 640]
+    - id: architecture_cottage_gable_b
+      offset_px: [160, 640]
+    - id: architecture_house_timber
+      offset_px: [320, 640]
+    - id: architecture_shed_small
+      offset_px: [0, 800]
+    - id: architecture_yard_shelter
+      offset_px: [160, 800]
+    - id: architecture_supply_shed
+      offset_px: [320, 800]
+    - id: architecture_palisade
+      offset_px: [0, 960]
+    - id: architecture_bridge
+      offset_px: [160, 960]
+    - id: architecture_gate
+      offset_px: [320, 960]
+    - id: good_salt_pile
+      offset_px: [0, 1120]
+    - id: good_peat_bricks
+      offset_px: [160, 1120]
+    - id: good_grain_sacks
+      offset_px: [320, 1120]
+    - id: good_wool_bale
+      offset_px: [0, 1280]
+    - id: good_log_stack
+      offset_px: [160, 1280]
+    - id: good_boat
+      offset_px: [320, 1280]
+    - id: good_boat_small
+      offset_px: [0, 1440]
+    - id: good_cart
+      offset_px: [160, 1440]
+    - id: good_iron_tools
+      offset_px: [320, 1440]
+    - id: good_stone
+      offset_px: [0, 1600]
+    - id: good_firewood
+      offset_px: [160, 1600]
+    - id: good_hay
+      offset_px: [320, 1600]
+    - id: good_straw
+      offset_px: [0, 1760]
+    - id: good_axe
+      offset_px: [160, 1760]
+    - id: good_wooden_plough
+      offset_px: [320, 1760]
+    - id: good_board
+      offset_px: [0, 1920]
+    - id: good_plank
+      offset_px: [160, 1920]
+    - id: good_raft
+      offset_px: [320, 1920]
+    - id: good_cloth
+      offset_px: [0, 2080]
+    - id: good_hide
+      offset_px: [160, 2080]
+    - id: good_meat
+      offset_px: [320, 2080]
+    - id: good_manure
+      offset_px: [0, 2240]
+    - id: good_butter_churn
+      offset_px: [160, 2240]
+    - id: good_iron_bloom
+      offset_px: [320, 2240]
+    - id: good_iron_share
+      offset_px: [0, 2400]
+    - id: actor_child
+      offset_px: [160, 2400]
+    - id: actor_adult
+      offset_px: [320, 2400]
+    - id: actor_elder
+      offset_px: [0, 2560]
+    - id: animal_ox
+      offset_px: [160, 2560]
+    - id: animal_horse
+      offset_px: [320, 2560]
+    - id: animal_donkey
+      offset_px: [0, 2720]
+    - id: animal_sheep
+      offset_px: [160, 2720]
+    - id: animal_goat
+      offset_px: [320, 2720]
+    - id: animal_pig
+      offset_px: [0, 2880]
+    - id: animal_hen
+      offset_px: [160, 2880]
+    - id: animal_goose
+      offset_px: [320, 2880]
+    - id: animal_duck
+      offset_px: [0, 3040]
+    - id: animal_deer
+      offset_px: [160, 3040]
+    - id: animal_boar
+      offset_px: [320, 3040]
+    - id: animal_rabbit
+      offset_px: [0, 3200]
+    - id: animal_squirrel
+      offset_px: [160, 3200]
+    - id: garment_tunic_homespun_child
+      offset_px: [320, 3200]
+    - id: garment_tunic_homespun_adult
+      offset_px: [0, 3360]
+    - id: garment_tunic_homespun_elder
+      offset_px: [160, 3360]
+    - id: garment_tunic_dyed_child
+      offset_px: [320, 3360]
+    - id: garment_tunic_dyed_adult
+      offset_px: [0, 3520]
+    - id: garment_tunic_dyed_elder
+      offset_px: [160, 3520]
+    - id: garment_tunic_silk_child
+      offset_px: [320, 3520]
+    - id: garment_tunic_silk_adult
+      offset_px: [0, 3680]
+    - id: garment_tunic_silk_elder
+      offset_px: [160, 3680]
+    - id: garment_legs_wrapped_child
+      offset_px: [320, 3680]
+    - id: garment_legs_wrapped_adult
+      offset_px: [0, 3840]
+    - id: garment_legs_wrapped_elder
+      offset_px: [160, 3840]
+    - id: garment_hose_wool_child
+      offset_px: [320, 3840]
+    - id: garment_hose_wool_adult
+      offset_px: [0, 4000]
+    - id: garment_hose_wool_elder
+      offset_px: [160, 4000]
+    - id: garment_feet_hide_child
+      offset_px: [320, 4000]
+    - id: garment_feet_hide_adult
+      offset_px: [0, 4160]
+    - id: garment_feet_hide_elder
+      offset_px: [160, 4160]
+    - id: garment_feet_boot_child
+      offset_px: [320, 4160]
+    - id: garment_feet_boot_adult
+      offset_px: [0, 4320]
+    - id: garment_feet_boot_elder
+      offset_px: [160, 4320]
+    - id: garment_outer_apron_child
+      offset_px: [320, 4320]
+    - id: garment_outer_apron_adult
+      offset_px: [0, 4480]
+    - id: garment_outer_apron_elder
+      offset_px: [160, 4480]
+    - id: garment_outer_cloak_child
+      offset_px: [320, 4480]
+    - id: garment_outer_cloak_adult
+      offset_px: [0, 4640]
+    - id: garment_outer_cloak_elder
+      offset_px: [160, 4640]
+    - id: garment_outer_fur_child
+      offset_px: [320, 4640]
+    - id: garment_outer_fur_adult
+      offset_px: [0, 4800]
+    - id: garment_outer_fur_elder
+      offset_px: [160, 4800]
+    - id: garment_armour_leather_child
+      offset_px: [320, 4800]
+    - id: garment_armour_leather_adult
+      offset_px: [0, 4960]
+    - id: garment_armour_leather_elder
+      offset_px: [160, 4960]
+    - id: garment_armour_mail_child
+      offset_px: [320, 4960]
+    - id: garment_armour_mail_adult
+      offset_px: [0, 5120]
+    - id: garment_armour_mail_elder
+      offset_px: [160, 5120]
+    - id: garment_head_coif_child
+      offset_px: [320, 5120]
+    - id: garment_head_coif_adult
+      offset_px: [0, 5280]
+    - id: garment_head_coif_elder
+      offset_px: [160, 5280]
+    - id: garment_head_helm_child
+      offset_px: [320, 5280]
+    - id: garment_head_helm_adult
+      offset_px: [0, 5440]
+    - id: garment_head_helm_elder
+      offset_px: [160, 5440]
+    - id: garment_rank_iron_child
+      offset_px: [320, 5440]
+    - id: garment_rank_iron_adult
+      offset_px: [0, 5600]
+    - id: garment_rank_iron_elder
+      offset_px: [160, 5600]
+    - id: garment_rank_silver_child
+      offset_px: [320, 5600]
+    - id: garment_rank_silver_adult
+      offset_px: [0, 5760]
+    - id: garment_rank_silver_elder
+      offset_px: [160, 5760]
+    - id: hazard_wolves
+      offset_px: [320, 5760]
+    - id: hazard_bog
+      offset_px: [0, 5920]
+    - id: hazard_band
+      offset_px: [160, 5920]
+    - id: camp_wagon
+      offset_px: [320, 5920]
+    - id: camp_tent
+      offset_px: [0, 6080]
+    - id: camp_pavilion
+      offset_px: [160, 6080]
+    - id: camp_fortified
+      offset_px: [320, 6080]
+    - id: camp_campfire
+      offset_px: [0, 6240]
+    - id: camp_foot_pot
+      offset_px: [160, 6240]
+    - id: camp_lost_caravan
+      offset_px: [320, 6240]
+    - id: site_pier
+      offset_px: [0, 6400]
+    - id: site_waystation
+      offset_px: [160, 6400]
+    - id: site_tavern
+      offset_px: [320, 6400]
+    - id: site_iron_mine
+      offset_px: [0, 6560]
+    - id: site_hermitage
+      offset_px: [160, 6560]
+    - id: site_smoke
+      offset_px: [320, 6560]
+    - id: site_baron_castle
+      offset_px: [0, 6720]
+    - id: site_city_quarter
+      offset_px: [160, 6720]
+    - id: site_ruin
+      offset_px: [320, 6720]
+    - id: site_salt_works
+      offset_px: [0, 6880]
+    - id: site_tribal_village
+      offset_px: [160, 6880]
+  guide_layout:
+    cell_canvas_px: [192, 192]
+    canvas_px: [640, 9168]
+    sprite_scale_pct: 130
+    sprite_scale_axes: uniform
+    sprite_offset_px: [13, 0]
+    columns: 3
+    rows: 44
+    gutter_px: 16
+    background: "#071419"
+
+pipeline:
+  background_key:
+    terrain_field_hex: not_used_texture_is_drawn
+    architecture_cottage_plate: cool_vignette_test_b_gt_r
+    prop_flat_cart_empty: cool_vignette_test_b_gt_r
+    actor_villager_plate: cool_vignette_test_b_gt_r
+    architecture_*: not_used_building_is_drawn
+  retouch: quantise_rgb_ramp_to_style_colors_then_restore_alpha
+  contour: "restroke_1px_#181410_from_thresholded_alpha"
+  order: key_then_resize_then_mask_then_retouch_then_scrub_then_contour
+  scrub: repaint_any_colour_whose_r_minus_b_is_below_the_ramp_width
+  placement: ground_contact_run_centred_on_x_64_within_0.5px_bottom_on_64
+  anchor_tolerance_px: 0.5
+  anchor_tolerance_reason: even_width_contact_runs_centre_between_pixels
+  contact_shadow: synthetic_ellipse_radius_0.55_of_object_width_capped_at_24
+  contact_shadow_colour: "#181410"
+  object_ground_rule: object_contact_is_the_hex_centre_one_reference_point
+  guide_cell_fill: "#10242a"
+  guide_overlay_colours:
+    - "#d8c9a3"
+    - "#3c5961"
+  style_colours:
+    actor_adult: 20
+    actor_child: 20
+    actor_elder: 20
+    actor_villager_plate: 8
+    animal_boar: 20
+    animal_deer: 20
+    animal_donkey: 20
+    animal_duck: 20
+    animal_goat: 20
+    animal_goose: 20
+    animal_hen: 20
+    animal_horse: 20
+    animal_ox: 20
+    animal_pig: 20
+    animal_rabbit: 20
+    animal_sheep: 20
+    animal_squirrel: 20
+    architecture_bridge: 20
+    architecture_cottage_gable_a: 28
+    architecture_cottage_gable_b: 28
+    architecture_cottage_plate: 12
+    architecture_gate: 20
+    architecture_house_timber: 28
+    architecture_palisade: 20
+    architecture_shed_small: 24
+    architecture_supply_shed: 24
+    architecture_yard_shelter: 24
+    camp_campfire: 18
+    camp_foot_pot: 18
+    camp_fortified: 18
+    camp_lost_caravan: 18
+    camp_pavilion: 18
+    camp_tent: 18
+    camp_wagon: 18
+    garment_armour_leather_adult: 16
+    garment_armour_leather_child: 16
+    garment_armour_leather_elder: 16
+    garment_armour_mail_adult: 16
+    garment_armour_mail_child: 16
+    garment_armour_mail_elder: 16
+    garment_feet_boot_adult: 16
+    garment_feet_boot_child: 16
+    garment_feet_boot_elder: 16
+    garment_feet_hide_adult: 16
+    garment_feet_hide_child: 16
+    garment_feet_hide_elder: 16
+    garment_head_coif_adult: 16
+    garment_head_coif_child: 16
+    garment_head_coif_elder: 16
+    garment_head_helm_adult: 16
+    garment_head_helm_child: 16
+    garment_head_helm_elder: 16
+    garment_hose_wool_adult: 16
+    garment_hose_wool_child: 16
+    garment_hose_wool_elder: 16
+    garment_legs_wrapped_adult: 16
+    garment_legs_wrapped_child: 16
+    garment_legs_wrapped_elder: 16
+    garment_outer_apron_adult: 16
+    garment_outer_apron_child: 16
+    garment_outer_apron_elder: 16
+    garment_outer_cloak_adult: 16
+    garment_outer_cloak_child: 16
+    garment_outer_cloak_elder: 16
+    garment_outer_fur_adult: 16
+    garment_outer_fur_child: 16
+    garment_outer_fur_elder: 16
+    garment_rank_iron_adult: 16
+    garment_rank_iron_child: 16
+    garment_rank_iron_elder: 16
+    garment_rank_silver_adult: 16
+    garment_rank_silver_child: 16
+    garment_rank_silver_elder: 16
+    garment_tunic_dyed_adult: 16
+    garment_tunic_dyed_child: 16
+    garment_tunic_dyed_elder: 16
+    garment_tunic_homespun_adult: 16
+    garment_tunic_homespun_child: 16
+    garment_tunic_homespun_elder: 16
+    garment_tunic_silk_adult: 16
+    garment_tunic_silk_child: 16
+    garment_tunic_silk_elder: 16
+    good_axe: 24
+    good_board: 24
+    good_boat: 20
+    good_boat_small: 16
+    good_butter_churn: 24
+    good_cart: 24
+    good_cloth: 16
+    good_firewood: 24
+    good_grain_sacks: 20
+    good_hay: 20
+    good_hide: 20
+    good_iron_bloom: 24
+    good_iron_share: 20
+    good_iron_tools: 20
+    good_log_stack: 24
+    good_manure: 16
+    good_meat: 28
+    good_peat_bricks: 20
+    good_plank: 24
+    good_raft: 24
+    good_salt_pile: 16
+    good_stone: 16
+    good_straw: 20
+    good_wooden_plough: 24
+    good_wool_bale: 16
+    hazard_band: 17
+    hazard_bog: 17
+    hazard_wolves: 17
+    prop_flat_cart_empty: 10
+    site_baron_castle: 22
+    site_city_quarter: 22
+    site_hermitage: 22
+    site_iron_mine: 22
+    site_pier: 22
+    site_ruin: 22
+    site_salt_works: 22
+    site_smoke: 22
+    site_tavern: 22
+    site_tribal_village: 22
+    site_waystation: 22
+    terrain_field_hex: 24
+    terrain_forest_hex: 16
+    terrain_heath_hex: 20
+    terrain_hill_hex: 20
+    terrain_marsh_hex: 18
+    terrain_pasture_hex: 20
+    terrain_ruin_hex: 20
+    terrain_salt_flat_hex: 12
+    terrain_water_hex: 18
+  ramp_min_r_minus_b:
+    actor_adult: -255
+    actor_child: -255
+    actor_elder: -255
+    actor_villager_plate: 8
+    animal_boar: -255
+    animal_deer: -255
+    animal_donkey: -255
+    animal_duck: -255
+    animal_goat: -255
+    animal_goose: -255
+    animal_hen: -255
+    animal_horse: -255
+    animal_ox: -255
+    animal_pig: -255
+    animal_rabbit: -255
+    animal_sheep: -255
+    animal_squirrel: -255
+    architecture_bridge: -255
+    architecture_cottage_gable_a: -255
+    architecture_cottage_gable_b: -255
+    architecture_cottage_plate: 8
+    architecture_gate: -255
+    architecture_house_timber: -255
+    architecture_palisade: -255
+    architecture_shed_small: -255
+    architecture_supply_shed: -255
+    architecture_yard_shelter: -255
+    camp_campfire: -255
+    camp_foot_pot: -255
+    camp_fortified: -255
+    camp_lost_caravan: -255
+    camp_pavilion: -255
+    camp_tent: -255
+    camp_wagon: -255
+    garment_armour_leather_adult: -255
+    garment_armour_leather_child: -255
+    garment_armour_leather_elder: -255
+    garment_armour_mail_adult: -255
+    garment_armour_mail_child: -255
+    garment_armour_mail_elder: -255
+    garment_feet_boot_adult: -255
+    garment_feet_boot_child: -255
+    garment_feet_boot_elder: -255
+    garment_feet_hide_adult: -255
+    garment_feet_hide_child: -255
+    garment_feet_hide_elder: -255
+    garment_head_coif_adult: -255
+    garment_head_coif_child: -255
+    garment_head_coif_elder: -255
+    garment_head_helm_adult: -255
+    garment_head_helm_child: -255
+    garment_head_helm_elder: -255
+    garment_hose_wool_adult: -255
+    garment_hose_wool_child: -255
+    garment_hose_wool_elder: -255
+    garment_legs_wrapped_adult: -255
+    garment_legs_wrapped_child: -255
+    garment_legs_wrapped_elder: -255
+    garment_outer_apron_adult: -255
+    garment_outer_apron_child: -255
+    garment_outer_apron_elder: -255
+    garment_outer_cloak_adult: -255
+    garment_outer_cloak_child: -255
+    garment_outer_cloak_elder: -255
+    garment_outer_fur_adult: -255
+    garment_outer_fur_child: -255
+    garment_outer_fur_elder: -255
+    garment_rank_iron_adult: -255
+    garment_rank_iron_child: -255
+    garment_rank_iron_elder: -255
+    garment_rank_silver_adult: -255
+    garment_rank_silver_child: -255
+    garment_rank_silver_elder: -255
+    garment_tunic_dyed_adult: -255
+    garment_tunic_dyed_child: -255
+    garment_tunic_dyed_elder: -255
+    garment_tunic_homespun_adult: -255
+    garment_tunic_homespun_child: -255
+    garment_tunic_homespun_elder: -255
+    garment_tunic_silk_adult: -255
+    garment_tunic_silk_child: -255
+    garment_tunic_silk_elder: -255
+    good_axe: -255
+    good_board: -255
+    good_boat: -255
+    good_boat_small: -255
+    good_butter_churn: -255
+    good_cart: -255
+    good_cloth: -255
+    good_firewood: -255
+    good_grain_sacks: -255
+    good_hay: -255
+    good_hide: -255
+    good_iron_bloom: -255
+    good_iron_share: -255
+    good_iron_tools: -255
+    good_log_stack: -255
+    good_manure: -255
+    good_meat: -255
+    good_peat_bricks: -255
+    good_plank: -255
+    good_raft: -255
+    good_salt_pile: -255
+    good_stone: -255
+    good_straw: -255
+    good_wooden_plough: -255
+    good_wool_bale: -255
+    hazard_band: -255
+    hazard_bog: -255
+    hazard_wolves: -255
+    prop_flat_cart_empty: 8
+    site_baron_castle: -255
+    site_city_quarter: -255
+    site_hermitage: -255
+    site_iron_mine: -255
+    site_pier: -255
+    site_ruin: -255
+    site_salt_works: -255
+    site_smoke: -255
+    site_tavern: -255
+    site_tribal_village: -255
+    site_waystation: -255
+    terrain_field_hex: -255
+    terrain_forest_hex: -255
+    terrain_heath_hex: -255
+    terrain_hill_hex: -255
+    terrain_marsh_hex: -255
+    terrain_pasture_hex: -255
+    terrain_ruin_hex: -255
+    terrain_salt_flat_hex: -255
+    terrain_water_hex: -255
+  max_unique_rgb_per_plate: 32
+  style_reference: references/detail_style_anchor.png
+  style_reference_scope: form_material_and_detail_not_hue
+  field_texture: drawn_parallel_furrows_single_direction
+  field_furrow_angle_deg: 30
+  field_furrow_step_px: 8
+  field_turf_depth_px: 4
+  field_turf: green_perimeter_margin_allowed
+  terrain_count: 9
+  object_count: 3
+  architecture_count: 9
+  prop_count: 25
+  actor_count: 3
+  animal_count: 13
+  garment_count: 48
+  hazard_count: 3
+  camp_count: 7
+  site_count: 11
+  hazard_carrier_field: Hazard.kind
+  garment_layers:
+    - armour
+    - feet
+    - head
+    - legs
+    - outer
+    - rank
+    - tunic
+  garment_age_classes:
+    - child
+    - adult
+    - elder
+  garment_carrier_field: Household.legal_status_id
+  garment_sprite_selector: none
+  garment_status_armour_step:
+    - cotter: 0
+    - free_landless: 0
+    - geneat: 1
+    - holder: 2
+    - slave: 0
+    - sokeman: 1
+    - thegn: 2
+    - villein: 0
+  no_data_carrier:
+    - actor_villager_plate
+    - architecture_cottage_plate
+    - architecture_gate
+    - architecture_palisade
+    - prop_flat_cart_empty
+  no_data_carrier_note: >-
+    Every plate above names no simulation field. The list is published so
+    that a new carrier-less plate cannot appear without being declared here,
+    and so validate_mapping.py can require the list and the cells to agree.
+  actor_excluded:
+    pose_reference_01: no_carrier_no_pose_field
+    pose_reference_02: no_carrier_no_pose_field
+    pose_reference_03: no_carrier_no_pose_field
+    pose_reference_04: no_carrier_no_pose_field
+    actor_retainer_equipment: no_carrier_no_equipment_field
+  architecture_excluded:
+    architecture_watchtower: needs_ontology_check_not_drawn
+
+cells:
+  - id: terrain_field_hex
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_hex_center_64_64
+    placement: ground_anchored
+    object_size_px: [85, 97]
+    object_placement_px: [22, 16]
+    plate_size_px: [85, 97]
+    plate_opaque_px: 6301
+    material: drawn
+    material_pattern: furrows
+    material_name: Field
+    material_ramp:
+      - "#36281E"
+      - "#483729"
+      - "#5A4634"
+      - "#6C5640"
+      - "#304A26"
+      - "#3E5A2C"
+      - "#4E6A34"
+    plate_placement_px: [22, 16]
+    status: proof_generated
+    data_carrier: Tile.terrain
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: terrain_hill_hex
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_hex_center_64_64
+    placement: ground_anchored
+    object_size_px: [85, 97]
+    object_placement_px: [22, 16]
+    plate_size_px: [85, 97]
+    plate_opaque_px: 6301
+    material: drawn
+    material_pattern: outcrop
+    material_name: Hill
+    material_ramp:
+      - "#3A4422"
+      - "#4C582C"
+      - "#606E38"
+      - "#768446"
+      - "#304A26"
+      - "#3E5A2C"
+      - "#4E6A34"
+      - "#70685C"
+      - "#80786A"
+      - "#928A7A"
+    plate_placement_px: [22, 16]
+    status: proof_generated
+    data_carrier: Tile.terrain
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: terrain_pasture_hex
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_hex_center_64_64
+    placement: ground_anchored
+    object_size_px: [85, 97]
+    object_placement_px: [22, 16]
+    plate_size_px: [85, 97]
+    plate_opaque_px: 6301
+    material: drawn
+    material_pattern: blades
+    material_name: Pasture
+    material_ramp:
+      - "#323E20"
+      - "#46542A"
+      - "#5C6C36"
+      - "#748444"
+      - "#2C3C1E"
+      - "#3A4E26"
+      - "#4A6030"
+    plate_placement_px: [22, 16]
+    status: proof_generated
+    data_carrier: Tile.terrain
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: terrain_forest_hex
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_hex_center_64_64
+    placement: ground_anchored
+    object_size_px: [85, 97]
+    object_placement_px: [22, 16]
+    plate_size_px: [85, 97]
+    plate_opaque_px: 6301
+    material: drawn
+    material_pattern: canopy
+    material_name: Forest
+    material_ramp:
+      - "#18281A"
+      - "#223620"
+      - "#2E4628"
+      - "#3E5A34"
+      - "#142418"
+      - "#1E321E"
+      - "#2A4226"
+    plate_placement_px: [22, 16]
+    status: proof_generated
+    data_carrier: Tile.terrain
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: terrain_marsh_hex
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_hex_center_64_64
+    placement: ground_anchored
+    object_size_px: [85, 97]
+    object_placement_px: [22, 16]
+    plate_size_px: [85, 97]
+    plate_opaque_px: 6301
+    material: drawn
+    material_pattern: reeds
+    material_name: Marsh
+    material_ramp:
+      - "#1A282C"
+      - "#24363A"
+      - "#304648"
+      - "#3E5856"
+      - "#22301E"
+      - "#2E4024"
+      - "#3C522C"
+    plate_placement_px: [22, 16]
+    status: proof_generated
+    data_carrier: Tile.terrain
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: terrain_heath_hex
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_hex_center_64_64
+    placement: ground_anchored
+    object_size_px: [85, 97]
+    object_placement_px: [22, 16]
+    plate_size_px: [85, 97]
+    plate_opaque_px: 6301
+    material: drawn
+    material_pattern: moss
+    material_name: Heath
+    material_ramp:
+      - "#343022"
+      - "#48422C"
+      - "#5E563A"
+      - "#746C4A"
+      - "#2C3822"
+      - "#3A4A2C"
+      - "#4A5C36"
+    plate_placement_px: [22, 16]
+    status: proof_generated
+    data_carrier: Tile.terrain
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: terrain_salt_flat_hex
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_hex_center_64_64
+    placement: ground_anchored
+    object_size_px: [85, 97]
+    object_placement_px: [22, 16]
+    plate_size_px: [85, 97]
+    plate_opaque_px: 6301
+    material: drawn
+    material_pattern: cracks
+    material_name: Salt flat
+    material_ramp:
+      - "#605A50"
+      - "#7A7468"
+      - "#928C7E"
+      - "#A8A292"
+      - "#545046"
+      - "#6A6458"
+      - "#807A6C"
+    plate_placement_px: [22, 16]
+    status: proof_generated
+    data_carrier: Tile.terrain
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: terrain_ruin_hex
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_hex_center_64_64
+    placement: ground_anchored
+    object_size_px: [85, 97]
+    object_placement_px: [22, 16]
+    plate_size_px: [85, 97]
+    plate_opaque_px: 6301
+    material: drawn
+    material_pattern: rubble
+    material_name: Ruin
+    material_ramp:
+      - "#322C24"
+      - "#443C30"
+      - "#584E3E"
+      - "#6C604E"
+      - "#2A2C20"
+      - "#3A3C2A"
+      - "#4C4E36"
+    plate_placement_px: [22, 16]
+    status: proof_generated
+    data_carrier: Tile.terrain
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: terrain_water_hex
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_hex_center_64_64
+    placement: ground_anchored
+    object_size_px: [85, 97]
+    object_placement_px: [22, 16]
+    plate_size_px: [85, 97]
+    plate_opaque_px: 6301
+    material: drawn
+    material_pattern: ripples
+    material_name: Water
+    material_ramp:
+      - "#1E2E3E"
+      - "#2C4052"
+      - "#3C5468"
+      - "#506C80"
+      - "#1A2836"
+      - "#26384A"
+      - "#344A60"
+    plate_placement_px: [22, 16]
+    status: proof_generated
+    data_carrier: Tile.terrain
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: architecture_cottage_plate
+    source_file: flat2d_proof/sources/architecture_cottage_plate.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [60, 57]
+    object_placement_px: [34, 8]
+    plate_size_px: [60, 61]
+    plate_opaque_px: 2601
+    material: keyed_from_render
+    plate_placement_px: [34, 8]
+    status: proof_generated
+    data_carrier: null
+    data_carrier_kind: none
+    data_carrier_reason: >-
+      No simulation field identifies this plate, so a renderer cannot key on
+      one. It is kept for geometry or for pipeline coverage, not as an asset.
+    sprite_selector: none
+  - id: prop_flat_cart_empty
+    source_file: flat2d_proof/sources/prop_flat_cart_empty.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [70, 40]
+    object_placement_px: [43, 25]
+    plate_size_px: [73, 44]
+    plate_opaque_px: 2056
+    material: keyed_from_render
+    plate_placement_px: [40, 25]
+    status: proof_generated
+    data_carrier: null
+    data_carrier_kind: none
+    data_carrier_reason: >-
+      No simulation field identifies this plate, so a renderer cannot key on
+      one. It is kept for geometry or for pipeline coverage, not as an asset.
+    sprite_selector: none
+  - id: actor_villager_plate
+    source_file: flat2d_proof/sources/actor_villager_plate.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [19, 40]
+    object_placement_px: [58, 25]
+    plate_size_px: [23, 42]
+    plate_opaque_px: 635
+    material: keyed_from_render
+    plate_placement_px: [54, 25]
+    status: proof_generated
+    data_carrier: null
+    data_carrier_kind: none
+    data_carrier_reason: >-
+      No simulation field identifies this plate, so a renderer cannot key on
+      one. It is kept for geometry or for pipeline coverage, not as an asset.
+    sprite_selector: none
+  - id: architecture_cottage_gable_a
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [67, 47]
+    object_placement_px: [31, 18]
+    plate_size_px: [67, 51]
+    plate_opaque_px: 2374
+    material: drawn
+    material_name: Cottage, gable A
+    material_roof: gable
+    material_wall: timber
+    material_ramp:
+      - "#3A2A1C"
+      - "#4E3A26"
+      - "#644C32"
+      - "#7A6040"
+      - "#342A1A"
+      - "#4A3C24"
+      - "#625030"
+      - "#7C6842"
+      - "#262A28"
+      - "#3A3F3C"
+      - "#505552"
+      - "#686C68"
+      - "#120E0B"
+      - "#16110C"
+      - "#1A1917"
+      - "#221811"
+      - "#100D0A"
+      - "#4A5860"
+      - "#140F0B"
+    plate_placement_px: [31, 18]
+    status: proof_generated
+    data_carrier: Tile.dwelling
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: architecture_cottage_gable_b
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [57, 49]
+    object_placement_px: [36, 16]
+    plate_size_px: [57, 53]
+    plate_opaque_px: 1951
+    material: drawn
+    material_name: Cottage, gable B
+    material_roof: gable
+    material_wall: timber
+    material_ramp:
+      - "#3A2A1C"
+      - "#4E3A26"
+      - "#644C32"
+      - "#7A6040"
+      - "#342A1A"
+      - "#4A3C24"
+      - "#625030"
+      - "#7C6842"
+      - "#262A28"
+      - "#3A3F3C"
+      - "#505552"
+      - "#686C68"
+      - "#120E0B"
+      - "#16110C"
+      - "#1A1917"
+      - "#221811"
+      - "#100D0A"
+      - "#4A5860"
+      - "#140F0B"
+    plate_placement_px: [36, 16]
+    status: proof_generated
+    data_carrier: Tile.dwelling
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: architecture_house_timber
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [75, 61]
+    object_placement_px: [27, 4]
+    plate_size_px: [75, 65]
+    plate_opaque_px: 3156
+    material: drawn
+    material_name: Timber house
+    material_roof: gable
+    material_wall: timber
+    material_ramp:
+      - "#3A2A1C"
+      - "#4E3A26"
+      - "#644C32"
+      - "#7A6040"
+      - "#342A1A"
+      - "#4A3C24"
+      - "#625030"
+      - "#7C6842"
+      - "#262A28"
+      - "#3A3F3C"
+      - "#505552"
+      - "#686C68"
+      - "#120E0B"
+      - "#16110C"
+      - "#1A1917"
+      - "#221811"
+      - "#100D0A"
+      - "#4A5860"
+      - "#140F0B"
+    plate_placement_px: [27, 4]
+    status: proof_generated
+    data_carrier: Tile.dwelling
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: architecture_shed_small
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [41, 30]
+    object_placement_px: [44, 35]
+    plate_size_px: [47, 33]
+    plate_opaque_px: 1022
+    material: drawn
+    material_name: Small shed
+    material_roof: shed
+    material_wall: timber
+    material_ramp:
+      - "#3A2A1C"
+      - "#4E3A26"
+      - "#644C32"
+      - "#7A6040"
+      - "#342A1A"
+      - "#4A3C24"
+      - "#625030"
+      - "#7C6842"
+      - "#262A28"
+      - "#3A3F3C"
+      - "#505552"
+      - "#686C68"
+      - "#120E0B"
+      - "#16110C"
+      - "#1A1917"
+      - "#221811"
+      - "#100D0A"
+      - "#4A5860"
+      - "#140F0B"
+    plate_placement_px: [41, 35]
+    status: proof_generated
+    data_carrier: Tile.dwelling
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: architecture_yard_shelter
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [49, 30]
+    object_placement_px: [40, 35]
+    plate_size_px: [49, 34]
+    plate_opaque_px: 954
+    material: drawn
+    material_name: Yard shelter
+    material_roof: shed
+    material_wall: open
+    material_ramp:
+      - "#3A2C1E"
+      - "#503E2A"
+      - "#685238"
+      - "#806848"
+      - "#342A1A"
+      - "#4A3C24"
+      - "#625030"
+      - "#7C6842"
+      - "#262A28"
+      - "#3A3F3C"
+      - "#505552"
+      - "#686C68"
+      - "#120E0B"
+      - "#16110C"
+      - "#1A1917"
+      - "#221811"
+      - "#100D0A"
+      - "#4A5860"
+      - "#140F0B"
+    plate_placement_px: [40, 35]
+    status: proof_generated
+    data_carrier: Tile.dwelling
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: architecture_supply_shed
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [53, 36]
+    object_placement_px: [38, 29]
+    plate_size_px: [53, 40]
+    plate_opaque_px: 1514
+    material: drawn
+    material_name: Supply shed
+    material_roof: gable
+    material_wall: plank
+    material_ramp:
+      - "#403222"
+      - "#56442E"
+      - "#6E583C"
+      - "#866E4C"
+      - "#342A1A"
+      - "#4A3C24"
+      - "#625030"
+      - "#7C6842"
+      - "#262A28"
+      - "#3A3F3C"
+      - "#505552"
+      - "#686C68"
+      - "#120E0B"
+      - "#16110C"
+      - "#1A1917"
+      - "#221811"
+      - "#100D0A"
+      - "#4A5860"
+      - "#140F0B"
+    plate_placement_px: [38, 29]
+    status: proof_generated
+    data_carrier: Tile.dwelling
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: architecture_palisade
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [45, 34]
+    object_placement_px: [42, 31]
+    plate_size_px: [49, 38]
+    plate_opaque_px: 1665
+    material: drawn
+    material_name: Palisade
+    material_roof: none
+    material_wall: palisade
+    material_ramp:
+      - "#322418"
+      - "#443220"
+      - "#58422A"
+      - "#6C5436"
+      - "#342A1A"
+      - "#4A3C24"
+      - "#625030"
+      - "#7C6842"
+      - "#262A28"
+      - "#3A3F3C"
+      - "#505552"
+      - "#686C68"
+      - "#120E0B"
+      - "#16110C"
+      - "#1A1917"
+      - "#221811"
+      - "#100D0A"
+      - "#4A5860"
+      - "#140F0B"
+    plate_placement_px: [40, 31]
+    status: proof_generated
+    data_carrier: null
+    data_carrier_kind: none
+    data_carrier_reason: >-
+      No simulation field identifies this plate, so a renderer cannot key on
+      one. It is kept for geometry or for pipeline coverage, not as an asset.
+    sprite_selector: none
+  - id: architecture_bridge
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [85, 38]
+    object_placement_px: [22, 27]
+    plate_size_px: [85, 42]
+    plate_opaque_px: 2544
+    material: drawn
+    material_name: Bridge
+    material_roof: deck
+    material_wall: stone
+    material_ramp:
+      - "#383632"
+      - "#4C4A44"
+      - "#625F58"
+      - "#78746C"
+      - "#342A1A"
+      - "#4A3C24"
+      - "#625030"
+      - "#7C6842"
+      - "#262A28"
+      - "#3A3F3C"
+      - "#505552"
+      - "#686C68"
+      - "#120E0B"
+      - "#16110C"
+      - "#1A1917"
+      - "#221811"
+      - "#100D0A"
+      - "#4A5860"
+      - "#140F0B"
+    plate_placement_px: [22, 27]
+    status: proof_generated
+    data_carrier: Tile.bridge
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: architecture_gate
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [45, 29]
+    object_placement_px: [42, 36]
+    plate_size_px: [49, 33]
+    plate_opaque_px: 920
+    material: drawn
+    material_name: Gate
+    material_roof: flat
+    material_wall: gate
+    material_ramp:
+      - "#34261A"
+      - "#463422"
+      - "#5A442C"
+      - "#6E563A"
+      - "#342A1A"
+      - "#4A3C24"
+      - "#625030"
+      - "#7C6842"
+      - "#262A28"
+      - "#3A3F3C"
+      - "#505552"
+      - "#686C68"
+      - "#120E0B"
+      - "#16110C"
+      - "#1A1917"
+      - "#221811"
+      - "#100D0A"
+      - "#4A5860"
+      - "#140F0B"
+    plate_placement_px: [40, 36]
+    status: proof_generated
+    data_carrier: null
+    data_carrier_kind: none
+    data_carrier_reason: >-
+      No simulation field identifies this plate, so a renderer cannot key on
+      one. It is kept for geometry or for pipeline coverage, not as an asset.
+    sprite_selector: none
+  - id: good_salt_pile
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [46, 22]
+    object_placement_px: [41, 43]
+    plate_size_px: [49, 26]
+    plate_opaque_px: 947
+    material: drawn
+    material_name: Salt pile
+    material_form: heap
+    material_mats: [salt]
+    material_ramp:
+      - "#929088"
+      - "#ACAAA2"
+      - "#C6C4BC"
+      - "#DCDAD2"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [40, 43]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_peat_bricks
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [37, 21]
+    object_placement_px: [46, 44]
+    plate_size_px: [41, 24]
+    plate_opaque_px: 804
+    material: drawn
+    material_name: Peat bricks
+    material_form: brick_stack
+    material_mats: [peat]
+    material_ramp:
+      - "#1A140F"
+      - "#261E16"
+      - "#342A20"
+      - "#44382C"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [44, 44]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_grain_sacks
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [40, 25]
+    object_placement_px: [44, 40]
+    plate_size_px: [45, 28]
+    plate_opaque_px: 1039
+    material: drawn
+    material_name: Grain sacks
+    material_form: sacks
+    material_mats: [burlap]
+    material_ramp:
+      - "#705E3E"
+      - "#887450"
+      - "#A08A62"
+      - "#B6A076"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [42, 40]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_wool_bale
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [35, 23]
+    object_placement_px: [47, 42]
+    plate_size_px: [39, 26]
+    plate_opaque_px: 912
+    material: drawn
+    material_name: Wool bale
+    material_form: bale
+    material_mats: [wool]
+    material_ramp:
+      - "#ACA89C"
+      - "#C2BEB2"
+      - "#D6D2C6"
+      - "#E8E4D8"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [45, 42]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_log_stack
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [40, 32]
+    object_placement_px: [45, 33]
+    plate_size_px: [45, 35]
+    plate_opaque_px: 1333
+    material: drawn
+    material_name: Log stack
+    material_form: log_stack
+    material_mats: [bark, endgrain]
+    material_ramp:
+      - "#36281A"
+      - "#4A3824"
+      - "#604A30"
+      - "#765E3E"
+      - "#806442"
+      - "#987A52"
+      - "#B09064"
+      - "#C6A678"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [42, 33]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_boat
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [49, 37]
+    object_placement_px: [40, 28]
+    plate_size_px: [49, 41]
+    plate_opaque_px: 961
+    material: drawn
+    material_name: Boat with net
+    material_form: hull
+    material_mats: [hull]
+    material_ramp:
+      - "#322418"
+      - "#463422"
+      - "#5C442E"
+      - "#72583A"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [40, 28]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_boat_small
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [31, 12]
+    object_placement_px: [49, 53]
+    plate_size_px: [35, 14]
+    plate_opaque_px: 383
+    material: drawn
+    material_name: Small boat
+    material_form: hull
+    material_mats: [hull]
+    material_ramp:
+      - "#322418"
+      - "#463422"
+      - "#5C442E"
+      - "#72583A"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [47, 53]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_cart
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [49, 28]
+    object_placement_px: [37, 37]
+    plate_size_px: [52, 32]
+    plate_opaque_px: 1008
+    material: drawn
+    material_name: Loaded cart
+    material_form: cart
+    material_mats: [bark, iron, burlap]
+    material_ramp:
+      - "#36281A"
+      - "#4A3824"
+      - "#604A30"
+      - "#765E3E"
+      - "#24282C"
+      - "#383D42"
+      - "#4E5358"
+      - "#666A6E"
+      - "#705E3E"
+      - "#887450"
+      - "#A08A62"
+      - "#B6A076"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [37, 37]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_iron_tools
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [27, 31]
+    object_placement_px: [51, 34]
+    plate_size_px: [31, 33]
+    plate_opaque_px: 899
+    material: drawn
+    material_name: Iron tools
+    material_form: tool_board
+    material_mats: [iron, bark]
+    material_ramp:
+      - "#24282C"
+      - "#383D42"
+      - "#4E5358"
+      - "#666A6E"
+      - "#36281A"
+      - "#4A3824"
+      - "#604A30"
+      - "#765E3E"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [49, 34]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_stone
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [40, 14]
+    object_placement_px: [49, 51]
+    plate_size_px: [47, 17]
+    plate_opaque_px: 561
+    material: drawn
+    material_name: Field stone
+    material_form: rubble
+    material_mats: [stone]
+    material_ramp:
+      - "#484642"
+      - "#605E5A"
+      - "#7A7872"
+      - "#94928A"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [42, 51]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_firewood
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [33, 20]
+    object_placement_px: [48, 45]
+    plate_size_px: [37, 23]
+    plate_opaque_px: 661
+    material: drawn
+    material_name: Split firewood
+    material_form: billets
+    material_mats: [bark, endgrain]
+    material_ramp:
+      - "#36281A"
+      - "#4A3824"
+      - "#604A30"
+      - "#765E3E"
+      - "#806442"
+      - "#987A52"
+      - "#B09064"
+      - "#C6A678"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [46, 45]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_hay
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [36, 37]
+    object_placement_px: [46, 28]
+    plate_size_px: [41, 40]
+    plate_opaque_px: 781
+    material: drawn
+    material_name: Hayrick
+    material_form: hayrick
+    material_mats: [hay]
+    material_ramp:
+      - "#786028"
+      - "#947A38"
+      - "#B0964E"
+      - "#C8B068"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [44, 28]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_straw
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [23, 36]
+    object_placement_px: [53, 29]
+    plate_size_px: [27, 38]
+    plate_opaque_px: 519
+    material: drawn
+    material_name: Straw sheaf
+    material_form: sheaf
+    material_mats: [hay]
+    material_ramp:
+      - "#786028"
+      - "#947A38"
+      - "#B0964E"
+      - "#C8B068"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [51, 29]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_axe
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [20, 39]
+    object_placement_px: [54, 26]
+    plate_size_px: [23, 41]
+    plate_opaque_px: 378
+    material: drawn
+    material_name: Axe
+    material_form: axe
+    material_mats: [bark, iron]
+    material_ramp:
+      - "#36281A"
+      - "#4A3824"
+      - "#604A30"
+      - "#765E3E"
+      - "#24282C"
+      - "#383D42"
+      - "#4E5358"
+      - "#666A6E"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [53, 26]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_wooden_plough
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [44, 31]
+    object_placement_px: [62, 34]
+    plate_size_px: [66, 35]
+    plate_opaque_px: 718
+    material: drawn
+    material_name: Wooden plough
+    material_form: plough
+    material_mats: [bark, iron]
+    material_ramp:
+      - "#36281A"
+      - "#4A3824"
+      - "#604A30"
+      - "#765E3E"
+      - "#24282C"
+      - "#383D42"
+      - "#4E5358"
+      - "#666A6E"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [40, 34]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_board
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [34, 25]
+    object_placement_px: [48, 40]
+    plate_size_px: [39, 28]
+    plate_opaque_px: 806
+    material: drawn
+    material_name: Sawn boards
+    material_form: boards
+    material_mats: [endgrain, bark]
+    material_ramp:
+      - "#806442"
+      - "#987A52"
+      - "#B09064"
+      - "#C6A678"
+      - "#36281A"
+      - "#4A3824"
+      - "#604A30"
+      - "#765E3E"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [45, 40]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_plank
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [30, 16]
+    object_placement_px: [50, 49]
+    plate_size_px: [33, 18]
+    plate_opaque_px: 443
+    material: drawn
+    material_name: Planks
+    material_form: boards
+    material_mats: [endgrain, bark]
+    material_ramp:
+      - "#806442"
+      - "#987A52"
+      - "#B09064"
+      - "#C6A678"
+      - "#36281A"
+      - "#4A3824"
+      - "#604A30"
+      - "#765E3E"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [48, 49]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_raft
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [65, 16]
+    object_placement_px: [45, 49]
+    plate_size_px: [70, 20]
+    plate_opaque_px: 560
+    material: drawn
+    material_name: Lashed raft
+    material_form: raft
+    material_mats: [bark, hull]
+    material_ramp:
+      - "#36281A"
+      - "#4A3824"
+      - "#604A30"
+      - "#765E3E"
+      - "#322418"
+      - "#463422"
+      - "#5C442E"
+      - "#72583A"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [40, 49]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_cloth
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [29, 21]
+    object_placement_px: [50, 44]
+    plate_size_px: [33, 23]
+    plate_opaque_px: 599
+    material: drawn
+    material_name: Cloth bolt
+    material_form: bolt
+    material_mats: [wool]
+    material_ramp:
+      - "#ACA89C"
+      - "#C2BEB2"
+      - "#D6D2C6"
+      - "#E8E4D8"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [48, 44]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_hide
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [35, 27]
+    object_placement_px: [47, 38]
+    plate_size_px: [39, 30]
+    plate_opaque_px: 1052
+    material: drawn
+    material_name: Cured hide
+    material_form: hide
+    material_mats: [hide]
+    material_ramp:
+      - "#4A3626"
+      - "#644C36"
+      - "#7E6248"
+      - "#987A5C"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [45, 38]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_meat
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [35, 21]
+    object_placement_px: [47, 44]
+    plate_size_px: [39, 24]
+    plate_opaque_px: 560
+    material: drawn
+    material_name: Butchered meat
+    material_form: carcass
+    material_mats: [meat, bone]
+    material_ramp:
+      - "#5C2C2C"
+      - "#7A3E3A"
+      - "#98544C"
+      - "#B47064"
+      - "#928A7A"
+      - "#ACA696"
+      - "#C6C2B4"
+      - "#DAD8CE"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [45, 44]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_manure
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [34, 14]
+    object_placement_px: [47, 51]
+    plate_size_px: [39, 17]
+    plate_opaque_px: 457
+    material: drawn
+    material_name: Manure heap
+    material_form: heap
+    material_mats: [manure]
+    material_ramp:
+      - "#221A12"
+      - "#32281A"
+      - "#443824"
+      - "#564830"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [45, 51]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_butter_churn
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [19, 33]
+    object_placement_px: [55, 32]
+    plate_size_px: [21, 35]
+    plate_opaque_px: 479
+    material: drawn
+    material_name: Butter churn
+    material_form: churn
+    material_mats: [bark, endgrain]
+    material_ramp:
+      - "#36281A"
+      - "#4A3824"
+      - "#604A30"
+      - "#765E3E"
+      - "#806442"
+      - "#987A52"
+      - "#B09064"
+      - "#C6A678"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [54, 32]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_iron_bloom
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [31, 15]
+    object_placement_px: [49, 50]
+    plate_size_px: [35, 17]
+    plate_opaque_px: 417
+    material: drawn
+    material_name: Iron bloom
+    material_form: bloom
+    material_mats: [iron, ash]
+    material_ramp:
+      - "#24282C"
+      - "#383D42"
+      - "#4E5358"
+      - "#666A6E"
+      - "#383430"
+      - "#4E4A44"
+      - "#66625C"
+      - "#7E7A74"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [47, 50]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: good_iron_share
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [32, 16]
+    object_placement_px: [59, 49]
+    plate_size_px: [45, 19]
+    plate_opaque_px: 438
+    material: drawn
+    material_name: Iron ploughshare
+    material_form: share
+    material_mats: [iron]
+    material_ramp:
+      - "#24282C"
+      - "#383D42"
+      - "#4E5358"
+      - "#666A6E"
+      - "#14100C"
+      - "#181410"
+      - "#1E1A15"
+      - "#101214"
+    plate_placement_px: [46, 49]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: actor_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [25, 41]
+    object_placement_px: [52, 24]
+    plate_size_px: [29, 43]
+    plate_opaque_px: 756
+    material: drawn
+    material_name: Child
+    material_carrier_field: Person.age_class
+    material_carrier_value: child
+    material_ramp:
+      - "#7E5C44"
+      - "#987254"
+      - "#B08866"
+      - "#C69E7A"
+      - "#3A322C"
+      - "#52483E"
+      - "#6C6052"
+      - "#867866"
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#221A14"
+      - "#34281E"
+      - "#18120E"
+      - "#46382A"
+    plate_placement_px: [50, 24]
+    status: proof_generated
+    data_carrier: Person.age_class
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: actor_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [37, 59]
+    object_placement_px: [46, 6]
+    plate_size_px: [41, 62]
+    plate_opaque_px: 1483
+    material: drawn
+    material_name: Adult
+    material_carrier_field: Person.age_class
+    material_carrier_value: adult
+    material_ramp:
+      - "#7E5C44"
+      - "#987254"
+      - "#B08866"
+      - "#C69E7A"
+      - "#3A322C"
+      - "#52483E"
+      - "#6C6052"
+      - "#867866"
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#221A14"
+      - "#34281E"
+      - "#18120E"
+      - "#46382A"
+    plate_placement_px: [44, 6]
+    status: proof_generated
+    data_carrier: Person.age_class
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: actor_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [40, 53]
+    object_placement_px: [42, 12]
+    plate_size_px: [45, 56]
+    plate_opaque_px: 1398
+    material: drawn
+    material_name: Elder
+    material_carrier_field: Person.age_class
+    material_carrier_value: elder
+    material_ramp:
+      - "#7E5C44"
+      - "#987254"
+      - "#B08866"
+      - "#C69E7A"
+      - "#3A322C"
+      - "#52483E"
+      - "#6C6052"
+      - "#867866"
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#221A14"
+      - "#34281E"
+      - "#18120E"
+      - "#46382A"
+    plate_placement_px: [42, 12]
+    status: proof_generated
+    data_carrier: Person.age_class
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_ox
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [58, 41]
+    object_placement_px: [41, 24]
+    plate_size_px: [59, 45]
+    plate_opaque_px: 1402
+    material: drawn
+    material_name: Ox
+    material_form: quadruped
+    material_mats: [hide, hide_dark]
+    material_ramp:
+      - "#3A2A1C"
+      - "#503C28"
+      - "#685036"
+      - "#806646"
+      - "#241A12"
+      - "#302419"
+      - "#3E3021"
+      - "#4E3E2C"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [ox_m, ox_f, ox_calf]
+    plate_placement_px: [40, 24]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_horse
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [60, 46]
+    object_placement_px: [41, 19]
+    plate_size_px: [61, 50]
+    plate_opaque_px: 1414
+    material: drawn
+    material_name: Horse
+    material_form: quadruped
+    material_mats: [hide, hide_dark]
+    material_ramp:
+      - "#3A2A1C"
+      - "#503C28"
+      - "#685036"
+      - "#806646"
+      - "#241A12"
+      - "#302419"
+      - "#3E3021"
+      - "#4E3E2C"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [horse_m, horse_f, horse_foal]
+    plate_placement_px: [40, 19]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_donkey
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [45, 44]
+    object_placement_px: [46, 21]
+    plate_size_px: [51, 48]
+    plate_opaque_px: 1089
+    material: drawn
+    material_name: Donkey
+    material_form: quadruped
+    material_mats: [hide, hide_dark]
+    material_ramp:
+      - "#3A2A1C"
+      - "#503C28"
+      - "#685036"
+      - "#806646"
+      - "#241A12"
+      - "#302419"
+      - "#3E3021"
+      - "#4E3E2C"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [donkey_m, donkey_f, donkey_foal]
+    plate_placement_px: [40, 21]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_sheep
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [32, 25]
+    object_placement_px: [51, 40]
+    plate_size_px: [37, 28]
+    plate_opaque_px: 739
+    material: drawn
+    material_name: Sheep
+    material_form: quadruped
+    material_mats: [wool, wool_dark]
+    material_ramp:
+      - "#969084"
+      - "#B0AA9E"
+      - "#C8C4B8"
+      - "#DEDACE"
+      - "#686258"
+      - "#7A746A"
+      - "#8E887E"
+      - "#A29C92"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [sheep]
+    plate_placement_px: [46, 40]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_goat
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [31, 26]
+    object_placement_px: [52, 39]
+    plate_size_px: [36, 28]
+    plate_opaque_px: 537
+    material: drawn
+    material_name: Goat
+    material_form: quadruped
+    material_mats: [hide, hide_dark]
+    material_ramp:
+      - "#3A2A1C"
+      - "#503C28"
+      - "#685036"
+      - "#806646"
+      - "#241A12"
+      - "#302419"
+      - "#3E3021"
+      - "#4E3E2C"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [goat]
+    plate_placement_px: [47, 39]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_pig
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [35, 21]
+    object_placement_px: [48, 44]
+    plate_size_px: [39, 24]
+    plate_opaque_px: 581
+    material: drawn
+    material_name: Pig
+    material_form: quadruped
+    material_mats: [hide, hide_dark]
+    material_ramp:
+      - "#3A2A1C"
+      - "#503C28"
+      - "#685036"
+      - "#806646"
+      - "#241A12"
+      - "#302419"
+      - "#3E3021"
+      - "#4E3E2C"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [pig]
+    plate_placement_px: [45, 44]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_hen
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [23, 23]
+    object_placement_px: [52, 42]
+    plate_size_px: [27, 25]
+    plate_opaque_px: 364
+    material: drawn
+    material_name: Hen
+    material_form: bird
+    material_mats: [feather, feather_dark]
+    material_ramp:
+      - "#5C4A34"
+      - "#725E42"
+      - "#8A7452"
+      - "#A28C68"
+      - "#3A2E20"
+      - "#483A28"
+      - "#584832"
+      - "#6A583E"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [hen]
+    plate_placement_px: [51, 42]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_goose
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [26, 26]
+    object_placement_px: [51, 39]
+    plate_size_px: [29, 28]
+    plate_opaque_px: 436
+    material: drawn
+    material_name: Goose
+    material_form: bird
+    material_mats: [feather, feather_dark]
+    material_ramp:
+      - "#5C4A34"
+      - "#725E42"
+      - "#8A7452"
+      - "#A28C68"
+      - "#3A2E20"
+      - "#483A28"
+      - "#584832"
+      - "#6A583E"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [goose]
+    plate_placement_px: [50, 39]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_duck
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [24, 18]
+    object_placement_px: [53, 47]
+    plate_size_px: [27, 20]
+    plate_opaque_px: 321
+    material: drawn
+    material_name: Duck
+    material_form: bird
+    material_mats: [feather, feather_dark]
+    material_ramp:
+      - "#5C4A34"
+      - "#725E42"
+      - "#8A7452"
+      - "#A28C68"
+      - "#3A2E20"
+      - "#483A28"
+      - "#584832"
+      - "#6A583E"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [duck]
+    plate_placement_px: [51, 47]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_deer
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [49, 50]
+    object_placement_px: [45, 15]
+    plate_size_px: [54, 54]
+    plate_opaque_px: 1187
+    material: drawn
+    material_name: Deer
+    material_form: quadruped
+    material_mats: [hide, hide_dark]
+    material_ramp:
+      - "#3A2A1C"
+      - "#503C28"
+      - "#685036"
+      - "#806646"
+      - "#241A12"
+      - "#302419"
+      - "#3E3021"
+      - "#4E3E2C"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [deer]
+    plate_placement_px: [40, 15]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_boar
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [46, 30]
+    object_placement_px: [46, 35]
+    plate_size_px: [52, 34]
+    plate_opaque_px: 1108
+    material: drawn
+    material_name: Wild boar
+    material_form: quadruped
+    material_mats: [hide, hide_dark]
+    material_ramp:
+      - "#3A2A1C"
+      - "#503C28"
+      - "#685036"
+      - "#806646"
+      - "#241A12"
+      - "#302419"
+      - "#3E3021"
+      - "#4E3E2C"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [boar]
+    plate_placement_px: [40, 35]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_rabbit
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [26, 29]
+    object_placement_px: [53, 36]
+    plate_size_px: [29, 31]
+    plate_opaque_px: 404
+    material: drawn
+    material_name: Hare
+    material_form: quadruped
+    material_mats: [hide, hide_dark]
+    material_ramp:
+      - "#3A2A1C"
+      - "#503C28"
+      - "#685036"
+      - "#806646"
+      - "#241A12"
+      - "#302419"
+      - "#3E3021"
+      - "#4E3E2C"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [rabbit]
+    plate_placement_px: [50, 36]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: animal_squirrel
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [21, 18]
+    object_placement_px: [54, 47]
+    plate_size_px: [25, 20]
+    plate_opaque_px: 292
+    material: drawn
+    material_name: Squirrel
+    material_form: quadruped
+    material_mats: [hide, hide_dark]
+    material_ramp:
+      - "#3A2A1C"
+      - "#503C28"
+      - "#685036"
+      - "#806646"
+      - "#241A12"
+      - "#302419"
+      - "#3E3021"
+      - "#4E3E2C"
+      - "#1C1610"
+      - "#2C241A"
+      - "#14100C"
+      - "#968E60"
+      - "#706A58"
+      - "#86806A"
+      - "#9C967E"
+      - "#B2AC94"
+    serves_goods: [squirrel]
+    plate_placement_px: [52, 47]
+    status: proof_generated
+    data_carrier: Good.id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_tunic_homespun_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 32, 78, 69]
+    object_size_px: [26, 20]
+    object_placement_px: [51, 35]
+    plate_size_px: [26, 20]
+    plate_opaque_px: 358
+    material: drawn
+    material_name: Tunic, undyed homespun
+    material_layer: tunic
+    material_wealth_step: 0
+    material_form: tunic_body
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#686256"
+      - "#7E786A"
+      - "#948E7E"
+      - "#AAA492"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [51, 35]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_tunic_homespun_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 13, 85, 64]
+    object_size_px: [36, 28]
+    object_placement_px: [46, 16]
+    plate_size_px: [36, 28]
+    plate_opaque_px: 788
+    material: drawn
+    material_name: Tunic, undyed homespun
+    material_layer: tunic
+    material_wealth_step: 0
+    material_form: tunic_body
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#686256"
+      - "#7E786A"
+      - "#948E7E"
+      - "#AAA492"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [46, 16]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_tunic_homespun_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 18, 82, 65]
+    object_size_px: [32, 26]
+    object_placement_px: [48, 21]
+    plate_size_px: [32, 26]
+    plate_opaque_px: 624
+    material: drawn
+    material_name: Tunic, undyed homespun
+    material_layer: tunic
+    material_wealth_step: 0
+    material_form: tunic_body
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#686256"
+      - "#7E786A"
+      - "#948E7E"
+      - "#AAA492"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [48, 21]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_tunic_dyed_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 32, 78, 69]
+    object_size_px: [26, 23]
+    object_placement_px: [51, 35]
+    plate_size_px: [26, 23]
+    plate_opaque_px: 410
+    material: drawn
+    material_name: Tunic, dyed wool
+    material_layer: tunic
+    material_wealth_step: 1
+    material_form: tunic_body
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#303C58"
+      - "#425272"
+      - "#586C90"
+      - "#7288AC"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [51, 35]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_tunic_dyed_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 13, 85, 64]
+    object_size_px: [36, 33]
+    object_placement_px: [46, 16]
+    plate_size_px: [36, 33]
+    plate_opaque_px: 900
+    material: drawn
+    material_name: Tunic, dyed wool
+    material_layer: tunic
+    material_wealth_step: 1
+    material_form: tunic_body
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#303C58"
+      - "#425272"
+      - "#586C90"
+      - "#7288AC"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [46, 16]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_tunic_dyed_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 18, 82, 65]
+    object_size_px: [32, 30]
+    object_placement_px: [48, 21]
+    plate_size_px: [32, 30]
+    plate_opaque_px: 690
+    material: drawn
+    material_name: Tunic, dyed wool
+    material_layer: tunic
+    material_wealth_step: 1
+    material_form: tunic_body
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#303C58"
+      - "#425272"
+      - "#586C90"
+      - "#7288AC"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [48, 21]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_tunic_silk_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 32, 78, 69]
+    object_size_px: [26, 29]
+    object_placement_px: [51, 35]
+    plate_size_px: [26, 29]
+    plate_opaque_px: 496
+    material: drawn
+    material_name: Tunic, silk
+    material_layer: tunic
+    material_wealth_step: 2
+    material_form: tunic_body
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#682224"
+      - "#883230"
+      - "#A8443E"
+      - "#C65E54"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [51, 35]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_tunic_silk_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 13, 85, 64]
+    object_size_px: [36, 41]
+    object_placement_px: [46, 16]
+    plate_size_px: [36, 41]
+    plate_opaque_px: 1044
+    material: drawn
+    material_name: Tunic, silk
+    material_layer: tunic
+    material_wealth_step: 2
+    material_form: tunic_body
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#682224"
+      - "#883230"
+      - "#A8443E"
+      - "#C65E54"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [46, 16]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_tunic_silk_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 18, 82, 65]
+    object_size_px: [32, 37]
+    object_placement_px: [48, 21]
+    plate_size_px: [32, 37]
+    plate_opaque_px: 816
+    material: drawn
+    material_name: Tunic, silk
+    material_layer: tunic
+    material_wealth_step: 2
+    material_form: tunic_body
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#682224"
+      - "#883230"
+      - "#A8443E"
+      - "#C65E54"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [48, 21]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_legs_wrapped_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 41, 78, 65]
+    object_size_px: [14, 21]
+    object_placement_px: [57, 44]
+    plate_size_px: [14, 21]
+    plate_opaque_px: 294
+    material: drawn
+    material_name: Cloth leg wrappings
+    material_layer: legs
+    material_wealth_step: 1
+    material_form: legs_wraps
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#686256"
+      - "#7E786A"
+      - "#948E7E"
+      - "#AAA492"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [57, 44]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_legs_wrapped_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 33, 85, 65]
+    object_size_px: [20, 29]
+    object_placement_px: [54, 36]
+    plate_size_px: [20, 29]
+    plate_opaque_px: 522
+    material: drawn
+    material_name: Cloth leg wrappings
+    material_layer: legs
+    material_wealth_step: 1
+    material_form: legs_wraps
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#686256"
+      - "#7E786A"
+      - "#948E7E"
+      - "#AAA492"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [54, 36]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_legs_wrapped_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 36, 82, 65]
+    object_size_px: [16, 26]
+    object_placement_px: [56, 39]
+    plate_size_px: [16, 26]
+    plate_opaque_px: 364
+    material: drawn
+    material_name: Cloth leg wrappings
+    material_layer: legs
+    material_wealth_step: 1
+    material_form: legs_wraps
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#686256"
+      - "#7E786A"
+      - "#948E7E"
+      - "#AAA492"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [56, 39]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_hose_wool_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 41, 78, 65]
+    object_size_px: [16, 21]
+    object_placement_px: [56, 44]
+    plate_size_px: [16, 21]
+    plate_opaque_px: 336
+    material: drawn
+    material_name: Woollen hose
+    material_layer: legs
+    material_wealth_step: 2
+    material_form: legs_hose
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#686256"
+      - "#7E786A"
+      - "#948E7E"
+      - "#AAA492"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [56, 44]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_hose_wool_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 33, 85, 65]
+    object_size_px: [20, 29]
+    object_placement_px: [54, 36]
+    plate_size_px: [20, 29]
+    plate_opaque_px: 580
+    material: drawn
+    material_name: Woollen hose
+    material_layer: legs
+    material_wealth_step: 2
+    material_form: legs_hose
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#686256"
+      - "#7E786A"
+      - "#948E7E"
+      - "#AAA492"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [54, 36]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_hose_wool_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 36, 82, 65]
+    object_size_px: [18, 26]
+    object_placement_px: [55, 39]
+    plate_size_px: [18, 26]
+    plate_opaque_px: 416
+    material: drawn
+    material_name: Woollen hose
+    material_layer: legs
+    material_wealth_step: 2
+    material_form: legs_hose
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#686256"
+      - "#7E786A"
+      - "#948E7E"
+      - "#AAA492"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [55, 39]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_feet_hide_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 49, 78, 65]
+    object_size_px: [18, 7]
+    object_placement_px: [55, 58]
+    plate_size_px: [18, 7]
+    plate_opaque_px: 103
+    material: drawn
+    material_name: Crude hide shoes
+    material_layer: feet
+    material_wealth_step: 1
+    material_form: feet_low
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [55, 58]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_feet_hide_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 49, 85, 65]
+    object_size_px: [24, 7]
+    object_placement_px: [52, 58]
+    plate_size_px: [24, 7]
+    plate_opaque_px: 135
+    material: drawn
+    material_name: Crude hide shoes
+    material_layer: feet
+    material_wealth_step: 1
+    material_form: feet_low
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [52, 58]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_feet_hide_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 49, 82, 65]
+    object_size_px: [21, 7]
+    object_placement_px: [54, 58]
+    plate_size_px: [21, 7]
+    plate_opaque_px: 114
+    material: drawn
+    material_name: Crude hide shoes
+    material_layer: feet
+    material_wealth_step: 1
+    material_form: feet_low
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [54, 58]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_feet_boot_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 49, 78, 65]
+    object_size_px: [18, 11]
+    object_placement_px: [55, 54]
+    plate_size_px: [18, 11]
+    plate_opaque_px: 159
+    material: drawn
+    material_name: Good leather boots
+    material_layer: feet
+    material_wealth_step: 2
+    material_form: feet_high
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [55, 54]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_feet_boot_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 49, 85, 65]
+    object_size_px: [24, 11]
+    object_placement_px: [52, 54]
+    plate_size_px: [24, 11]
+    plate_opaque_px: 205
+    material: drawn
+    material_name: Good leather boots
+    material_layer: feet
+    material_wealth_step: 2
+    material_form: feet_high
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [52, 54]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_feet_boot_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 49, 82, 65]
+    object_size_px: [21, 11]
+    object_placement_px: [54, 54]
+    plate_size_px: [21, 11]
+    plate_opaque_px: 172
+    material: drawn
+    material_name: Good leather boots
+    material_layer: feet
+    material_wealth_step: 2
+    material_form: feet_high
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [54, 54]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_outer_apron_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 31, 78, 60]
+    object_size_px: [26, 21]
+    object_placement_px: [51, 31]
+    plate_size_px: [26, 21]
+    plate_opaque_px: 282
+    material: drawn
+    material_name: Work apron
+    material_layer: outer
+    material_wealth_step: 0
+    material_form: outer_apron
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [51, 31]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_outer_apron_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 12, 85, 58]
+    object_size_px: [36, 30]
+    object_placement_px: [46, 16]
+    plate_size_px: [36, 30]
+    plate_opaque_px: 632
+    material: drawn
+    material_name: Work apron
+    material_layer: outer
+    material_wealth_step: 0
+    material_form: outer_apron
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [46, 16]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_outer_apron_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 17, 82, 59]
+    object_size_px: [32, 27]
+    object_placement_px: [48, 21]
+    plate_size_px: [32, 27]
+    plate_opaque_px: 468
+    material: drawn
+    material_name: Work apron
+    material_layer: outer
+    material_wealth_step: 0
+    material_form: outer_apron
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [48, 21]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_outer_cloak_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 31, 78, 60]
+    object_size_px: [26, 15]
+    object_placement_px: [51, 34]
+    plate_size_px: [26, 15]
+    plate_opaque_px: 297
+    material: drawn
+    material_name: Wool cloak
+    material_layer: outer
+    material_wealth_step: 1
+    material_form: outer_cloak
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#303C58"
+      - "#425272"
+      - "#586C90"
+      - "#7288AC"
+      - "#74767A"
+      - "#929498"
+      - "#B0B2B6"
+      - "#CED0D4"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [51, 34]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_outer_cloak_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 12, 85, 58]
+    object_size_px: [36, 28]
+    object_placement_px: [46, 15]
+    plate_size_px: [36, 28]
+    plate_opaque_px: 776
+    material: drawn
+    material_name: Wool cloak
+    material_layer: outer
+    material_wealth_step: 1
+    material_form: outer_cloak
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#303C58"
+      - "#425272"
+      - "#586C90"
+      - "#7288AC"
+      - "#74767A"
+      - "#929498"
+      - "#B0B2B6"
+      - "#CED0D4"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [46, 15]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_outer_cloak_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 17, 82, 59]
+    object_size_px: [32, 25]
+    object_placement_px: [48, 20]
+    plate_size_px: [32, 25]
+    plate_opaque_px: 583
+    material: drawn
+    material_name: Wool cloak
+    material_layer: outer
+    material_wealth_step: 1
+    material_form: outer_cloak
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#303C58"
+      - "#425272"
+      - "#586C90"
+      - "#7288AC"
+      - "#74767A"
+      - "#929498"
+      - "#B0B2B6"
+      - "#CED0D4"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [48, 20]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_outer_fur_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 31, 78, 60]
+    object_size_px: [26, 16]
+    object_placement_px: [51, 34]
+    plate_size_px: [26, 16]
+    plate_opaque_px: 313
+    material: drawn
+    material_name: Fur-lined cloak
+    material_layer: outer
+    material_wealth_step: 2
+    material_form: outer_cloak
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#5C4A38"
+      - "#725E48"
+      - "#8A745A"
+      - "#A28A6E"
+      - "#74767A"
+      - "#929498"
+      - "#B0B2B6"
+      - "#CED0D4"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [51, 34]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_outer_fur_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 12, 85, 58]
+    object_size_px: [36, 29]
+    object_placement_px: [46, 15]
+    plate_size_px: [36, 29]
+    plate_opaque_px: 781
+    material: drawn
+    material_name: Fur-lined cloak
+    material_layer: outer
+    material_wealth_step: 2
+    material_form: outer_cloak
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#5C4A38"
+      - "#725E48"
+      - "#8A745A"
+      - "#A28A6E"
+      - "#74767A"
+      - "#929498"
+      - "#B0B2B6"
+      - "#CED0D4"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [46, 15]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_outer_fur_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 17, 82, 59]
+    object_size_px: [32, 26]
+    object_placement_px: [48, 20]
+    plate_size_px: [32, 26]
+    plate_opaque_px: 591
+    material: drawn
+    material_name: Fur-lined cloak
+    material_layer: outer
+    material_wealth_step: 2
+    material_form: outer_cloak
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#5C4A38"
+      - "#725E48"
+      - "#8A745A"
+      - "#A28A6E"
+      - "#74767A"
+      - "#929498"
+      - "#B0B2B6"
+      - "#CED0D4"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [48, 20]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_armour_leather_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 32, 78, 49]
+    object_size_px: [26, 12]
+    object_placement_px: [51, 35]
+    plate_size_px: [26, 12]
+    plate_opaque_px: 248
+    material: drawn
+    material_name: Leather byrnie
+    material_layer: armour
+    material_wealth_step: 1
+    material_form: armour_byrnie
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [51, 35]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_armour_leather_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 13, 85, 41]
+    object_size_px: [36, 23]
+    object_placement_px: [46, 16]
+    plate_size_px: [36, 23]
+    plate_opaque_px: 688
+    material: drawn
+    material_name: Leather byrnie
+    material_layer: armour
+    material_wealth_step: 1
+    material_form: armour_byrnie
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [46, 16]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_armour_leather_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 18, 82, 44]
+    object_size_px: [32, 21]
+    object_placement_px: [48, 21]
+    plate_size_px: [32, 21]
+    plate_opaque_px: 522
+    material: drawn
+    material_name: Leather byrnie
+    material_layer: armour
+    material_wealth_step: 1
+    material_form: armour_byrnie
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#2C2016"
+      - "#403020"
+      - "#56422C"
+      - "#6E563A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [48, 21]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_armour_mail_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 32, 78, 49]
+    object_size_px: [26, 12]
+    object_placement_px: [51, 35]
+    plate_size_px: [26, 12]
+    plate_opaque_px: 249
+    material: drawn
+    material_name: Mail byrnie
+    material_layer: armour
+    material_wealth_step: 2
+    material_form: armour_byrnie
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#3A3C40"
+      - "#505358"
+      - "#686C70"
+      - "#82868A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [51, 35]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_armour_mail_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 13, 85, 41]
+    object_size_px: [36, 23]
+    object_placement_px: [46, 16]
+    plate_size_px: [36, 23]
+    plate_opaque_px: 690
+    material: drawn
+    material_name: Mail byrnie
+    material_layer: armour
+    material_wealth_step: 2
+    material_form: armour_byrnie
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#3A3C40"
+      - "#505358"
+      - "#686C70"
+      - "#82868A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [46, 16]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_armour_mail_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 18, 82, 44]
+    object_size_px: [32, 21]
+    object_placement_px: [48, 21]
+    plate_size_px: [32, 21]
+    plate_opaque_px: 524
+    material: drawn
+    material_name: Mail byrnie
+    material_layer: armour
+    material_wealth_step: 2
+    material_form: armour_byrnie
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#3A3C40"
+      - "#505358"
+      - "#686C70"
+      - "#82868A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [48, 21]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_head_coif_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 20, 78, 45]
+    object_size_px: [14, 8]
+    object_placement_px: [57, 25]
+    plate_size_px: [14, 8]
+    plate_opaque_px: 102
+    material: drawn
+    material_name: Linen coif or straw hat
+    material_layer: head
+    material_wealth_step: 0
+    material_form: head_cover
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#686256"
+      - "#7E786A"
+      - "#948E7E"
+      - "#AAA492"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [57, 25]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_head_coif_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 2, 85, 26]
+    object_size_px: [12, 7]
+    object_placement_px: [58, 7]
+    plate_size_px: [12, 7]
+    plate_opaque_px: 78
+    material: drawn
+    material_name: Linen coif or straw hat
+    material_layer: head
+    material_wealth_step: 0
+    material_form: head_cover
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#686256"
+      - "#7E786A"
+      - "#948E7E"
+      - "#AAA492"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [58, 7]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_head_coif_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 8, 82, 31]
+    object_size_px: [12, 7]
+    object_placement_px: [62, 13]
+    plate_size_px: [12, 7]
+    plate_opaque_px: 76
+    material: drawn
+    material_name: Linen coif or straw hat
+    material_layer: head
+    material_wealth_step: 0
+    material_form: head_cover
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#686256"
+      - "#7E786A"
+      - "#948E7E"
+      - "#AAA492"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [62, 13]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_head_helm_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 20, 78, 45]
+    object_size_px: [14, 10]
+    object_placement_px: [57, 25]
+    plate_size_px: [14, 10]
+    plate_opaque_px: 82
+    material: drawn
+    material_name: Nasal helm
+    material_layer: head
+    material_wealth_step: 2
+    material_form: head_helm
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#3A3C40"
+      - "#505358"
+      - "#686C70"
+      - "#82868A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [57, 25]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_head_helm_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 2, 85, 26]
+    object_size_px: [12, 9]
+    object_placement_px: [58, 7]
+    plate_size_px: [12, 9]
+    plate_opaque_px: 75
+    material: drawn
+    material_name: Nasal helm
+    material_layer: head
+    material_wealth_step: 2
+    material_form: head_helm
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#3A3C40"
+      - "#505358"
+      - "#686C70"
+      - "#82868A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [58, 7]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_head_helm_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 8, 82, 31]
+    object_size_px: [12, 8]
+    object_placement_px: [62, 13]
+    plate_size_px: [12, 8]
+    plate_opaque_px: 61
+    material: drawn
+    material_name: Nasal helm
+    material_layer: head
+    material_wealth_step: 2
+    material_form: head_helm
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#3A3C40"
+      - "#505358"
+      - "#686C70"
+      - "#82868A"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [62, 13]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_rank_iron_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 33, 78, 48]
+    object_size_px: [9, 8]
+    object_placement_px: [63, 36]
+    plate_size_px: [9, 8]
+    plate_opaque_px: 47
+    material: drawn
+    material_name: Iron brooch
+    material_layer: rank
+    material_wealth_step: 1
+    material_form: rank_pin
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#282C30"
+      - "#3A3F44"
+      - "#50555A"
+      - "#686C70"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [63, 36]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_rank_iron_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 14, 85, 28]
+    object_size_px: [9, 8]
+    object_placement_px: [65, 17]
+    plate_size_px: [9, 8]
+    plate_opaque_px: 44
+    material: drawn
+    material_name: Iron brooch
+    material_layer: rank
+    material_wealth_step: 1
+    material_form: rank_pin
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#282C30"
+      - "#3A3F44"
+      - "#50555A"
+      - "#686C70"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [65, 17]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_rank_iron_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 19, 82, 32]
+    object_size_px: [9, 8]
+    object_placement_px: [64, 22]
+    plate_size_px: [9, 8]
+    plate_opaque_px: 47
+    material: drawn
+    material_name: Iron brooch
+    material_layer: rank
+    material_wealth_step: 1
+    material_form: rank_pin
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#282C30"
+      - "#3A3F44"
+      - "#50555A"
+      - "#686C70"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [64, 22]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_rank_silver_child
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_child
+    expected_band_px: [50, 33, 78, 48]
+    object_size_px: [17, 6]
+    object_placement_px: [56, 40]
+    plate_size_px: [17, 6]
+    plate_opaque_px: 49
+    material: drawn
+    material_name: Silver brooch and neck ring
+    material_layer: rank
+    material_wealth_step: 2
+    material_form: rank_torc
+    material_age_class: child
+    body_id: actor_child
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#74767A"
+      - "#929498"
+      - "#B0B2B6"
+      - "#CED0D4"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [56, 40]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_rank_silver_adult
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_adult
+    expected_band_px: [43, 14, 85, 28]
+    object_size_px: [15, 5]
+    object_placement_px: [57, 21]
+    plate_size_px: [15, 5]
+    plate_opaque_px: 45
+    material: drawn
+    material_name: Silver brooch and neck ring
+    material_layer: rank
+    material_wealth_step: 2
+    material_form: rank_torc
+    material_age_class: adult
+    body_id: actor_adult
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#74767A"
+      - "#929498"
+      - "#B0B2B6"
+      - "#CED0D4"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [57, 21]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: garment_rank_silver_elder
+    source_file: null  # drawn, not keyed from a render
+    anchor_status: proof_ground_contact_64_64
+    placement: actor_frame
+    guide_ghost: actor_elder
+    expected_band_px: [46, 19, 82, 32]
+    object_size_px: [15, 5]
+    object_placement_px: [57, 26]
+    plate_size_px: [15, 5]
+    plate_opaque_px: 43
+    material: drawn
+    material_name: Silver brooch and neck ring
+    material_layer: rank
+    material_wealth_step: 2
+    material_form: rank_torc
+    material_age_class: elder
+    body_id: actor_elder
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#74767A"
+      - "#929498"
+      - "#B0B2B6"
+      - "#CED0D4"
+      - "#1A140F"
+      - "#120E0A"
+      - "#2C2218"
+    plate_placement_px: [57, 26]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: hazard_wolves
+    source_file: flat2d_proof/sources/hazard_wolves.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [35, 21]
+    object_placement_px: [47, 44]
+    plate_size_px: [39, 24]
+    plate_opaque_px: 674
+    material: drawn
+    material_name: Wolf den
+    material_form: den
+    material_carrier_field: Hazard.kind
+    material_carrier_value: wolves
+    hazard_catalog_id: wolves
+    knowledge_cue: observed
+    material_ramp:
+      - "#2E2218"
+      - "#423222"
+      - "#58442E"
+      - "#70583C"
+      - "#342E2A"
+      - "#4A423C"
+      - "#625850"
+      - "#7C7064"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [45, 44]
+    status: proof_generated
+    data_carrier: Hazard.kind
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: hazard_bog
+    source_file: flat2d_proof/sources/hazard_bog.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [49, 23]
+    object_placement_px: [40, 42]
+    plate_size_px: [49, 27]
+    plate_opaque_px: 871
+    material: drawn
+    material_name: Bog
+    material_form: mire
+    material_carrier_field: Hazard.kind
+    material_carrier_value: bog
+    hazard_catalog_id: bog
+    knowledge_cue: observed
+    material_ramp:
+      - "#261E18"
+      - "#362C22"
+      - "#483C2E"
+      - "#5C4E3C"
+      - "#222C30"
+      - "#303E42"
+      - "#405254"
+      - "#546868"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [40, 42]
+    status: proof_generated
+    data_carrier: Hazard.kind
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: hazard_band
+    source_file: flat2d_proof/sources/hazard_band.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [24, 31]
+    object_placement_px: [53, 34]
+    plate_size_px: [27, 33]
+    plate_opaque_px: 479
+    material: drawn
+    material_name: Camp
+    material_form: camp
+    material_carrier_field: Hazard.kind
+    material_carrier_value: band
+    hazard_catalog_id: band
+    knowledge_cue: observed
+    material_ramp:
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#483E32"
+      - "#5E5242"
+      - "#766854"
+      - "#8E7E68"
+      - "#5C5A56"
+      - "#787670"
+      - "#96948E"
+      - "#B2B0AA"
+      - "#963E1E"
+      - "#BA6028"
+      - "#D6883E"
+      - "#ECB060"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [51, 34]
+    status: proof_generated
+    data_carrier: Hazard.kind
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: camp_wagon
+    source_file: flat2d_proof/sources/camp_wagon.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [51, 17]
+    object_placement_px: [35, 48]
+    plate_size_px: [54, 21]
+    plate_opaque_px: 766
+    material: drawn
+    material_name: Wagon camp
+    material_form: wagon_camp
+    game_form: wagon_camp
+    material_carrier_field: Pack.kind
+    material_ramp:
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#423A30"
+      - "#584E40"
+      - "#706452"
+      - "#8A7C68"
+      - "#5C5A56"
+      - "#787670"
+      - "#96948E"
+      - "#B2B0AA"
+      - "#963E1E"
+      - "#BA6028"
+      - "#D6883E"
+      - "#ECB060"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [35, 48]
+    status: proof_generated
+    data_carrier: Pack.kind
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: camp_tent
+    source_file: flat2d_proof/sources/camp_tent.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [33, 23]
+    object_placement_px: [49, 42]
+    plate_size_px: [37, 26]
+    plate_opaque_px: 536
+    material: drawn
+    material_name: Tent camp
+    material_form: tent_camp
+    game_form: tent_camp
+    material_carrier_field: Pack.kind
+    material_ramp:
+      - "#423A30"
+      - "#584E40"
+      - "#706452"
+      - "#8A7C68"
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#963E1E"
+      - "#BA6028"
+      - "#D6883E"
+      - "#ECB060"
+      - "#5C5A56"
+      - "#787670"
+      - "#96948E"
+      - "#B2B0AA"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [46, 42]
+    status: proof_generated
+    data_carrier: Pack.kind
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: camp_pavilion
+    source_file: flat2d_proof/sources/camp_pavilion.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [45, 50]
+    object_placement_px: [46, 15]
+    plate_size_px: [51, 54]
+    plate_opaque_px: 987
+    material: drawn
+    material_name: Lord's pavilion
+    material_form: pavilion_camp
+    game_form: pavilion_camp
+    material_carrier_field: Household.legal_status_id
+    material_ramp:
+      - "#423A30"
+      - "#584E40"
+      - "#706452"
+      - "#8A7C68"
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#963E1E"
+      - "#BA6028"
+      - "#D6883E"
+      - "#ECB060"
+      - "#5C5A56"
+      - "#787670"
+      - "#96948E"
+      - "#B2B0AA"
+      - "#383430"
+      - "#4E4A44"
+      - "#66625C"
+      - "#7E7A74"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [40, 15]
+    status: proof_generated
+    data_carrier: Household.legal_status_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: camp_fortified
+    source_file: flat2d_proof/sources/camp_fortified.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [53, 31]
+    object_placement_px: [38, 34]
+    plate_size_px: [53, 35]
+    plate_opaque_px: 1171
+    material: drawn
+    material_name: Palisaded host camp
+    material_form: fortified_camp
+    game_form: fortified_camp
+    material_carrier_field: Pack.purpose
+    material_ramp:
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#423A30"
+      - "#584E40"
+      - "#706452"
+      - "#8A7C68"
+      - "#5C5A56"
+      - "#787670"
+      - "#96948E"
+      - "#B2B0AA"
+      - "#963E1E"
+      - "#BA6028"
+      - "#D6883E"
+      - "#ECB060"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [38, 34]
+    status: proof_generated
+    data_carrier: Pack.purpose
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: camp_campfire
+    source_file: flat2d_proof/sources/camp_campfire.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [35, 19]
+    object_placement_px: [47, 46]
+    plate_size_px: [39, 22]
+    plate_opaque_px: 316
+    material: drawn
+    material_name: Campfire
+    material_form: campfire_camp
+    game_form: campfire_camp
+    material_carrier_field: Pack.purpose
+    material_ramp:
+      - "#5C5A56"
+      - "#787670"
+      - "#96948E"
+      - "#B2B0AA"
+      - "#963E1E"
+      - "#BA6028"
+      - "#D6883E"
+      - "#ECB060"
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [45, 46]
+    status: proof_generated
+    data_carrier: Pack.purpose
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: camp_foot_pot
+    source_file: flat2d_proof/sources/camp_foot_pot.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [9, 14]
+    object_placement_px: [60, 51]
+    plate_size_px: [11, 16]
+    plate_opaque_px: 76
+    material: drawn
+    material_name: Watchman's pot
+    material_form: foot_pot_camp
+    game_form: foot_pot_camp
+    material_carrier_field: Pack.purpose
+    material_ramp:
+      - "#5C5A56"
+      - "#787670"
+      - "#96948E"
+      - "#B2B0AA"
+      - "#963E1E"
+      - "#BA6028"
+      - "#D6883E"
+      - "#ECB060"
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [59, 51]
+    status: proof_generated
+    data_carrier: Pack.purpose
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: camp_lost_caravan
+    source_file: flat2d_proof/sources/camp_lost_caravan.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [21, 7]
+    object_placement_px: [58, 58]
+    plate_size_px: [27, 9]
+    plate_opaque_px: 196
+    material: drawn
+    material_name: Lost caravan
+    material_form: lost_camp
+    game_form: lost_caravan
+    material_carrier_field: Tile.lost_caravan
+    material_ramp:
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#383430"
+      - "#4E4A44"
+      - "#66625C"
+      - "#7E7A74"
+      - "#423A30"
+      - "#584E40"
+      - "#706452"
+      - "#8A7C68"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [52, 58]
+    status: proof_generated
+    data_carrier: Tile.lost_caravan
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: site_pier
+    source_file: flat2d_proof/sources/site_pier.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [65, 21]
+    object_placement_px: [18, 44]
+    plate_size_px: [71, 25]
+    plate_opaque_px: 729
+    material: drawn
+    material_name: Pier
+    material_form: pier
+    game_form: pier
+    material_carrier_field: Tile.mooring
+    material_ramp:
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#322418"
+      - "#463422"
+      - "#5C442E"
+      - "#72583A"
+      - "#423A30"
+      - "#584E40"
+      - "#706452"
+      - "#8A7C68"
+      - "#222C30"
+      - "#303E42"
+      - "#405254"
+      - "#546868"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [18, 44]
+    status: proof_generated
+    data_carrier: Tile.mooring
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: site_waystation
+    source_file: flat2d_proof/sources/site_waystation.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [41, 24]
+    object_placement_px: [44, 41]
+    plate_size_px: [47, 27]
+    plate_opaque_px: 697
+    material: drawn
+    material_name: Waystation
+    material_form: shed_with_stack
+    game_form: waystation
+    material_carrier_field: Tile.waystation
+    material_ramp:
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#423A30"
+      - "#584E40"
+      - "#706452"
+      - "#8A7C68"
+      - "#5C5A56"
+      - "#787670"
+      - "#96948E"
+      - "#B2B0AA"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [41, 41]
+    status: proof_generated
+    data_carrier: Tile.waystation
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: site_tavern
+    source_file: flat2d_proof/sources/site_tavern.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [45, 31]
+    object_placement_px: [42, 34]
+    plate_size_px: [49, 35]
+    plate_opaque_px: 1334
+    material: drawn
+    material_name: Tavern site
+    material_form: wide_house
+    game_form: tavern_site
+    material_carrier_field: Tile.tavern
+    material_ramp:
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#423A30"
+      - "#584E40"
+      - "#706452"
+      - "#8A7C68"
+      - "#544220"
+      - "#6C562A"
+      - "#866E38"
+      - "#A08648"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [40, 34]
+    status: proof_generated
+    data_carrier: Tile.tavern
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: site_iron_mine
+    source_file: flat2d_proof/sources/site_iron_mine.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [35, 25]
+    object_placement_px: [47, 40]
+    plate_size_px: [39, 28]
+    plate_opaque_px: 902
+    material: drawn
+    material_name: Iron mine
+    material_form: adit
+    game_form: iron_mine
+    material_carrier_field: Tile.mine
+    material_ramp:
+      - "#2E2218"
+      - "#423222"
+      - "#58442E"
+      - "#70583C"
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#383430"
+      - "#4E4A44"
+      - "#66625C"
+      - "#7E7A74"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [45, 40]
+    status: proof_generated
+    data_carrier: Tile.mine
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: site_hermitage
+    source_file: flat2d_proof/sources/site_hermitage.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [27, 24]
+    object_placement_px: [51, 41]
+    plate_size_px: [31, 26]
+    plate_opaque_px: 542
+    material: drawn
+    material_name: Hermitage
+    material_form: lean_to
+    game_form: hermitage
+    material_carrier_field: Tile.hermitage
+    material_ramp:
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#423A30"
+      - "#584E40"
+      - "#706452"
+      - "#8A7C68"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [49, 41]
+    status: proof_generated
+    data_carrier: Tile.hermitage
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: site_smoke
+    source_file: flat2d_proof/sources/site_smoke.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [11, 33]
+    object_placement_px: [62, 32]
+    plate_size_px: [15, 35]
+    plate_opaque_px: 211
+    material: drawn
+    material_name: Smoke
+    material_form: smoke_only
+    game_form: smoke_site
+    material_carrier_field: Tile.smoke
+    material_ramp:
+      - "#5C5A56"
+      - "#787670"
+      - "#96948E"
+      - "#B2B0AA"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [58, 32]
+    status: proof_generated
+    data_carrier: Tile.smoke
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: site_baron_castle
+    source_file: flat2d_proof/sources/site_baron_castle.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [53, 45]
+    object_placement_px: [38, 20]
+    plate_size_px: [53, 49]
+    plate_opaque_px: 2116
+    material: drawn
+    material_name: Baron's castle
+    material_form: keep
+    game_form: baron_castle
+    material_carrier_field: Tile.castle
+    material_ramp:
+      - "#403E3A"
+      - "#585650"
+      - "#72706A"
+      - "#8E8C84"
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#544220"
+      - "#6C562A"
+      - "#866E38"
+      - "#A08648"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [38, 20]
+    status: proof_generated
+    data_carrier: Tile.castle
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: site_city_quarter
+    source_file: flat2d_proof/sources/site_city_quarter.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [48, 33]
+    object_placement_px: [40, 32]
+    plate_size_px: [49, 37]
+    plate_opaque_px: 1518
+    material: drawn
+    material_name: City quarter
+    material_form: row_houses
+    game_form: city_quarter
+    material_carrier_field: Tile.urban
+    material_ramp:
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#544220"
+      - "#6C562A"
+      - "#866E38"
+      - "#A08648"
+      - "#423A30"
+      - "#584E40"
+      - "#706452"
+      - "#8A7C68"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [40, 32]
+    status: proof_generated
+    data_carrier: Tile.urban
+    data_carrier_kind: optional_attribute
+    sprite_selector: none
+  - id: site_ruin
+    source_file: flat2d_proof/sources/site_ruin.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [46, 25]
+    object_placement_px: [41, 40]
+    plate_size_px: [49, 29]
+    plate_opaque_px: 804
+    material: drawn
+    material_name: Ruin
+    material_form: ruin
+    game_form: ruin_site
+    material_carrier_field: Tile.ruin_id
+    material_ramp:
+      - "#403E3A"
+      - "#585650"
+      - "#72706A"
+      - "#8E8C84"
+      - "#2E2218"
+      - "#423222"
+      - "#58442E"
+      - "#70583C"
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [40, 40]
+    status: proof_generated
+    data_carrier: Tile.ruin_id
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: site_salt_works
+    source_file: flat2d_proof/sources/site_salt_works.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [47, 16]
+    object_placement_px: [43, 49]
+    plate_size_px: [50, 20]
+    plate_opaque_px: 676
+    material: drawn
+    material_name: Salt works
+    material_form: salt_pans
+    game_form: salt_settlement
+    material_carrier_field: Settlement.kind
+    material_ramp:
+      - "#222C30"
+      - "#303E42"
+      - "#405254"
+      - "#546868"
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#929088"
+      - "#ACAAA2"
+      - "#C6C4BC"
+      - "#DCDAD2"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [40, 49]
+    status: proof_generated
+    data_carrier: Settlement.kind
+    data_carrier_kind: declared_field
+    sprite_selector: none
+  - id: site_tribal_village
+    source_file: flat2d_proof/sources/site_tribal_village.png
+    anchor_status: proof_ground_contact_64_64
+    placement: ground_anchored
+    object_size_px: [41, 18]
+    object_placement_px: [44, 47]
+    plate_size_px: [47, 21]
+    plate_opaque_px: 455
+    material: drawn
+    material_name: Tribal village
+    material_form: native_huts
+    game_form: tribal_village
+    material_carrier_field: Settlement.kind
+    material_ramp:
+      - "#2C2016"
+      - "#423222"
+      - "#5A462E"
+      - "#745C3E"
+      - "#423A30"
+      - "#584E40"
+      - "#706452"
+      - "#8A7C68"
+      - "#2E2218"
+      - "#423222"
+      - "#58442E"
+      - "#70583C"
+      - "#544220"
+      - "#6C562A"
+      - "#866E38"
+      - "#A08648"
+      - "#16120E"
+      - "#100D0A"
+      - "#221C16"
+    plate_placement_px: [41, 47]
+    status: proof_generated
+    data_carrier: Settlement.kind
+    data_carrier_kind: declared_field
+    sprite_selector: none

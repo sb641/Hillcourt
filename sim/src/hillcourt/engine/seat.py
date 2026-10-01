@@ -31,10 +31,10 @@ from __future__ import annotations
 
 from .hexgrid import (
     axial_distance,
-    axial_is_neighbor,
     neighbor_ids,
-    offset_to_axial,
+    parse_tile_id,
     tile_id_at,
+    tile_ids_are_neighbor,
 )
 
 
@@ -54,22 +54,11 @@ def _tile_id(x: int, y: int) -> str:
 def _parse_tile_id(tile_id: str) -> tuple[int, int] | None:
     """Аксиальные координаты клетки из id `t_XX_YY`; None — чужой формат.
 
-    Id хранит координаты карты (`col`/`row`), а сравнения идут по аксиальным
-    `Tile.coord`, поэтому здесь перевод через `offset_to_axial` (ADR 0071).
+    Тонкая обёртка над `hexgrid.parse_tile_id`: разбор формата id принадлежит
+    `hexgrid` (ADR 0203), а здесь он нужен как «внутреннее имя модуля» для
+    расчёта радиусов. Второго разбора строки в `sim/` потому и нет.
     """
-    parsed = _parse_offset(tile_id)
-    if parsed is None:
-        return None
-    return offset_to_axial(*parsed)
-
-
-def _parse_offset(tile_id: str) -> tuple[int, int] | None:
-    """Координаты карты (`col`/`row`) из id `t_XX_YY`; None — чужой формат."""
-    try:
-        _, xs, ys = tile_id.split("_")
-        return int(xs), int(ys)
-    except (ValueError, AttributeError):
-        return None
+    return parse_tile_id(tile_id)
 
 
 def manhattan(a: tuple[int, int], b: tuple[int, int]) -> int:
@@ -209,12 +198,12 @@ def _add_months(date, months: int, months_per_year: int):
 
 
 def _adjacent(origin: str, destination: str) -> bool:
-    """Соседние ли клетки по гекс-сетке (без pathfinding, ADR 0071)."""
-    a = _parse_tile_id(origin)
-    b = _parse_tile_id(destination)
-    if a is None or b is None:
-        return False
-    return axial_is_neighbor(a, b)
+    """Соседние ли клетки по гекс-сетке (без pathfinding, ADR 0071, ADR 0203).
+
+    Определения смежности здесь нет: вопрос задаёт `hexgrid`, а этот модуль
+    спрашивает. Своя копия вопроса — это и был дефект, который чинился в ADR 0203.
+    """
+    return tile_ids_are_neighbor(origin, destination)
 
 
 def _grain_on_tile(world, tile_id: str) -> float:

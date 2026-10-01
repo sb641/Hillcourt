@@ -59,10 +59,11 @@ class TestMonthEvents(unittest.TestCase):
         self.assertEqual(
             event["settlement_id"], SALT_VILLAGE, "Соль ушла не из деревни у соли"
         )
-        self.assertTrue(
-            str(event.get("household_id") or "").startswith("hh_salt"),
-            "Источник соли — не двор деревни",
+        self.assertIsNone(
+            event.get("household_id"),
+            "Источник соли — не склад предприятия",
         )
+        self.assertEqual(event["src_id"], "settlement:salt_village")
         self.assertGreater(event["amount"], 0.0)
         self.assertEqual(event["month"], (event["date"].year, event["date"].month))
 

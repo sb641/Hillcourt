@@ -49,6 +49,12 @@ class TestReliefByBook(unittest.TestCase):
             household.main_action, household.minor_action = "idle_repair", "idle_repair"
 
     def test_thegn_requests_relief_by_own_barn(self) -> None:
+        """Двор тэна с недобором просит подмогу и берёт её из СВОЕГО амбара.
+
+        Гейт выборащика — недобор, а не `hunger_days` (см. предыдущий тест), поэтому
+        зерно двора выводится в ноль: раньше двор оставался сытым, просил он
+        а не подачу — и тест падал на выборе дела, и тест падал на выборе дела.
+        """
         world = self.world
         thegn = grant_thegn(world, THEGN_PERSON, ["t_03_01", "t_05_02"], ["hh_02"])
         self.assertIsNotNone(thegn)
@@ -56,6 +62,7 @@ class TestReliefByBook(unittest.TestCase):
         barn = world.get_stock(thegn.stock_id)
         self._set_grain(barn, 10.0)
         self._set_grain(world.get_stock(CASTLE), 0.0)
+        self._set_grain(world.get_stock(holder.stock_id), 0.0)
         holder.hunger_days = 2
 
         main, _ = decisions.choose_actions(world, holder)
@@ -96,18 +103,26 @@ class TestReliefByBook(unittest.TestCase):
             "Соляной двор без книги просит подмогу у замка",
         )
         self.assertAlmostEqual(world.ledger.delta(world.total_matter()), 0.0, places=6)
-
     def test_root_household_requests_relief_from_castle(self) -> None:
+        """Корневой двор с недобором и полным замком просит подмогу и получает её.
+
+        Гейт выборащика — **недобор** (`economy/decisions.py:261-268`), а не
+        `hunger_days`: тот лишь сортирует очередь. Поэтому стенд доводит двор до
+        недобора (зерно выведено в ноль) и только потом ставит `hunger_days`; раньше
+        двор оставался сытым, и проверка падала на выборе дела.
+        """
         world = self.world
         root_hh = world.households["hh_01"]
         self.assertEqual(root_hh.manor_id, "manor_hill")
         self._set_grain(world.get_stock(CASTLE), 10.0)
+        self._set_grain(world.get_stock(root_hh.stock_id), 0.0)
         root_hh.hunger_days = 2
 
         main, _ = decisions.choose_actions(world, root_hh)
         self.assertEqual(
-            main, "request_relief",
-            "Корневой двор не просит подмогу при зерне в замке",
+            main,
+            "request_relief",
+            "Корневой двор с недобором не просит подмогу при зерне в замке",
         )
 
         self._quiet_actions()

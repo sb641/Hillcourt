@@ -51,7 +51,7 @@ settlements:
   # Третье поле холма t_01_10: второе пожалование (M18) пашет СВОЙ домен,
   # первое (M6) забрало t_05_02, а M18 забирает и последнее доменное поле
   # корня t_06_02: второй тен кормится сам, корень проседает сильнее.
-  - {id: hill_court, name: "Двор на холме", kind: hill_court, at: [1, 1], works_tiles: [[5, 2], [6, 2], [1, 10]]}
+  - {id: hill_court, name: "Двор на холме", kind: hill_court, at: [1, 1], holding_tiles: [[0, 2]], works_tiles: [[5, 2], [6, 2], [1, 10]]}
   - {id: fs_01, name: "Двор Ольхи", kind: farmstead, at: [2, 1]}
   - {id: fs_02, name: "Двор Ключа", kind: farmstead, at: [3, 1]}
   - {id: fs_03, name: "Двор Пня", kind: farmstead, at: [5, 1]}
@@ -62,9 +62,9 @@ settlements:
   - {id: fs_08, name: "Двор Куста", kind: farmstead, at: [4, 2]}
   - {id: fs_09, name: "Двор Кремня", kind: farmstead, at: [6, 3]}
   - {id: fs_10, name: "Двор Смолы", kind: farmstead, at: [7, 3]}
-  - {id: salt_village, name: "Соляная деревня", kind: salt_village, at: [8, 5], works_tiles: [[6, 5], [6, 4], [7, 6]]}
+  - {id: salt_village, name: "Соляная деревня", kind: salt_village, at: [8, 5], works_tiles: [[6, 5], [6, 4], [7, 6], [8, 6]]}
   # Третий посёлок: (2,7) — пустошь, поля (3,7),(4,7),(5,8),(6,8). Путь холм→деревня 7 клеток.
-  - {id: ash_village, name: "Деревня у ясеня", kind: village, at: [2, 7], works_tiles: [[3, 7], [4, 7], [5, 8], [6, 8]]}
+  - {id: ash_village, name: "Деревня у ясеня", kind: village, at: [2, 7], household_tiles: [[2, 7], [3, 7], [4, 7], [5, 8]], works_tiles: [[3, 7], [4, 7], [5, 8], [6, 8]]}
   # Новые хутора на добавленных строках: у каждого своё полевая усадьба.
   # fs_12 держит выпасом соседнее пастбище t_02_09 (waste): выпас закреплён за
   # двором через works_tiles (доступ и так был по соседству — см. hay_pastures),
@@ -97,7 +97,7 @@ households:
   - {id: hh_03, name: "Пни", settlement_id: fs_03, adults: 4, children: 1, legal_status: cotter}
   - {id: hh_04, name: "Грядичи", settlement_id: fs_04, adults: 2, children: 2, legal_status: geneat}
   - {id: hh_05, name: "Плетни", settlement_id: fs_05, adults: 3, children: 3, mood: 0.55, legal_status: villein}
-  - {id: hh_06, name: "Межинцы", settlement_id: fs_06, adults: 2, children: 1, legal_status: free_landless}
+  - {id: hh_06, name: "Межинцы", settlement_id: fs_06, adults: 2, children: 1, legal_status: free_landless, initially_unemployed: true}
   - {id: hh_07, name: "Бродники", settlement_id: fs_07, adults: 3, children: 2, curiosity: 0.9, fear: 0.1, legal_status: sokeman}
   - {id: hh_08, name: "Кусты", settlement_id: fs_08, adults: 2, children: 4, mood: 0.5, legal_status: villein}
   - {id: hh_09, name: "Кремни", settlement_id: fs_09, adults: 4, children: 2, legal_status: geneat}
@@ -112,7 +112,7 @@ households:
   - {id: av_04, name: "Лозовы", settlement_id: ash_village, adults: 2, children: 2, legal_status: sokeman}
   - {id: av_05, name: "Кошелевы", settlement_id: ash_village, adults: 3, children: 0, legal_status: cotter}
   - {id: av_06, name: "Щепины", settlement_id: ash_village, adults: 2, children: 1, legal_status: cotter}
-  - {id: av_07, name: "Бобыли", settlement_id: ash_village, adults: 2, children: 1, legal_status: free_landless}
+  - {id: av_07, name: "Бобыли", settlement_id: ash_village, adults: 2, children: 1, legal_status: free_landless, initially_unemployed: true}
   - {id: av_08, name: "Дубравины", settlement_id: ash_village, adults: 3, children: 2, legal_status: geneat}
   - {id: av_09, name: "Вязовы", settlement_id: ash_village, adults: 3, children: 1, legal_status: sokeman}
   - {id: av_10, name: "Тихие", settlement_id: ash_village, adults: 2, children: 2, legal_status: villein}
@@ -130,10 +130,11 @@ households:
 
 # Стартовые склады. Ключ — "<owner_kind>:<owner_id>".
 starting_stocks:
+  "tile:t_00_01": {log: 12.0, stone: 12.0}  # пни и камень под выкорчёвку
   "household:hh_court": {grain: 120.0, firewood: 20.0, salt: 6.0, axe: 2.0, silver: 10.0}
   "household:hh_retinue": {grain: 20.0, firewood: 6.0, axe: 1.0, iron_bloom: 2.0}
   "settlement:hill_court": {grain: 60.0, salt: 4.0, firewood: 10.0, cart: 1.0, iron_bloom: 3.0}
-  "settlement:salt_village": {grain: 30.0, cart: 1.0}
+  "settlement:salt_village": {grain: 117.6, cart: 1.0}
   "household:hh_01": {grain: 34.0, firewood: 8.0, axe: 1.0}
   "household:hh_02": {grain: 40.0, firewood: 8.0, axe: 1.0}
   "household:hh_03": {grain: 26.0, firewood: 6.0, axe: 1.0, iron_bloom: 2.0}
@@ -196,6 +197,7 @@ starting_stocks:
 #         hh_08; двор держателя hh_03 входит сам. Корень теряет клетку и двор
 #         (проседает сильнее), но третьего тэна нет: лимит grants 2.
 script:
+  - {at_month: 1, action: set_tile_regime, tile: t_00_01, regime: demesne}  # расчистка исполнима: право clear_forest даёт только demesne (ADR 0182)
   - {at_month: 6, action: grant_thegn, person: hh_retinue_p1, tiles: [t_03_01, t_05_02], households: [hh_02]}
   - {at_month: 18, action: grant_thegn, person: hh_03_p1, tiles: [t_01_10, t_04_10, t_06_02], households: [hh_05, hh_08]}
 
